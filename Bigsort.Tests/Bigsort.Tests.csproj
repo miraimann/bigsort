@@ -1,0 +1,93 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{97C7884A-9ED7-48D1-A5E5-0CC6A2D98AB9}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Bigsort.Tests</RootNamespace>
+    <AssemblyName>Bigsort.Tests</AssemblyName>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Castle.Core">
+      <HintPath>..\packages\Castle.Core.4.0.0\lib\net45\Castle.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Moq">
+      <HintPath>..\packages\Moq.4.7.1\lib\net45\Moq.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.framework">
+      <HintPath>..\packages\NUnit.3.6.1\lib\net45\nunit.framework.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AccumulatorsFactoryTests.cs" />
+    <Compile Include="Consts.cs" />
+    <Compile Include="DummyFileWritingStream.cs" />
+    <Compile Include="IndexedInput.cs" />
+    <Compile Include="IndexedInputServiceTests.cs" />
+    <Compile Include="LinesIndexatorTests.cs" />
+    <Compile Include="LinesSorterTests.cs" />
+    <Compile Include="InputOutputTestCase.cs" />
+    <Compile Include="MappedTestCase.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RealTests.cs" />
+    <Compile Include="ResultWriterTests.cs" />
+    <Compile Include="SortersMakerTests.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Bigsort\Bigsort.csproj">
+      <Project>{7c88cb6e-e687-4222-a4e5-3583c10861ff}</Project>
+      <Name>Bigsort</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Bigsort.Contracts\Bigsort.Contracts.csproj">
+      <Project>{6eb892be-e6ba-4b1c-af89-ca87da5fcbd8}</Project>
+      <Name>Bigsort.Contracts</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Bigsort.Implementation\Bigsort.Implementation.csproj">
+      <Project>{750f8e81-6683-494e-99bf-40d7a82aea80}</Project>
+      <Name>Bigsort.Implementation</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Bigsort.Tools.SortedFileChecker\Bigsort.Tools.SortedFileChecker.csproj">
+      <Project>{9e8db469-c8a9-433f-bd30-faac344859d7}</Project>
+      <Name>Bigsort.Tools.SortedFileChecker</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Bigsort.Tools.TestFileGenerator\Bigsort.Tools.TestFileGenerator.csproj">
+      <Project>{6e49f2b9-80f6-473a-bc92-12a9f9cfab11}</Project>
+      <Name>Bigsort.Tools.TestFileGenerator</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

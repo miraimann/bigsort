@@ -1,0 +1,19 @@
+﻿filegen 123_Kb [1-98].[10-100] C:\123.txt
+           ^     ^       ^        ^
+		   0     1       2        3
+
+0) max size of result file (legal units = { b, Kb, Mb, Gb })
+1) number digits count
+2) string length
+4) output file path
+
+format of digits count and string length: [12-34] or [65]
+                                            ^  ^       ^
+                                            a  b       c
+a) from 
+b) to
+c) fixed
+
+min value for numbers = 1 
+min value for string = 0
+
