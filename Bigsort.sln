@@ -17,6 +17,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bigsort", "Bigsort\Bigsort.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bigsort.Tests", "Bigsort.Tests\Bigsort.Tests.csproj", "{97C7884A-9ED7-48D1-A5E5-0CC6A2D98AB9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bigsort2.Contracts", "Bigsort2.Contracts\Bigsort2.Contracts.csproj", "{133D7700-011B-4A65-8162-57478AC7B459}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bigsort2.Implementation", "Bigsort2.Implementation\Bigsort2.Implementation.csproj", "{91B1A9CE-EACA-4C87-9A4C-AC2FADCA9563}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +55,14 @@ Global
 		{97C7884A-9ED7-48D1-A5E5-0CC6A2D98AB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{97C7884A-9ED7-48D1-A5E5-0CC6A2D98AB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{97C7884A-9ED7-48D1-A5E5-0CC6A2D98AB9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{133D7700-011B-4A65-8162-57478AC7B459}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{133D7700-011B-4A65-8162-57478AC7B459}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{133D7700-011B-4A65-8162-57478AC7B459}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{133D7700-011B-4A65-8162-57478AC7B459}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91B1A9CE-EACA-4C87-9A4C-AC2FADCA9563}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91B1A9CE-EACA-4C87-9A4C-AC2FADCA9563}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91B1A9CE-EACA-4C87-9A4C-AC2FADCA9563}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91B1A9CE-EACA-4C87-9A4C-AC2FADCA9563}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
