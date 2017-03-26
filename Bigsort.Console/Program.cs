@@ -72,12 +72,12 @@ namespace Bigsort.Console
 
             //byte[] _1 = {1, 0, 0, 0, 0, 0, 0, 0};
             //byte[] _2 = {0, 0, 0, 0, 0, 0, 0, 1};
-
+            //
             //fixed (byte* _1ptr = _1, _2ptr = _2)
             //{
             //    long* _1longPtr = (long*) _1ptr,
             //          _2longPtr = (long*) _2ptr;
-
+            //
             //    C.WriteLine(*_1longPtr);
             //    C.WriteLine(*_2longPtr);
             //    C.ReadKey();

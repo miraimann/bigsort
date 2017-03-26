@@ -57,6 +57,11 @@ namespace Bigsort2.Implementation
                 _buff = _buffHandler.Value;
             }
 
+            public void Write(IReader reader, long offset, int count)
+            {
+                var r = (Reader) reader;
+            }
+
             public void Write(byte[] array, int offset, int count)
             {
                 if (_offset + count > _buff.Length)
@@ -107,8 +112,9 @@ namespace Bigsort2.Implementation
             : IReader
         {
             private readonly IPooled<byte[]> _buffHandler1, _buffHandler2;
-            private readonly byte[] buff1, buff2;
+            internal byte[] CurrentBuff, PreviousBuff;
             private readonly Stream _stream;
+            internal int Offset;
 
             public Reader(string path, 
                 IPooled<byte[]> buffHandler1,
@@ -116,17 +122,29 @@ namespace Bigsort2.Implementation
             {
                 _buffHandler1 = buffHandler1;
                 _buffHandler2 = buffHandler2;
-                buff1 = buffHandler1.Value;
-                buff2 = buffHandler1.Value;
+
+                CurrentBuff = _buffHandler1.Value;
+                PreviousBuff = _buffHandler2.Value;
 
                 _stream = File.OpenRead(path);
+                _stream.Read(CurrentBuff, 0, CurrentBuff.Length);
             }
 
-            public long Position { get; set; }
+            public long Position =>
+                _stream.Position - CurrentBuff.Length + Offset;
             
             public byte NextByte()
             {
-                throw new NotImplementedException();
+                if (++Offset > CurrentBuff.Length)
+                {
+                    _stream.Read(PreviousBuff, 0, PreviousBuff.Length);
+                    byte[] tmp = CurrentBuff;
+                    CurrentBuff = PreviousBuff;
+                    PreviousBuff = tmp;
+                    Offset = 0;
+                }
+
+                return CurrentBuff[Offset];
             }
 
             public ushort NextUInt16()
@@ -141,7 +159,9 @@ namespace Bigsort2.Implementation
 
             public void Dispose()
             {
-                throw new NotImplementedException();
+                _buffHandler1.Free();
+                _buffHandler2.Free();
+                _stream.Dispose();
             }
         }
     }
