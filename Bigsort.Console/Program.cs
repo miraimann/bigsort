@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.IsolatedStorage;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -13,6 +14,35 @@ namespace Bigsort.Console
     {
         static unsafe void Main(string[] args)
         {
+            #region research 7
+            
+            //using (var stream = File.OpenWrite("E:\\x"))
+            //{
+            //    stream.Write(new byte[] { 1, 2, 3, 4, 5, 6, 7}, 0, 6);
+            //    stream.Position -= 3;
+            //    stream.WriteByte(9);
+            //}
+
+            //using (var stream = File.OpenRead("E:\\x"))
+            //{
+            //    var buff = new byte[6];
+            //    stream.Read(buff, 0, 6);
+            //    foreach (var x in buff)
+            //        C.WriteLine(x);
+            //}
+
+            //File.Delete("E:\\x");
+            //C.ReadKey();
+
+            #endregion
+
+            #region research 6
+
+            //C.WriteLine(23.ToString("000"));
+            //C.ReadKey();
+
+            #endregion
+
             #region research 5
 
             //const int fileSize = 1024 * 1024,

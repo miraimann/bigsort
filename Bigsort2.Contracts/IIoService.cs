@@ -3,21 +3,21 @@ using System.IO;
 
 namespace Bigsort2.Contracts
 {
-    internal interface IIoService
+    public interface IIoService
     {
         string TempDirectory { get; }
 
-        IEnumerable<byte> EnumeratesBytesOf(string path);
+        void SetCurrentDirectory(string pat);
         
-        IReadingStream OpenRead(string path);
+        IReader OpenRead(string path);
 
-        IWritingStream OpenWrite(string path);
+        IWriter OpenWrite(string path);
         
-        IStream CreateInMemory();
+        //IStream CreateInMemory();
 
-        IStream Adapt(MemoryStream stream);
+        //IStream Adapt(MemoryStream stream);
 
-        ITextWriter Adapt(TextWriter writer);
+        //ITextWriter Adapt(TextWriter writer);
 
         void DeleteFile(string path);
     }

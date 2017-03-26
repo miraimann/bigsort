@@ -13,10 +13,33 @@ namespace Bigsort2.Implementation
     public class LineSorter
         : ILinesSorter
     {
+        private readonly string 
+            _partFileNameMask,
+            _partsDirecory;
+
+        private readonly IIoService _ioService;
+        private readonly IConfig _config;
+
+        public LineSorter(IIoService ioService, IConfig config)
+        {
+            _ioService = ioService;
+            _config = config;
+
+            var ushortDigitsCount =
+                (int) Math.Ceiling(Math.Log10(ushort.MaxValue));
+            _partFileNameMask = new string('0', ushortDigitsCount);
+
+            _partsDirecory = Path.Combine(
+                _ioService.TempDirectory, 
+                _config.PartsDirectory);
+            
+            _ioService.SetCurrentDirectory(_partsDirecory);
+        }
+
         public unsafe void Sort(string inputPath, string outputPath)
         {
-            const int buffLength = 64 * 1024,
-                      idLength = sizeof(long);
+            const int buffLength = 64*1024,
+                      maxPartsCount = 96 * 96 + 96 + 1;
 
             const byte dot = (byte) '.', 
                        end = (byte) '\n';
@@ -24,68 +47,58 @@ namespace Bigsort2.Implementation
             var inputReadCount = 0L;
             
             byte[] input = new byte[buffLength],
-                   line = new byte[buffLength],
-                   idBuff = new byte[idLength];
+                   line = new byte[buffLength];
 
-            var partsBuffsPositions = new Dictionary<long, int>(1024);
-            var partsBuffs = new Dictionary<long, byte[]>(1024);
-            
+            var parts = new Dictionary<ushort, IWritingStream>(maxPartsCount);
+
             using (var inputStream = File.OpenRead(inputPath))
             {
                 while ((inputReadCount =
                     inputStream.Read(input, 0, buffLength)) != 0)
                 {
-                    int i = 0, j, k = 0;
+                    int i = 0;
+                    byte digitsCount;
 
-                    // find dot index and number 
-                    // bytes count = digits count
                     while (input[++i] != dot) ;
+                    Array.Copy(input, 0, line, 1, i);
+                    digitsCount = (byte) i;
 
-                    // set number digits count 
-                    // to first line byte
-                    line[0] = (byte) i;
-
-                    // copy number
-                    Array.Copy(input, 0, line, 1, i); 
-
-                    var x = input[j = ++i];
-                    Array.Clear(idBuff, 0, idLength);
-
-                    if (BitConverter.IsLittleEndian)
+                    ushort id = 0;
+                    var first = input[++i];
+                    if (first != end)
                     {
-                        // set 8 letters (8 bytes, 1 long) to idBuff
-                        // (or letters count whicth is equel to line length, 
-                        //  if line length less than 8)
-                        // in reverce order, becouse Little Endian
-                        k = idLength;
-                        while (k > 0 && x != end)
-                            idBuff[--k] = x = input[i++];
+                        var second = input[++i];
+                        if (second == end)
+                            id = first;
+                        else
+                        {
+                            if (BitConverter.IsLittleEndian)
+                            {
+                                input[i - 1] = second;
+                                input[i] = first;
+                            }
 
-                        // if line length less than 8
-                        if (k > 0) // set 0 to two bytes for letters count
-                            line[j++] = line[j++] = 0;
-                    }
-                    else
-                    {
-                        // set 8 letters (8 bytes, 1 long) to idBuff
-                        // (or letters count whicth is equel to line length, 
-                        //  if line length less than 8)
-                        while (k < idLength && x != end)
-                            idBuff[k++] = x = input[i++];
-
-                        // if line length less than 8
-                        if (k < idLength) // set 0 to two bytes for letters count
-                            line[j++] = line[j++] = 0;
+                            id = BitConverter.ToUInt16(input, i - 1);
+                        }
                     }
 
-                    var id = BitConverter.ToInt64(idBuff, 0);
-                    if (!partsBuffs.ContainsKey(id))
+                    if (!parts.ContainsKey(id))
                     {
-                        partsBuffsPositions.Add(id, 0);
-                        partsBuffs.Add(id, new byte[buffLength]);
+                        var name = id.ToString(_partFileNameMask);
+                        parts.Add(id, _ioService.OpenWrite(name));
                     }
+
+                    var part = parts[id];
+                    part.Write(digitsCount);
+                    part.Write(input, 0, digitsCount);
                 }
             }
+        }
+
+        private enum State
+        {
+            NumberReading,
+            StringReading
         }
     }
 }
