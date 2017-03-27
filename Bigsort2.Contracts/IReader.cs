@@ -5,10 +5,6 @@ namespace Bigsort2.Contracts
     public interface IReader
         : IDisposable
     {
-        long Position { get; }
-
-        byte NextByte();
-        ushort NextUInt16();
-        ulong NextUInt64();
+        int Read(byte[] buff, int offset, int count);
     }
 }

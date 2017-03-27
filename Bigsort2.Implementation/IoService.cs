@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Bigsort2.Contracts;
 
 namespace Bigsort2.Implementation
@@ -26,21 +22,20 @@ namespace Bigsort2.Implementation
         public string TempDirectory { get; } =
             Path.GetTempPath();
 
-        public void SetCurrentDirectory(string path) =>
-            Environment.CurrentDirectory = path;
-
-        public IReader OpenRead(string path)
+        public string CurrentDirectory
         {
-            throw new NotImplementedException();
+            get { return Environment.CurrentDirectory; }
+            set { Environment.CurrentDirectory = value; }
         }
+
+        public IReader OpenRead(string path) =>
+            new Reader(path);
 
         public IWriter OpenWrite(string path) =>
             new Writer(path, _buffersPool.Get());
 
-        public void DeleteFile(string path)
-        {
-            throw new NotImplementedException();
-        }
+        public void DeleteFile(string path) =>
+            File.Delete(path);
 
         private class Writer
             : IWriter
@@ -55,11 +50,6 @@ namespace Bigsort2.Implementation
                 _stream = File.OpenWrite(path);
                 _buffHandler = buffHandler;
                 _buff = _buffHandler.Value;
-            }
-
-            public void Write(IReader reader, long offset, int count)
-            {
-                var r = (Reader) reader;
             }
 
             public void Write(byte[] array, int offset, int count)
@@ -111,58 +101,18 @@ namespace Bigsort2.Implementation
         private class Reader
             : IReader
         {
-            private readonly IPooled<byte[]> _buffHandler1, _buffHandler2;
-            internal byte[] CurrentBuff, PreviousBuff;
             private readonly Stream _stream;
-            internal int Offset;
 
-            public Reader(string path, 
-                IPooled<byte[]> buffHandler1,
-                IPooled<byte[]> buffHandler2)
+            public Reader(string path)
             {
-                _buffHandler1 = buffHandler1;
-                _buffHandler2 = buffHandler2;
-
-                CurrentBuff = _buffHandler1.Value;
-                PreviousBuff = _buffHandler2.Value;
-
                 _stream = File.OpenRead(path);
-                _stream.Read(CurrentBuff, 0, CurrentBuff.Length);
             }
 
-            public long Position =>
-                _stream.Position - CurrentBuff.Length + Offset;
-            
-            public byte NextByte()
-            {
-                if (++Offset > CurrentBuff.Length)
-                {
-                    _stream.Read(PreviousBuff, 0, PreviousBuff.Length);
-                    byte[] tmp = CurrentBuff;
-                    CurrentBuff = PreviousBuff;
-                    PreviousBuff = tmp;
-                    Offset = 0;
-                }
+            public int Read(byte[] buff, int offset, int count) =>
+                _stream.Read(buff, offset, count);
 
-                return CurrentBuff[Offset];
-            }
-
-            public ushort NextUInt16()
-            {
-                throw new NotImplementedException();
-            }
-
-            public ulong NextUInt64()
-            {
-                throw new NotImplementedException();
-            }
-
-            public void Dispose()
-            {
-                _buffHandler1.Free();
-                _buffHandler2.Free();
+            public void Dispose() =>
                 _stream.Dispose();
-            }
         }
     }
 }

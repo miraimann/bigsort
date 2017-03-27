@@ -41,6 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IConfig.cs" />
+    <Compile Include="IGrouper.cs" />
     <Compile Include="IIoService.cs" />
     <Compile Include="ILinesSorter.cs" />
     <Compile Include="IPool.cs" />

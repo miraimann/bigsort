@@ -10,12 +10,68 @@ namespace Bigsort.Console
 {
     using C = System.Console;
 
+    #region research 8
+
+    class DisposableFactory
+    {
+        public IDisposable Make(Action action) =>
+            new Disposable(action);
+
+        private class Disposable : IDisposable
+        {
+            private readonly Action _action;
+
+            public Disposable(Action action)
+            {
+                _action = action;
+            }
+
+            public void Dispose() =>
+                _action();
+        }
+    }
+
+    #endregion
+
     class Program
     {
         static unsafe void Main(string[] args)
         {
+            #region research 9
+
+            //byte[] buff = {1, 2, 3, 4, 5, 6, 7, 8};
+            //for (char i = ' '; i <= '~'; ++i)
+            //    try
+            //    {
+            //        using (var stream = File.OpenWrite($"E:\\{i}"))
+            //            stream.Write(buff, 0, buff.Length);
+            //    }
+            //    catch (Exception)
+            //    {
+            //        C.Write(i);
+            //    }
+
+            //C.ReadKey();
+
+            #endregion
+
+            #region research 8
+
+            //var f = new DisposableFactory();
+            //IDisposable x = null;
+            //using (x)
+            //{
+            //    x = f.Make(() =>
+            //    {
+            //        C.WriteLine("!!!!");
+            //        C.ReadKey();
+            //    });
+            //}
+
+            #endregion
+
             #region research 7
-            
+
             //using (var stream = File.OpenWrite("E:\\x"))
             //{
             //    stream.Write(new byte[] { 1, 2, 3, 4, 5, 6, 7}, 0, 6);
@@ -70,14 +126,14 @@ namespace Bigsort.Console
 
             #region research 4
 
-            //byte[] _1 = {1, 0, 0, 0, 0, 0, 0, 0};
-            //byte[] _2 = {0, 0, 0, 0, 0, 0, 0, 1};
-            //
+            //byte[] _1 = { 1, 0, 0, 0, 0, 0, 0, 0 };
+            //byte[] _2 = { 0, 0, 0, 0, 0, 0, 0, 1 };
+
             //fixed (byte* _1ptr = _1, _2ptr = _2)
             //{
-            //    long* _1longPtr = (long*) _1ptr,
-            //          _2longPtr = (long*) _2ptr;
-            //
+            //    long* _1longPtr = (long*)_1ptr,
+            //          _2longPtr = (long*)_2ptr;
+
             //    C.WriteLine(*_1longPtr);
             //    C.WriteLine(*_2longPtr);
             //    C.ReadKey();
@@ -88,10 +144,19 @@ namespace Bigsort.Console
             #region research 3
 
             //C.WriteLine(BitConverter.ToInt64(
-            //    new byte[] {1, 0, 0, 0, 0, 0, 0, 0}, 0));
+            //    new byte[] { 1, 0, 0, 0, 0, 0, 0, 0 }, 0));
 
             //C.WriteLine(BitConverter.ToInt64(
-            //    new byte[] {0, 0, 0, 0, 0, 0, 0, 1}, 0));
+            //    new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 }, 0));
+
+            //C.WriteLine(BitConverter.ToInt64(
+            //    new byte[] { 1, 2, 0, 0, 0, 0, 0, 0 }, 0));
+
+            //C.WriteLine(BitConverter.ToInt64(
+            //    new byte[] { 2, 1, 0, 0, 0, 0, 0, 0 }, 0));
+
+            //C.WriteLine(BitConverter.ToInt64(
+            //    new byte[] { 0, 0, 0, 0, 0, 0, 1, 2 }, 0));
 
             //C.ReadKey();
 
