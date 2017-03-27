@@ -1,9 +1,9 @@
-﻿using System;
+﻿#define DETAILED
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Bigsort2.Contracts;
 using Bigsort2.Implementation;
 using Moq;
@@ -14,6 +14,7 @@ namespace Bigsort2.Tests
     [TestFixture]
     public partial class GrouperTests
     {
+        [Timeout(10000)]
         [TestCaseSource(nameof(Cases))]
         public void Test(TestCase testCase)
         {
@@ -81,10 +82,23 @@ namespace Bigsort2.Tests
                 configMock.Object);
 
             grouper.SplitToGroups(inputPath);
-            
+ 
+#if DETAILED
+            Assert.AreEqual(
+                testCase.ExpectedResult.Count,
+                realResult.Count);
+
+            foreach (var key in testCase.ExpectedResult.Keys)
+                CollectionAssert.AreEquivalent(
+                    testCase.ExpectedResult[key],
+                    realResult[key]);
+#else
             CollectionAssert.AreEquivalent(
                 testCase.ExpectedResult,
                 realResult);
+#endif 
+
+
         }
 
         public class TestCase
@@ -122,6 +136,9 @@ namespace Bigsort2.Tests
             new string(numbers.Select(o => (char) o).ToArray());
 
         private static string id(string key) =>
-            (key[0]*byte.MaxValue + key[1]).ToString("00000");
+            ( key.Length == 0 ? 0 
+            : key.Length == 1 ? key[0] * byte.MaxValue
+                              : key[0] * byte.MaxValue + key[1]
+            ).ToString("00000");
     }
 }

@@ -41,10 +41,13 @@ namespace Bigsort2.Implementation
                        endLine = (byte)'\r',
                        endStream = 0,
                        endBuff = 1;
+
+            const int current = 0, 
+                     previous = 1;
             
-            byte[] prevBuff = new byte[buffLength],
-                   buff = new byte[buffLength],
-                   lettersCountBuff;
+            byte[][] buffs = new byte[2][];
+            buffs[current] = new byte[buffLength];
+            buffs[previous] = new byte[buffLength];
 
             var parts = new Dictionary<ushort, IWriter>(maxPartsCount);
             var prevCurrentDirectory = _ioService.CurrentDirectory;
@@ -59,174 +62,171 @@ namespace Bigsort2.Implementation
                     lettersCount = 0,
                     digitsCountByte = 1,
                     digitsCount = 0,
-                    i = digitsCountByte;
+                    i = 2;
 
                 ushort id = 0;
                 byte c;
 
                 int countForRead = lastBuffIndex - linePrefixLength;
-                int count = inputStream.Read(buff, linePrefixLength, countForRead);
+                int count = inputStream.Read(buffs[current], linePrefixLength, countForRead);
                 if (count == countForRead)
-                    buff[lastBuffIndex] = endBuff;
-                else buff[count + 1] = endStream;
+                    buffs[current][lastBuffIndex] = endBuff;
+                else buffs[current][count + 1] = endStream;
 
-                State backState = State.LoadNextBuff,
+                State backState = State.None,
                       state = State.ReadNumber;
 
                 while (true)
                 {
+                    var currentBuff = buffs[current];
                     switch (state)
                     {
                         case State.ReadNumber:
                             
-                            while (buff[++i] > dot) ;
-                            digitsCount = i - digitsCountByte - 1;
-                            if (buff[i] == dot)
+                            while (currentBuff[i] > dot) i++;
+
+                            if (digitsCountByte < buffLength)
+                                digitsCount += (i - digitsCountByte - 1);
+
+                            if (currentBuff[i] == dot)
                             {
-                                buff[digitsCountByte] = (byte)digitsCount;
-                                lettersCountByte2 = i;
+                                if (digitsCountByte > buffLength)
+                                    digitsCount += i;
+
+                                buffs[digitsCountByte / buffLength]
+                                     [digitsCountByte % buffLength] = (byte)digitsCount;
+
+                                lettersCountByte2 = i++;
                                 state = State.ReadStringFirstByte;
                                 break;
                             }
 
                             // buff[i] == endBuff
-                            backState = State.ContinueNumberReading;
+                            backState = State.ReadNumber;
                             state = State.LoadNextBuff;
-                            i = 0;
                             break;
 
                         case State.ReadStringFirstByte:
 
-                            c = buff[++i];
+                            c = currentBuff[i];
                             if (c > endLine)
                             {
                                 id = (ushort)(c * byte.MaxValue);
                                 state = State.ReadStringSecondByte;
+                                ++i;
                                 break;
                             }
 
                             if (c == endLine)
                             {
-                                lettersCount = 0;
-                                buff[lettersCountByte1] = 0;
-                                buff[lettersCountByte2] = 0;
+                                buffs[lettersCountByte1 / buffLength]
+                                     [lettersCountByte1 % buffLength] = 0;
+                                buffs[lettersCountByte2 / buffLength]
+                                     [lettersCountByte2 % buffLength] = 0;
+                                
                                 state = State.ReleaseLine;
                                 break;
                             }
 
                             // c == endBuff
-                            backState = State.ContinueStringFirstByteReading;
+                            backState = State.ReadStringFirstByte;
                             state = State.LoadNextBuff;
-
                             break;
 
                         case State.ReadStringSecondByte:
 
-                            c = buff[++i];
+                            c = currentBuff[i];
                             if (c > endLine)
                             {
                                 id += c;
                                 state = State.ReadStringTail;
+                                ++i;
                                 break;
                             }
-
+                            
+                            lettersCount = 1;
                             if (c == endLine)
                             {
-                                lettersCount = 1;
-                                buff[lettersCountByte1] = 0;
-                                buff[lettersCountByte2] = 1;
+                                buffs[lettersCountByte1 / buffLength]
+                                     [lettersCountByte1 % buffLength] = 0;
+                                buffs[lettersCountByte2 / buffLength]
+                                     [lettersCountByte2 % buffLength] = 1;
+
                                 state = State.ReleaseLine;
                                 break;
                             }
 
                             // c == endBuff
-                            backState = State.ContinueStringSecondByteReading;
+                            backState = State.ReadStringSecondByte;
                             state = State.LoadNextBuff;
-
                             break;
 
                         case State.ReadStringTail:
 
-                            while (buff[++i] > endLine) ;
-                            if (buff[i] == endLine)
+                            while (currentBuff[i] > endLine) i++;
+
+                            if (lettersCountByte2 < buffLength)
+                                lettersCount += i - lettersCountByte2 - 1;
+
+                            if (currentBuff[i] == endLine)
                             {
-                                lettersCount = i - lettersCountByte2 - 1;
-                                buff[lettersCountByte1] = (byte)(lettersCount / byte.MaxValue);
-                                buff[lettersCountByte2] = (byte)(lettersCount % byte.MaxValue);
+                                if (lettersCountByte2 > buffLength)
+                                    lettersCount += i;
+
+                                buffs[lettersCountByte1 / buffLength]
+                                     [lettersCountByte1 % buffLength] = 
+                                            (byte)(lettersCount / byte.MaxValue);
+
+                                buffs[lettersCountByte2 / buffLength]
+                                     [lettersCountByte2 % buffLength] = 
+                                            (byte)(lettersCount % byte.MaxValue);
+
                                 state = State.ReleaseLine;
                                 break;
                             }
 
                             // buff[i] == endBuff
-                            backState = State.ContinueStringTailReading;
+                            backState = State.ReadStringTail;
                             state = State.LoadNextBuff;
                             break;
-
-                        case State.ContinueNumberReading:
-
-                            while (buff[i] != dot) i++;
-                            digitsCount += i - 1;
-                            prevBuff[digitsCountByte] = (byte)digitsCount;
-                            lettersCountByte2 = i;
-                            state = State.ReadStringFirstByte;
-
-                            break;
-
-                        case State.ContinueStringFirstByteReading:
-
-                            c = buff[i++];
-                            if (c == endLine)
-                            {
-                                lettersCount = 0;
-                                prevBuff[lettersCountByte1] = 0;
-                                buff[lettersCountByte2] = 0;
-                                state = State.ReleaseLine;
-                                break;
-                            }
-
-                            id = (ushort)(c * byte.MaxValue);
-                            state = State.ContinueStringSecondByteReading;
-                            break;
-
-                        case State.ContinueStringSecondByteReading:
-
-                            c = buff[i++];
-                            if (c == endLine)
-                            {
-                                lettersCount = 1;
-                                buff[lettersCountByte1] = 0;
-                                buff[lettersCountByte2] = 1;
-                                state = State.ReleaseLine;
-                                break;
-                            }
-
-                            id += c;
-                            state = State.ContinueStringTailReading;
-                            break;
-
-                        case State.ContinueStringTailReading:
-
-                            while (buff[++i] > endLine) ;
-
-                            lettersCount = i - lettersCountByte2 - 1;
-                            buff[lettersCountByte1] = (byte)(lettersCount / byte.MaxValue);
-                            buff[lettersCountByte2] = (byte)(lettersCount % byte.MaxValue);
-                            state = State.ReleaseLine;
-                            break;
-
-                        case State.LoadNextBuff:
                             
-                            var tmp = buff;
-                            buff = prevBuff;
-                            prevBuff = tmp;
+                        case State.LoadNextBuff:
 
-                            count = inputStream.Read(buff, 0, lastBuffIndex);
+                            switch (backState)
+                            {
+                                case State.ReadStringFirstByte:
+                                case State.ReadStringSecondByte:
+                                case State.ReadStringTail:
+                                    lettersCountByte2 += buffLength;
+                                    goto case State.ReadNumber;
+
+                                case State.ReadNumber:
+                                    lettersCountByte1 += buffLength;
+                                    digitsCountByte += buffLength;
+                                    i = 0;
+                                    break;
+                            }
+                            
+                            var actualBuff = buffs[previous];
+                            buffs[previous] = buffs[current];
+                            buffs[current] = actualBuff;
+                            
+                            count = inputStream.Read(actualBuff, 0, lastBuffIndex);
                             if (count == lastBuffIndex)
-                                buff[lastBuffIndex] = endBuff;
-                            else buff[Math.Max(0, count - 1)] = endStream;
+                                actualBuff[lastBuffIndex] = endBuff;
+                            else
+                            {
+                                var endStreamIndex = Math.Max(0, count - 1);
+                                if (endStreamIndex == 0)
+                                {
+                                    state = State.Finish;
+                                    break;
+                                }
+                                
+                                actualBuff[endStreamIndex] = endStream;
+                            }
 
                             state = backState;
-
                             break;
 
                         case State.ReleaseLine:
@@ -237,14 +237,33 @@ namespace Bigsort2.Implementation
                                 parts.Add(id, _ioService.OpenWrite(name));
                             }
 
-                            parts[id].Write(buff, lettersCountByte1,
-                                i - lettersCountByte1);
+                            var lineLength = digitsCount + lettersCount + 3;
+                            var lineStart = i - lineLength;
+                            var writer = parts[id];
 
-                            if (buff[++i] == endBuff)
+                            if (lineStart < 0)
                             {
-                                lettersCountByte1 = 0;
-                                digitsCountByte = 1;
-                                i = digitsCountByte;
+                                lineStart = Math.Abs(lineStart);
+                                writer.Write(buffs[previous],
+                                             lastBuffIndex - lineStart,
+                                             lineStart);
+
+                                writer.Write(currentBuff, 0, i);
+                            }
+                            else
+                                writer.Write(currentBuff,
+                                             lettersCountByte1,
+                                             lineLength);
+                            
+                            lettersCount = 0;
+                            digitsCount = 0;
+                            id = 0;
+
+                            if (currentBuff[++i] == endBuff)
+                            {
+                                lettersCountByte1 = i + buffLength - 1;
+                                digitsCountByte = 0;
+                                i = 0;
 
                                 backState = State.CheckFinish;
                                 state = State.LoadNextBuff;
@@ -256,43 +275,15 @@ namespace Bigsort2.Implementation
                             state = State.CheckFinish;
                             break;
 
-                        case State.ReleaseDoubleBufferedLine:
-                            
-                            if (!parts.ContainsKey(id))
-                            {
-                                var name = id.ToString(_partFileNameMask);
-                                parts.Add(id, _ioService.OpenWrite(name));
-                            }
-
-                            var lineLength = digitsCount + lettersCount + 3;
-                            var prevBuffLineLength = lineLength - 1;
-
-                            var currentWriter = parts[id];
-                            currentWriter.Write(prevBuff,
-                                lastBuffIndex - prevBuffLineLength,
-                                prevBuffLineLength);
-
-                            currentWriter.Write(buff, 0, ++i + 1);
-
-                            if (buff[i] == endBuff)
-                            {
-                                backState = State.CheckFinish;
-                                state = State.LoadNextBuff;
-                                break;
-                            }
-
-                            state = State.ReadNumber;
-                            break;
-
                         case State.CheckFinish:
-                            state = buff[i] == endStream
+                            state = currentBuff[i++] == endStream
                                   ? State.Finish
                                   : State.ReadNumber;
                             break;
 
                         case State.Finish:
-                            foreach (var writer in parts.Values)
-                                writer.Dispose();
+                            foreach (var p in parts.Values)
+                                p.Dispose();
 
                             _ioService.CurrentDirectory = prevCurrentDirectory;
                             return _partsDirecory;
@@ -308,16 +299,10 @@ namespace Bigsort2.Implementation
             ReadStringSecondByte,
             ReadStringTail,
             ReleaseLine,
-
-            ContinueNumberReading,
-            ContinueStringFirstByteReading,
-            ContinueStringSecondByteReading,
-            ContinueStringTailReading,
-            ReleaseDoubleBufferedLine,
-
             LoadNextBuff,
             CheckFinish,
-            Finish
+            Finish,
+            None
         }
     }
 }
