@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Bigsort.Contracts;
 
@@ -49,10 +47,11 @@ namespace Bigsort.Implementation
             buffs[current] = new byte[buffLength];
             buffs[previous] = new byte[buffLength];
 
-            var parts = new Dictionary<ushort, IWriter>(maxPartsCount);
             var prevCurrentDirectory = _ioService.CurrentDirectory;
+            _ioService.CreateDirectory(_partsDirecory);
             _ioService.CurrentDirectory = _partsDirecory;
 
+            var parts = new Dictionary<ushort, IWriter>(maxPartsCount);
             using (var inputStream = _ioService.OpenRead(filePath))
             {
                 const int linePrefixLength = 2;
@@ -86,7 +85,7 @@ namespace Bigsort.Implementation
                             while (currentBuff[i] > dot) i++;
 
                             if (digitsCountByte < buffLength)
-                                digitsCount += (i - digitsCountByte - 1);
+                                digitsCount += i - digitsCountByte - 1;
 
                             if (currentBuff[i] == dot)
                             {
@@ -282,9 +281,7 @@ namespace Bigsort.Implementation
                             break;
 
                         case State.Finish:
-                            foreach (var p in parts.Values)
-                                p.Dispose();
-
+                            Parallel.ForEach(parts.Values, p => p.Dispose());
                             _ioService.CurrentDirectory = prevCurrentDirectory;
                             return _partsDirecory;
                     }

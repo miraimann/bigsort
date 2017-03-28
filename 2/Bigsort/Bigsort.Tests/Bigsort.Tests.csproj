@@ -50,6 +50,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GrouperTests%28Cases 0 - 19%29.cs" />
+    <Compile Include="GrouperTests%28Integration%29.cs" />
     <Compile Include="GrouperTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -57,6 +58,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\shared\Bigsort.Tools.TestFileGenerator\Bigsort.Tools.TestFileGenerator.csproj">
+      <Project>{6e49f2b9-80f6-473a-bc92-12a9f9cfab11}</Project>
+      <Name>Bigsort.Tools.TestFileGenerator</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Bigsort.Contracts\Bigsort.Contracts.csproj">
       <Project>{6eb892be-e6ba-4b1c-af89-ca87da5fcbd8}</Project>
       <Name>Bigsort.Contracts</Name>

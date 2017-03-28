@@ -29,6 +29,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -42,6 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Grouper.cs" />
+    <Compile Include="GroupSorter.cs" />
     <Compile Include="IoService.cs" />
     <Compile Include="LineSorter.cs" />
     <Compile Include="PoolMaker.cs" />

@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
@@ -31,8 +34,14 @@ namespace Bigsort.Implementation
         public IReader OpenRead(string path) =>
             new Reader(path);
 
+        public IBytesMatrix ReadToBytesMatrix(string path) =>
+            new BuffersSet(path, _buffersPool, _config);
+
         public IWriter OpenWrite(string path) =>
             new Writer(path, _buffersPool.Get());
+
+        public void CreateDirectory(string path) =>
+            Directory.CreateDirectory(path);
 
         public void DeleteFile(string path) =>
             File.Delete(path);
@@ -40,7 +49,7 @@ namespace Bigsort.Implementation
         private class Writer
             : IWriter
         {
-            private readonly IPooled<byte[]> _buffHandler;
+            private readonly IPooled<byte[]> _buffHandle;
             private readonly byte[] _buff;
             private readonly Stream _stream;
             private int _offset = 0;
@@ -48,8 +57,8 @@ namespace Bigsort.Implementation
             public Writer(string path, IPooled<byte[]> buffHandler)
             {       
                 _stream = File.OpenWrite(path);
-                _buffHandler = buffHandler;
-                _buff = _buffHandler.Value;
+                _buffHandle = buffHandler;
+                _buff = _buffHandle.Value;
             }
 
             public void Write(byte[] array, int offset, int count)
@@ -93,8 +102,64 @@ namespace Bigsort.Implementation
                 if (_offset != 0)
                     _stream.Write(_buff, 0, _offset);
 
-                _buffHandler.Free();
+                _buffHandle.Free();
                 _stream.Dispose();
+            }
+        }
+
+        private class BuffersSet
+            : IReadOnlyList<byte> 
+            , IBytesMatrix
+        {
+            private readonly IPooled<byte[]>[] _buffHandles;
+            
+            public BuffersSet(
+                string path, 
+                IPool<byte[]> buffersPool, 
+                IConfig config)
+            {
+                using (var stream = File.OpenRead(path))
+                {
+                    Count = (int)stream.Length;
+                    RowLength = config.BufferSize;
+                    RowsCount = (Count / RowLength) 
+                              + (Count % RowLength == 0 ? 0 : 1);
+                    
+                    _buffHandles = new IPooled<byte[]>[RowsCount];
+                    Content = new byte[RowsCount][];
+
+                    for (int i = 0; i < RowsCount; i++)
+                    {
+                        _buffHandles[i] = buffersPool.Get();
+                        Content[i] = _buffHandles[i].Value;
+                    }   
+                }
+            }
+
+            public byte[][] Content { get; }
+            public int RowsCount { get; }
+            public int RowLength { get; }
+            public int Count { get; }
+
+            public byte this[int i] =>
+                Content[i / RowsCount][i % RowsCount];
+
+            public IReadOnlyList<byte> AsReadOnlyList() =>
+                this;
+            
+            public IEnumerator<byte> GetEnumerator() =>
+                Content.Select(Enumerable.AsEnumerable)
+                       .Aggregate(Enumerable.Concat)
+                       .Take(Count)
+                       .GetEnumerator();
+
+            IEnumerator IEnumerable.GetEnumerator() =>
+                GetEnumerator();
+
+            public void Dispose()
+            {
+                foreach (var handle in _buffHandles)
+                    handle.Free();
             }
         }
 

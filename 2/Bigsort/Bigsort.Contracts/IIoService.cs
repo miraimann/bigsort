@@ -8,7 +8,11 @@
         
         IReader OpenRead(string path);
 
+        IBytesMatrix ReadToBytesMatrix(string path);
+
         IWriter OpenWrite(string path);
+
+        void CreateDirectory(string path);
 
         void DeleteFile(string path);
     }
