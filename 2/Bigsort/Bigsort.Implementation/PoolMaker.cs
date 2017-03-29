@@ -56,7 +56,7 @@ namespace Bigsort.Implementation
 
                 public T Value { get; }
 
-                public void Free() =>
+                public void Dispose() =>
                     _free();
             }
         }

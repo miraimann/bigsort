@@ -281,7 +281,12 @@ namespace Bigsort.Implementation
                             break;
 
                         case State.Finish:
-                            Parallel.ForEach(parts.Values, p => p.Dispose());
+                            var option = new ParallelOptions
+                            {
+                                MaxDegreeOfParallelism = Environment.ProcessorCount
+                            };
+
+                            Parallel.ForEach(parts.Values, option, p => p.Dispose());
                             _ioService.CurrentDirectory = prevCurrentDirectory;
                             return _partsDirecory;
                     }

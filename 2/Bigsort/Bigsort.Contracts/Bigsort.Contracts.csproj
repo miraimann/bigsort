@@ -28,6 +28,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -40,19 +41,25 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="IByteHashCoder.cs" />
     <Compile Include="IBytesMatrix.cs" />
+    <Compile Include="ICollectionsFactory.cs" />
     <Compile Include="IConfig.cs" />
+    <Compile Include="IFragmentedList.cs" />
     <Compile Include="IGrouper.cs" />
-    <Compile Include="IGroupHashCoder.cs" />
-    <Compile Include="IGroupSorter.cs" />
     <Compile Include="IIoService.cs" />
+    <Compile Include="ILinesIndexator.cs" />
     <Compile Include="ILinesSorter.cs" />
     <Compile Include="IPool.cs" />
     <Compile Include="IPooled.cs" />
     <Compile Include="IPoolMaker.cs" />
     <Compile Include="IReader.cs" />
+    <Compile Include="ISorterBySymbols.cs" />
+    <Compile Include="ISubSorter.cs" />
     <Compile Include="IWriter.cs" />
+    <Compile Include="LineIndexes.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SortedOut.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -102,7 +102,7 @@ namespace Bigsort.Implementation
                 if (_offset != 0)
                     _stream.Write(_buff, 0, _offset);
 
-                _buffHandle.Free();
+                _buffHandle.Dispose();
                 _stream.Dispose();
             }
         }
@@ -159,7 +159,7 @@ namespace Bigsort.Implementation
             public void Dispose()
             {
                 foreach (var handle in _buffHandles)
-                    handle.Free();
+                    handle.Dispose();
             }
         }
 

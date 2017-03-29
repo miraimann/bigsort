@@ -8,7 +8,7 @@ using Bigsort.Contracts;
 namespace Bigsort.Implementation
 {
     public class GroupSorter
-        : IGroupSorter
+        //: IGroupSorter
     {
         public void Sort(IBytesMatrix group)
         {
