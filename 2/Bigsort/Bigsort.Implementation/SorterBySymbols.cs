@@ -56,9 +56,9 @@ namespace Bigsort.Implementation
                     foreach (var x in linesIndexeses)
                     {
                         var offset = deep + 2;
-                        if (offset > x.lettersCount)
+                        //if (offset > x.lettersCount)
                         
-                        group[x.start + x.digitsCount + deep + 5]
+                        //group[x.start + x.digitsCount + deep + 5]
                     }
                 }
         }

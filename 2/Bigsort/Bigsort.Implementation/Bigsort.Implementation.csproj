@@ -43,7 +43,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CollectionsFactory.cs" />
-    <Compile Include="Grouper.cs" />
+    <Compile Include="Grouper_127_255.cs" />
+    <Compile Include="Grouper_255_255x255.cs" />
     <Compile Include="GroupSorter.cs" />
     <Compile Include="IoService.cs" />
     <Compile Include="LinesIndexesFinder.cs" />

@@ -49,9 +49,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GrouperTests%28Cases 0 - 19%29.cs" />
-    <Compile Include="GrouperTests%28Integration%29.cs" />
-    <Compile Include="GrouperTests.cs" />
+    <Compile Include="Grouper_255_255x255Tests%28Cases 0 - 19%29.cs" />
+    <Compile Include="Grouper_255_255x255Tests%28Integration%29.cs" />
+    <Compile Include="Grouper_255_255x255Tests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

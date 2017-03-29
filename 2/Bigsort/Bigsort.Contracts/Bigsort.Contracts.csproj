@@ -47,6 +47,8 @@
     <Compile Include="IConfig.cs" />
     <Compile Include="IFragmentedList.cs" />
     <Compile Include="IGrouper.cs" />
+    <Compile Include="IGrouper_127_255.cs" />
+    <Compile Include="IGrouper_255_255x255.cs" />
     <Compile Include="IIoService.cs" />
     <Compile Include="ILinesIndexator.cs" />
     <Compile Include="ILinesSorter.cs" />

@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Bigsort.Contracts;
 using Bigsort.Implementation;
 using Bigsort.Tools.TestFileGenerator;
@@ -11,7 +7,8 @@ using NUnit.Framework;
 
 namespace Bigsort.Tests
 {
-    public partial class GrouperTests
+    // ReSharper disable once InconsistentNaming
+    public partial class Grouper_255_255x255Tests
     {
         [TestCase("1_Mb", "[1-32].[0-128]", "E:\\1Mb", 32 * 1025
             //, Ignore = "for hands run only"
@@ -39,7 +36,7 @@ namespace Bigsort.Tests
             var log = TestContext.Out;
             var poolMaker = new PoolMaker();
             var ioService = new IoService(poolMaker, configMock.Object);
-            var grouper = new Grouper(ioService, configMock.Object);
+            var grouper = new Grouper_255_255x255(ioService, configMock.Object);
 
             var t = DateTime.Now;
             Generator.Generate(size, settings, path);

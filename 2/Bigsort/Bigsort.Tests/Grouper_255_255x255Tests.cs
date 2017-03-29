@@ -12,7 +12,8 @@ using NUnit.Framework;
 namespace Bigsort.Tests
 {
     [TestFixture]
-    public partial class GrouperTests
+    // ReSharper disable once InconsistentNaming
+    public partial class Grouper_255_255x255Tests
     {
         [Timeout(10000)]
         [TestCaseSource(nameof(Cases))]
@@ -77,7 +78,7 @@ namespace Bigsort.Tests
                 .SetupGet(o => o.TempDirectory)
                 .Returns(tempDirectory);
             
-            var grouper = new Grouper(
+            var grouper = new Grouper_255_255x255(
                 ioServiceMock.Object,
                 configMock.Object);
 

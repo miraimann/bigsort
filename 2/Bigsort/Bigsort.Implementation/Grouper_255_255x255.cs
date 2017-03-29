@@ -6,8 +6,9 @@ using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    public class Grouper
-        : IGrouper
+    // ReSharper disable once InconsistentNaming
+    public class Grouper_255_255x255
+        : IGrouper_255_255x255
     {
         private readonly string
             _partFileNameMask,
@@ -16,7 +17,7 @@ namespace Bigsort.Implementation
         private readonly IIoService _ioService;
         private readonly IConfig _config;
 
-        public Grouper(IIoService ioService, IConfig config)
+        public Grouper_255_255x255(IIoService ioService, IConfig config)
         {
             _ioService = ioService;
             _config = config;
