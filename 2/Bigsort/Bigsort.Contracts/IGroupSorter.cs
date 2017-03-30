@@ -2,7 +2,7 @@
 {
     public interface IGroupSorter
     {
-        void Sort(IFixedSizeList<byte> group,
+        void Sort(IBytesMatrix group,
                   ArrayFragment<SortingLine> linesFragment);
     }
 }

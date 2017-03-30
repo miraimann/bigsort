@@ -5,19 +5,20 @@ namespace Bigsort.Implementation
     public class SortingFragmentsMoverMaker
         : ISortingFragmentsMoverMaker
     {
-        private readonly IBitReader _bitReader;
+        private readonly IBitReaderMaker _bitReaderMaker;
 
         public SortingFragmentsMoverMaker(
-            IBitReader bitReader)
+            IBitReaderMaker bitReaderMaker)
         {
-            _bitReader = bitReader;
+            _bitReaderMaker = bitReaderMaker;
         }
 
         public ISortingFragmentsMover Make(
-                IFixedSizeList<byte> group,
+                IBytesMatrix group,
                 SortingLine[] lines) =>
 
-            new Mover(lines, group, _bitReader);
+            new Mover(lines, group.AdaptInLine(),
+                      _bitReaderMaker.MakeFor(group));
 
         private class Mover
             : ISortingFragmentsMover
@@ -52,7 +53,7 @@ namespace Bigsort.Implementation
                         _group[digitsCountAndSortingStageIndex];
 
                     var symbolsCount = 
-                        digitsCountAndSortingStage | 0xEF;
+                        digitsCountAndSortingStage & 0xEF;
                     var sortByStringStage = 
                         digitsCountAndSortingStage < sbyte.MaxValue;
 
