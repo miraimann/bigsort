@@ -49,6 +49,7 @@
     <Compile Include="IoService.cs" />
     <Compile Include="LinesIndexesFinder.cs" />
     <Compile Include="LineSorter.cs" />
+    <Compile Include="PartsForSortIncrementorMaker.cs" />
     <Compile Include="PoolMaker.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SorterBySymbols.cs" />

@@ -108,7 +108,7 @@ namespace Bigsort.Implementation
         }
 
         private class BuffersSet
-            : IReadOnlyList<byte> 
+            : IFixedSizeList<byte> 
             , IBytesMatrix
         {
             private readonly IPooled<byte[]>[] _buffHandles;
@@ -141,8 +141,14 @@ namespace Bigsort.Implementation
             public int RowLength { get; }
             public int Count { get; }
 
-            public byte this[int i] =>
-                Content[i / RowsCount][i % RowsCount];
+            public byte this[int i]
+            {
+                get { return Content[i/RowsCount][i%RowsCount]; }
+                set { Content[i/RowsCount][i%RowsCount] = value; }
+            }
+            
+            public IFixedSizeList<byte> AdaptInLine() =>
+                this;
 
             public IReadOnlyList<byte> AsReadOnlyList() =>
                 this;

@@ -12,5 +12,7 @@ namespace Bigsort.Contracts
         int Count { get; }
 
         IReadOnlyList<byte> AsReadOnlyList();
+
+        IFixedSizeList<byte> AdaptInLine();
     }
 }

@@ -41,6 +41,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="IFixedSizeList.cs" />
+    <Compile Include="IBitReader.cs" />
     <Compile Include="IByteHashCoder.cs" />
     <Compile Include="IBytesMatrix.cs" />
     <Compile Include="ICollectionsFactory.cs" />
@@ -52,6 +54,8 @@
     <Compile Include="IIoService.cs" />
     <Compile Include="ILinesIndexator.cs" />
     <Compile Include="ILinesSorter.cs" />
+    <Compile Include="IPartsForSortIncrementor.cs" />
+    <Compile Include="IPartsForSortIncrementorMaker.cs" />
     <Compile Include="IPool.cs" />
     <Compile Include="IPooled.cs" />
     <Compile Include="IPoolMaker.cs" />
@@ -62,6 +66,7 @@
     <Compile Include="LineIndexes.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SortedOut.cs" />
+    <Compile Include="SortingLineView.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
