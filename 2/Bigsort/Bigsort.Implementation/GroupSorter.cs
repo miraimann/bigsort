@@ -18,7 +18,7 @@ namespace Bigsort.Implementation
         }
 
         public void Sort(
-            IBytesMatrix group,
+            IGroup group,
             ArrayFragment<SortingLine> linesFragment)
         {
             var lines = linesFragment.Array;
@@ -27,7 +27,7 @@ namespace Bigsort.Implementation
                 .Make(group, lines);
 
             _linesIndexator
-                .IndexLines(group.AsReadOnlyList(), linesFragment);
+                .IndexLines(group, linesFragment);
 
             sortingFragmentsMover.MoveNext(
                 linesFragment.Offset,

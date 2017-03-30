@@ -3,7 +3,7 @@
     public interface ISortingFragmentsMoverMaker
     {
         ISortingFragmentsMover Make(
-            IBytesMatrix group,
+            IGroup group,
             SortingLine[] lines);
     }
 }

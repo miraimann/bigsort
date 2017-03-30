@@ -5,34 +5,18 @@ namespace Bigsort.Implementation
     public class SortingFragmentsMoverMaker
         : ISortingFragmentsMoverMaker
     {
-        private readonly IBitReaderMaker _bitReaderMaker;
-
-        public SortingFragmentsMoverMaker(
-            IBitReaderMaker bitReaderMaker)
-        {
-            _bitReaderMaker = bitReaderMaker;
-        }
-
         public ISortingFragmentsMover Make(
-                IBytesMatrix group,
-                SortingLine[] lines) =>
-
-            new Mover(lines, group.AdaptInLine(),
-                      _bitReaderMaker.MakeFor(group));
+                IGroup group, SortingLine[] lines) =>
+            new Mover(lines, group);
 
         private class Mover
             : ISortingFragmentsMover
         {
             private readonly SortingLine[] _lines;
-            private readonly IFixedSizeList<byte> _group;
-            private readonly IBitReader _bitReader;
-
-            public Mover(
-                SortingLine[] lines,
-                IFixedSizeList<byte> group,
-                IBitReader bitReader)
+            private readonly IGroup _group;
+            
+            public Mover(SortingLine[] lines, IGroup group)
             {
-                _bitReader = bitReader;
                 _group = group;
                 _lines = lines;
             }
@@ -49,7 +33,7 @@ namespace Bigsort.Implementation
                     var sortingOffset = _group[sortingOffsetIndex];
 
                     var digitsCountAndSortingStageIndex = ++i;
-                    var digitsCountAndSortingStage = 
+                    var digitsCountAndSortingStage =
                         _group[digitsCountAndSortingStageIndex];
 
                     var symbolsCount = 
@@ -62,12 +46,12 @@ namespace Bigsort.Implementation
                     if (sortByStringStage)
                     {
                         symbolsCount = _group[i += symbolsCount];
-                        partForSort = _bitReader
+                        partForSort = _group
                             .ReadLittleEndianUInt32(i + sortingOffset + 1);
                     }
                     else // sort by number stage
                     {
-                        partForSort = _bitReader
+                        partForSort = _group
                             .ReadLittleEndianUInt32(i + sortingOffset);
 
                         if (sortingOffset == 0)

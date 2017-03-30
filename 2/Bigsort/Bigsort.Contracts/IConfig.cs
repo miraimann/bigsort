@@ -7,5 +7,7 @@
         int BufferSize { get; }
 
         int MainArraySize { get; }
+
+        int MaxLoadedGroupsSize { get; }
     }
 }

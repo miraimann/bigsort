@@ -1,4 +1,6 @@
-﻿namespace Bigsort.Contracts
+﻿using System.Collections.Generic;
+
+namespace Bigsort.Contracts
 {
     public interface IIoService
     {
@@ -8,9 +10,9 @@
         
         IReader OpenRead(string path);
 
-        IBytesMatrix ReadToBytesMatrix(string path);
-
         IWriter OpenWrite(string path);
+
+        IEnumerable<string> EnumerateFilesOf(string directory);
 
         void CreateDirectory(string path);
 

@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
@@ -10,16 +8,10 @@ namespace Bigsort.Implementation
     public class IoService
         : IIoService
     {
-        private readonly IConfig _config;
-        private readonly IPool<byte[]> _buffersPool;
-
-        public IoService(
-            IPoolMaker poolMaker,
-            IConfig config)
+        private readonly IBuffersPool _buffersPool; 
+        public IoService(IBuffersPool buffersPool)
         {
-            _config = config;
-            _buffersPool = poolMaker.Make(
-                create: () => new byte[_config.BufferSize]);
+            _buffersPool = buffersPool;
         }
 
         public string TempDirectory { get; } =
@@ -34,11 +26,11 @@ namespace Bigsort.Implementation
         public IReader OpenRead(string path) =>
             new Reader(path);
 
-        public IBytesMatrix ReadToBytesMatrix(string path) =>
-            new BuffersSet(path, _buffersPool, _config);
-
         public IWriter OpenWrite(string path) =>
             new Writer(path, _buffersPool.Get());
+
+        public IEnumerable<string> EnumerateFilesOf(string directory) =>
+            Directory.EnumerateFiles(directory);
 
         public void CreateDirectory(string path) =>
             Directory.CreateDirectory(path);
@@ -104,68 +96,6 @@ namespace Bigsort.Implementation
 
                 _buffHandle.Dispose();
                 _stream.Dispose();
-            }
-        }
-
-        private class BuffersSet
-            : IFixedSizeList<byte> 
-            , IBytesMatrix
-        {
-            private readonly IPooled<byte[]>[] _buffHandles;
-            
-            public BuffersSet(
-                string path, 
-                IPool<byte[]> buffersPool, 
-                IConfig config)
-            {
-                using (var stream = File.OpenRead(path))
-                {
-                    Count = (int)stream.Length;
-                    RowLength = config.BufferSize;
-                    RowsCount = (Count / RowLength) 
-                              + (Count % RowLength == 0 ? 0 : 1);
-                    
-                    _buffHandles = new IPooled<byte[]>[RowsCount];
-                    Content = new byte[RowsCount][];
-
-                    for (int i = 0; i < RowsCount; i++)
-                    {
-                        _buffHandles[i] = buffersPool.Get();
-                        Content[i] = _buffHandles[i].Value;
-                    }   
-                }
-            }
-
-            public byte[][] Content { get; }
-            public int RowsCount { get; }
-            public int RowLength { get; }
-            public int Count { get; }
-
-            public byte this[int i]
-            {
-                get { return Content[i/RowsCount][i%RowsCount]; }
-                set { Content[i/RowsCount][i%RowsCount] = value; }
-            }
-            
-            public IFixedSizeList<byte> AdaptInLine() =>
-                this;
-
-            public IReadOnlyList<byte> AsReadOnlyList() =>
-                this;
-            
-            public IEnumerator<byte> GetEnumerator() =>
-                Content.Select(Enumerable.AsEnumerable)
-                       .Aggregate(Enumerable.Concat)
-                       .Take(Count)
-                       .GetEnumerator();
-
-            IEnumerator IEnumerable.GetEnumerator() =>
-                GetEnumerator();
-
-            public void Dispose()
-            {
-                foreach (var handle in _buffHandles)
-                    handle.Dispose();
             }
         }
 
