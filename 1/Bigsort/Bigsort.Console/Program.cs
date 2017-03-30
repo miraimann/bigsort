@@ -13,6 +13,9 @@ namespace Bigsort.Console
     {
         static unsafe void Main(string[] args)
         {
+            C.WriteLine(Environment.ProcessorCount);
+            C.ReadKey();
+
             #region
 
             //byte[] x = {1, 2};
@@ -23,44 +26,44 @@ namespace Bigsort.Console
 
             #region research 2
 
-            byte[] oooooooa = "oooooooa".Select(o => (byte)o).ToArray(),
-                   ooooooob = "ooooooob".Select(o => (byte)o).ToArray(),
-                   booooooa = "booooooa".Select(o => (byte)o).ToArray(),
-                   aoooooob = "aoooooob".Select(o => (byte)o).ToArray();
+            //byte[] oooooooa = "oooooooa".Select(o => (byte)o).ToArray(),
+            //       ooooooob = "ooooooob".Select(o => (byte)o).ToArray(),
+            //       booooooa = "booooooa".Select(o => (byte)o).ToArray(),
+            //       aoooooob = "aoooooob".Select(o => (byte)o).ToArray();
 
-            ulong oooooooaLong = BitConverter.ToUInt64(oooooooa, 0),
-                  ooooooobLong = BitConverter.ToUInt64(ooooooob, 0),
-                  booooooaLong = BitConverter.ToUInt64(oooooooa, 0),
-                  aoooooobLong = BitConverter.ToUInt64(ooooooob, 0);
+            //ulong oooooooaLong = BitConverter.ToUInt64(oooooooa, 0),
+            //      ooooooobLong = BitConverter.ToUInt64(ooooooob, 0),
+            //      booooooaLong = BitConverter.ToUInt64(oooooooa, 0),
+            //      aoooooobLong = BitConverter.ToUInt64(ooooooob, 0);
 
-            fixed (byte* booooooaPtr = booooooa)
-            fixed (byte* aoooooobPtr = aoooooob)
-            {
-                ulong* booooooaLongPtr = (ulong*)booooooaPtr;
-                ulong* aoooooobLongPtr = (ulong*)aoooooobPtr;
+            //fixed (byte* booooooaPtr = booooooa)
+            //fixed (byte* aoooooobPtr = aoooooob)
+            //{
+            //    ulong* booooooaLongPtr = (ulong*)booooooaPtr;
+            //    ulong* aoooooobLongPtr = (ulong*)aoooooobPtr;
 
-                var r = Comparer<ulong>.Default.Compare(
-                    *booooooaLongPtr,
-                    *aoooooobLongPtr);
-            }
+            //    var r = Comparer<ulong>.Default.Compare(
+            //        *booooooaLongPtr,
+            //        *aoooooobLongPtr);
+            //}
 
 
-            var random = new Random();
-            byte[] bytes = new byte[sizeof(ulong) * 1024];
-            random.NextBytes(bytes);
+            //var random = new Random();
+            //byte[] bytes = new byte[sizeof(ulong) * 1024];
+            //random.NextBytes(bytes);
 
-            ulong[] direct = new ulong[1024],
-                  reversed = new ulong[1024];
+            //ulong[] direct = new ulong[1024],
+            //      reversed = new ulong[1024];
 
-            for (int i = 0; i < bytes.Length; i += sizeof(ulong))
-                direct[i / sizeof(ulong)] = BitConverter.ToUInt64(bytes, i);
-            
-            fixed (byte* bytesPtr = bytes)
-            {
-                ulong* longsPtr = (ulong*) bytesPtr;
-                for (int i = 0; i < bytes.Length; i += sizeof(ulong), longsPtr++)
-                    reversed[i / sizeof(ulong)] = *longsPtr;
-            }
+            //for (int i = 0; i < bytes.Length; i += sizeof(ulong))
+            //    direct[i / sizeof(ulong)] = BitConverter.ToUInt64(bytes, i);
+
+            //fixed (byte* bytesPtr = bytes)
+            //{
+            //    ulong* longsPtr = (ulong*) bytesPtr;
+            //    for (int i = 0; i < bytes.Length; i += sizeof(ulong), longsPtr++)
+            //        reversed[i / sizeof(ulong)] = *longsPtr;
+            //}
 
             // for (int i = 0; i < bytes.Length; i += sizeof(ulong))
             // {
@@ -69,23 +72,23 @@ namespace Bigsort.Console
             //     //Array.Reverse(bytes, i, sizeof(ulong));
             // }
 
-            Array.Sort(direct);
-            Array.Sort(reversed, Comparer<ulong>.Create((a, b) =>
-                    Comparer<ulong>.Default.Compare(a, b) * -1));
+            //Array.Sort(direct);
+            //Array.Sort(reversed, Comparer<ulong>.Create((a, b) =>
+            //        Comparer<ulong>.Default.Compare(a, b) * -1));
 
-            byte[] directBytes = direct.SelectMany(BitConverter.GetBytes).ToArray(),
-                   reversedBytes = reversed.SelectMany(BitConverter.GetBytes).ToArray();
+            //byte[] directBytes = direct.SelectMany(BitConverter.GetBytes).ToArray(),
+            //       reversedBytes = reversed.SelectMany(BitConverter.GetBytes).ToArray();
 
-            for (int i = 0; i < bytes.Length; i++)
-                reversedBytes[i] = (byte)~reversedBytes[i];
+            //for (int i = 0; i < bytes.Length; i++)
+            //    reversedBytes[i] = (byte)~reversedBytes[i];
 
-            var result = Enumerable
-                .Zip(directBytes, reversedBytes,
-                    (a, b) => a == b)
-                .All(x => x);
+            //var result = Enumerable
+            //    .Zip(directBytes, reversedBytes,
+            //        (a, b) => a == b)
+            //    .All(x => x);
 
-            C.WriteLine(result);
-            C.ReadKey();
+            //C.WriteLine(result);
+            //C.ReadKey();
 
             #endregion
 

@@ -1,47 +1,42 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Bigsort.Contracts;
+﻿using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    public class PartsForSortIncrementorMaker
-        : IPartsForSortIncrementorMaker
+    public class SortingFragmentsMoverMaker
+        : ISortingFragmentsMoverMaker
     {
         private readonly IBitReader _bitReader;
 
-        public PartsForSortIncrementorMaker(
+        public SortingFragmentsMoverMaker(
             IBitReader bitReader)
         {
             _bitReader = bitReader;
         }
 
-        public IPartsForSortIncrementor Make(
-                SortingLineView[] lines,
-                IBytesMatrix group) =>
+        public ISortingFragmentsMover Make(
+                IFixedSizeList<byte> group,
+                SortingLine[] lines) =>
 
-            new Incrementor(lines, group, _bitReader);
+            new Mover(lines, group, _bitReader);
 
-        private class Incrementor
-            : IPartsForSortIncrementor
+        private class Mover
+            : ISortingFragmentsMover
         {
-            private readonly SortingLineView[] _lines;
+            private readonly SortingLine[] _lines;
             private readonly IFixedSizeList<byte> _group;
             private readonly IBitReader _bitReader;
 
-            public Incrementor(
-                SortingLineView[] lines,
-                IBytesMatrix group,
+            public Mover(
+                SortingLine[] lines,
+                IFixedSizeList<byte> group,
                 IBitReader bitReader)
             {
-                _group = group.AdaptInLine();
                 _bitReader = bitReader;
+                _group = group;
                 _lines = lines;
             }
-
-            public void Increment(int linesOffset, int linesCount)
+            
+            public void MoveNext(int linesOffset, int linesCount)
             {
                 var n = linesOffset + linesCount;
                 for (; linesOffset < n; ++linesOffset)
@@ -61,17 +56,18 @@ namespace Bigsort.Implementation
                     var sortByStringStage = 
                         digitsCountAndSortingStage < sbyte.MaxValue;
 
-                    uint partForSort = 0;
+                    uint partForSort;
                     
                     if (sortByStringStage)
                     {
                         symbolsCount = _group[i += symbolsCount];
-                        partForSort = _bitReader.ReadUInt32(i + sortingOffset + 1);
+                        partForSort = _bitReader
+                            .ReadLittleEndianUInt32(i + sortingOffset + 1);
                     }
                     else // sort by number stage
                     {
                         partForSort = _bitReader
-                            .ReadUInt32(i + sortingOffset);
+                            .ReadLittleEndianUInt32(i + sortingOffset);
 
                         if (sortingOffset == 0)
                             partForSort &= 0xEFFFFFFF;
@@ -83,10 +79,10 @@ namespace Bigsort.Implementation
                         if (maxLength <= 0)
                         {
                             if (sortByStringStage)
-                                _lines[linesOffset].partForSort = 0;
+                                _lines[linesOffset].fragmentForSort = 0;
                             else
                             {
-                                _lines[linesOffset].partForSort = uint.MaxValue;
+                                _lines[linesOffset].fragmentForSort = uint.MaxValue;
                                 _group[digitsCountAndSortingStageIndex] |= 0x10;
                             }
 
@@ -98,7 +94,7 @@ namespace Bigsort.Implementation
                         partForSort <<= overBitsCount;
                     }
 
-                    _lines[linesOffset].partForSort = partForSort;
+                    _lines[linesOffset].fragmentForSort = partForSort;
                     _group[sortingOffsetIndex] += sizeof(int);
                 }
             }

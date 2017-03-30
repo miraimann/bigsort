@@ -47,12 +47,11 @@
     <Compile Include="Grouper_255_255x255.cs" />
     <Compile Include="GroupSorter.cs" />
     <Compile Include="IoService.cs" />
-    <Compile Include="LinesIndexesFinder.cs" />
+    <Compile Include="LinesIndexator.cs" />
     <Compile Include="LineSorter.cs" />
-    <Compile Include="PartsForSortIncrementorMaker.cs" />
+    <Compile Include="SortingFragmentsMoverMaker.cs" />
     <Compile Include="PoolMaker.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SorterBySymbols.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Bigsort.Contracts\Bigsort.Contracts.csproj">

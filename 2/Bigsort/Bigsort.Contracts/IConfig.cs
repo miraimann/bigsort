@@ -5,5 +5,7 @@
         string PartsDirectory { get; }
          
         int BufferSize { get; }
+
+        int MainArraySize { get; }
     }
 }

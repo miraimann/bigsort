@@ -2,8 +2,7 @@
 {
     public interface IBitReader
     {
-        ushort ReadUInt16(int i);
-        uint ReadUInt32(int i);
-        ulong ReadUInt64(int i);
+        uint ReadLittleEndianUInt32(int i);
+        uint ReadBigEndianUInt32(int i);
     }
 }

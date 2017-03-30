@@ -4,6 +4,8 @@ namespace Bigsort.Contracts
 {
     public interface ILinesIndexator
     {
-        IEnumerable<LineIndexes> FindIn(IReadOnlyList<byte> group);
+        void IndexLines(
+            IReadOnlyList<byte> group,
+            ArrayFragment<SortingLine> lines);
     }
 }
