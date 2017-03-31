@@ -10,6 +10,12 @@
 
         int MaxLoadedGroupsSize { get; }
 
+        int MaxGroupsBuffersCount { get; }
+
         int MaxTasksCount { get; }
+
+        int GroupBufferRowReadingEnsurance { get; }
+
+        bool IsLittleEndian { get; }
     }
 }

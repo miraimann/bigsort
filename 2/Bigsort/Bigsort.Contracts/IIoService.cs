@@ -12,7 +12,13 @@ namespace Bigsort.Contracts
 
         IWriter OpenWrite(string path);
 
+        IWriter OpenSharedWrite(string path, long possition);
+
         IEnumerable<string> EnumerateFilesOf(string directory);
+
+        long SizeOfFile(string path);
+
+        void CreateFile(string path, long length);
 
         void CreateDirectory(string path);
 

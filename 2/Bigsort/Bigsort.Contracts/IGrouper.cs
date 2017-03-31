@@ -1,16 +1,19 @@
-﻿namespace Bigsort.Contracts
+﻿using System.Collections.Generic;
+
+namespace Bigsort.Contracts
 {
     public interface IGrouper
     {
         /// <summary>
         /// Split file to group files by first 2 chracters of string part of lines.
+        /// (Create files in Current directory.)
         /// </summary>
         /// <param name="filePath">
         /// Source file path.
         /// </param>
         /// <returns>
-        /// Path to directory with result files.
+        /// Returns info of all created groups ordered by names.
         /// </returns>
-        string SplitToGroups(string filePath);
+        IEnumerable<IGroupInfo> SplitToGroups(string filePath);
     }
 }

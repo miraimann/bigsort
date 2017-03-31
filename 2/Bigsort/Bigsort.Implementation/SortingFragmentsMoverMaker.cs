@@ -46,13 +46,11 @@ namespace Bigsort.Implementation
                     if (sortByStringStage)
                     {
                         symbolsCount = _group[i += symbolsCount];
-                        partForSort = _group
-                            .ReadLittleEndianUInt32(i + sortingOffset + 1);
+                        partForSort = _group.Read4Bytes(i + sortingOffset + 1);
                     }
                     else // sort by number stage
                     {
-                        partForSort = _group
-                            .ReadLittleEndianUInt32(i + sortingOffset);
+                        partForSort = _group.Read4Bytes(i + sortingOffset);
 
                         if (sortingOffset == 0)
                             partForSort &= 0xEFFFFFFF;

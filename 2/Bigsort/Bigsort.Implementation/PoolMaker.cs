@@ -1,5 +1,6 @@
 ﻿using Bigsort.Contracts;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
@@ -23,8 +24,8 @@ namespace Bigsort.Implementation
             private readonly Func<T> _create;
             private readonly Action<T> _clear;
 
-            private readonly Queue<T> _storage =
-                new Queue<T>();
+            private readonly ConcurrentQueue<T> _storage =
+                new ConcurrentQueue<T>();
 
             public Pool(Func<T> create, Action<T> clear)
             {
@@ -34,30 +35,30 @@ namespace Bigsort.Implementation
 
             public IPooled<T> Get()
             {
-                if (_storage.Count == 0)
-                {
-                    _storage.Enqueue(_create());
-                    return Get();
-                }
+                T product;
+                if (_storage.TryDequeue(out product))
+                    return new Pooled<T>(product, () =>
+                    {
+                        _clear(product);
+                        _storage.Enqueue(product);
+                    });
 
-                var product = _storage.Dequeue();
-                return new Pooled<T>(product, () =>
-                {
-                    _clear(product);
-                    _storage.Enqueue(product);
-                });
+                _storage.Enqueue(_create());
+                return Get();
             }
         }
 
         private class FragmentsPool<T>
             : IFragmentsPool<T>
         {
+            private readonly object o = new object();
             private readonly LinkedList<int> _free;
             private readonly T[] _resource;
             
             public FragmentsPool(T[] resource)
             {
                 _resource = resource;
+                
                 _free = new LinkedList<int>();
                 var first = _free.AddFirst(0);
                 _free.AddAfter(first, _resource.Length);
@@ -69,6 +70,7 @@ namespace Bigsort.Implementation
             {
                 const int notFound = -1;
                 int offset = notFound;
+                lock(o)
                 {
                     var offsetLink = _free.First;
                     while (offsetLink != null)
@@ -100,60 +102,62 @@ namespace Bigsort.Implementation
                     new ArrayFragment<T>(_resource, offset, length),
                     () =>
                     {
-                        LinkedListNode<int>
-                            offsetLink = _free.First,
-                            prevOffsetLink = null;
-
-                        while (offsetLink != null)
+                        lock (o)
                         {
-                            if (offsetLink.Value > offset)
-                            {
-                                var lengthLink = offsetLink.Next;
-                                if (offset + length == offsetLink.Value)
-                                {
-                                    if (prevOffsetLink != null)
-                                    {
-                                        var prevLengthLink = prevOffsetLink.Next;
-                                        if (prevOffsetLink.Value +
-                                            prevLengthLink.Value == offset)
-                                        {
-                                            prevLengthLink.Value += length;
-                                            prevLengthLink.Value += lengthLink.Value;
+                            LinkedListNode<int>
+                                offsetLink = _free.First,
+                                prevOffsetLink = null;
 
-                                            _free.Remove(lengthLink);
-                                            _free.Remove(offsetLink);
+                            while (offsetLink != null)
+                            {
+                                if (offsetLink.Value > offset)
+                                {
+                                    var lengthLink = offsetLink.Next;
+                                    if (offset + length == offsetLink.Value)
+                                    {
+                                        if (prevOffsetLink != null)
+                                        {
+                                            var prevLengthLink = prevOffsetLink.Next;
+                                            if (prevOffsetLink.Value +
+                                                prevLengthLink.Value == offset)
+                                            {
+                                                prevLengthLink.Value += length;
+                                                prevLengthLink.Value += lengthLink.Value;
+
+                                                _free.Remove(lengthLink);
+                                                _free.Remove(offsetLink);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            lengthLink.Value += length;
+                                            offsetLink.Value -= length;
                                         }
                                     }
                                     else
                                     {
-                                        lengthLink.Value += length;
-                                        offsetLink.Value -= length;
+                                        var prevLengthLink = prevOffsetLink?.Next;
+                                        if (prevOffsetLink != null &&
+                                            prevOffsetLink.Value +
+                                            prevLengthLink.Value == offset)
+                                            prevLengthLink.Value += length;
+                                        else
+                                            _free.AddAfter(
+                                                _free.AddBefore(offsetLink, offset), 
+                                                length);
                                     }
-                                }
-                                else
-                                {
-                                    var prevLengthLink = prevOffsetLink?.Next;
-                                    if (prevOffsetLink != null &&
-                                        prevOffsetLink.Value +
-                                        prevLengthLink.Value == offset)
-                                        prevLengthLink.Value += length;
-                                    else
-                                    {
-                                        var newLengthLink = _free.AddBefore(offsetLink, length);
-                                        _free.AddBefore(newLengthLink, offset);
-                                    }
+
+                                    return;
                                 }
 
-                                return;
+                                prevOffsetLink = offsetLink;
+                                offsetLink = offsetLink.Next.Next;
                             }
 
-                            prevOffsetLink = offsetLink;
-                            offsetLink = offsetLink.Next.Next;
+                            _free.AddLast(offset);
+                            _free.AddLast(length);
                         }
-
-                        _free.AddLast(offset);
-                        _free.AddLast(length);
-                    }); 
+                    });
             }
         }
 

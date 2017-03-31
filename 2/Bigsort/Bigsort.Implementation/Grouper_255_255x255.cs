@@ -1,311 +1,301 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
-using Bigsort.Contracts;
+﻿//using System;
+//using System.Collections.Generic;
+//using System.IO;
+//using System.Threading.Tasks;
+//using Bigsort.Contracts;
 
-namespace Bigsort.Implementation
-{
-    // ReSharper disable once InconsistentNaming
-    public class Grouper_255_255x255
-        : IGrouper_255_255x255
-    {
-        private readonly string
-            _partFileNameMask,
-            _partsDirecory;
+//namespace Bigsort.Implementation
+//{
+//    // ReSharper disable once InconsistentNaming
+//    public class Grouper_255_255x255
+//        : IGrouper_255_255x255
+//    {
+//        private readonly string _partFileNameMask;
+//        private readonly IIoService _ioService;
+//        private readonly IConfig _config;
 
-        private readonly IIoService _ioService;
-        private readonly IConfig _config;
+//        public Grouper_255_255x255(IIoService ioService, IConfig config)
+//        {
+//            _ioService = ioService;
+//            _config = config;
 
-        public Grouper_255_255x255(IIoService ioService, IConfig config)
-        {
-            _ioService = ioService;
-            _config = config;
+//            var ushortDigitsCount =
+//                (int)Math.Ceiling(Math.Log10(ushort.MaxValue));
+//            _partFileNameMask = new string('0', ushortDigitsCount);
+//        }
 
-            var ushortDigitsCount =
-                (int)Math.Ceiling(Math.Log10(ushort.MaxValue));
-            _partFileNameMask = new string('0', ushortDigitsCount);
+//        public IEnumerable<string> SplitToGroups(string filePath)
+//        {
+//            int buffLength = _config.BufferSize * 3,
+//                maxPartsCount = 96 * 96 + 96 + 1;
 
-            _partsDirecory = Path.Combine(
-                _ioService.TempDirectory,
-                _config.PartsDirectory);
-        }
+//            const byte dot = (byte)'.',
+//                       endLine = (byte)'\r',
+//                       endStream = 0,
+//                       endBuff = 1;
 
-        public string SplitToGroups(string filePath)
-        {
-            int buffLength = _config.BufferSize * 3,
-                maxPartsCount = 96 * 96 + 96 + 1;
-
-            const byte dot = (byte)'.',
-                       endLine = (byte)'\r',
-                       endStream = 0,
-                       endBuff = 1;
-
-            const int current = 0, 
-                     previous = 1;
+//            const int current = 0, 
+//                     previous = 1;
             
-            byte[][] buffs = new byte[2][];
-            buffs[current] = new byte[buffLength];
-            buffs[previous] = new byte[buffLength];
+//            byte[][] buffs = new byte[2][];
+//            buffs[current] = new byte[buffLength];
+//            buffs[previous] = new byte[buffLength];
+            
+//            var names = new SortedList<ushort, string>(maxPartsCount);
+//            var parts = new Dictionary<ushort, IWriter>(maxPartsCount);
+//            using (var inputStream = _ioService.OpenRead(filePath))
+//            {
+//                const int linePrefixLength = 2;
+//                int lastBuffIndex = buffLength - 1,
+//                    lettersCountByte1 = 0,
+//                    lettersCountByte2 = 0,
+//                    lettersCount = 0,
+//                    digitsCountByte = 1,
+//                    digitsCount = 0,
+//                    i = 2;
 
-            var prevCurrentDirectory = _ioService.CurrentDirectory;
-            _ioService.CreateDirectory(_partsDirecory);
-            _ioService.CurrentDirectory = _partsDirecory;
+//                ushort id = 0;
+//                byte c;
 
-            var parts = new Dictionary<ushort, IWriter>(maxPartsCount);
-            using (var inputStream = _ioService.OpenRead(filePath))
-            {
-                const int linePrefixLength = 2;
-                int lastBuffIndex = buffLength - 1,
-                    lettersCountByte1 = 0,
-                    lettersCountByte2 = 0,
-                    lettersCount = 0,
-                    digitsCountByte = 1,
-                    digitsCount = 0,
-                    i = 2;
+//                int countForRead = lastBuffIndex - linePrefixLength;
+//                int count = inputStream.Read(buffs[current], linePrefixLength, countForRead);
+//                if (count == countForRead)
+//                    buffs[current][lastBuffIndex] = endBuff;
+//                else buffs[current][count + 1] = endStream;
 
-                ushort id = 0;
-                byte c;
+//                State backState = State.None,
+//                      state = State.ReadNumber;
 
-                int countForRead = lastBuffIndex - linePrefixLength;
-                int count = inputStream.Read(buffs[current], linePrefixLength, countForRead);
-                if (count == countForRead)
-                    buffs[current][lastBuffIndex] = endBuff;
-                else buffs[current][count + 1] = endStream;
-
-                State backState = State.None,
-                      state = State.ReadNumber;
-
-                while (true)
-                {
-                    var currentBuff = buffs[current];
-                    switch (state)
-                    {
-                        case State.ReadNumber:
+//                while (true)
+//                {
+//                    var currentBuff = buffs[current];
+//                    switch (state)
+//                    {
+//                        case State.ReadNumber:
                             
-                            while (currentBuff[i] > dot) i++;
+//                            while (currentBuff[i] > dot) i++;
 
-                            if (digitsCountByte < buffLength)
-                                digitsCount += i - digitsCountByte - 1;
+//                            if (digitsCountByte < buffLength)
+//                                digitsCount += i - digitsCountByte - 1;
 
-                            if (currentBuff[i] == dot)
-                            {
-                                if (digitsCountByte > buffLength)
-                                    digitsCount += i;
+//                            if (currentBuff[i] == dot)
+//                            {
+//                                if (digitsCountByte > buffLength)
+//                                    digitsCount += i;
 
-                                buffs[digitsCountByte / buffLength]
-                                     [digitsCountByte % buffLength] = (byte)digitsCount;
+//                                buffs[digitsCountByte / buffLength]
+//                                     [digitsCountByte % buffLength] = (byte)digitsCount;
 
-                                lettersCountByte2 = i++;
-                                state = State.ReadStringFirstByte;
-                                break;
-                            }
+//                                lettersCountByte2 = i++;
+//                                state = State.ReadStringFirstByte;
+//                                break;
+//                            }
 
-                            // buff[i] == endBuff
-                            backState = State.ReadNumber;
-                            state = State.LoadNextBuff;
-                            break;
+//                            // buff[i] == endBuff
+//                            backState = State.ReadNumber;
+//                            state = State.LoadNextBuff;
+//                            break;
 
-                        case State.ReadStringFirstByte:
+//                        case State.ReadStringFirstByte:
 
-                            c = currentBuff[i];
-                            if (c > endLine)
-                            {
-                                id = (ushort)(c * byte.MaxValue);
-                                state = State.ReadStringSecondByte;
-                                ++i;
-                                break;
-                            }
+//                            c = currentBuff[i];
+//                            if (c > endLine)
+//                            {
+//                                id = (ushort)(c * byte.MaxValue);
+//                                state = State.ReadStringSecondByte;
+//                                ++i;
+//                                break;
+//                            }
 
-                            if (c == endLine)
-                            {
-                                buffs[lettersCountByte1 / buffLength]
-                                     [lettersCountByte1 % buffLength] = 0;
-                                buffs[lettersCountByte2 / buffLength]
-                                     [lettersCountByte2 % buffLength] = 0;
+//                            if (c == endLine)
+//                            {
+//                                buffs[lettersCountByte1 / buffLength]
+//                                     [lettersCountByte1 % buffLength] = 0;
+//                                buffs[lettersCountByte2 / buffLength]
+//                                     [lettersCountByte2 % buffLength] = 0;
                                 
-                                state = State.ReleaseLine;
-                                break;
-                            }
+//                                state = State.ReleaseLine;
+//                                break;
+//                            }
 
-                            // c == endBuff
-                            backState = State.ReadStringFirstByte;
-                            state = State.LoadNextBuff;
-                            break;
+//                            // c == endBuff
+//                            backState = State.ReadStringFirstByte;
+//                            state = State.LoadNextBuff;
+//                            break;
 
-                        case State.ReadStringSecondByte:
+//                        case State.ReadStringSecondByte:
 
-                            c = currentBuff[i];
-                            if (c > endLine)
-                            {
-                                id += c;
-                                state = State.ReadStringTail;
-                                ++i;
-                                break;
-                            }
+//                            c = currentBuff[i];
+//                            if (c > endLine)
+//                            {
+//                                id += c;
+//                                state = State.ReadStringTail;
+//                                ++i;
+//                                break;
+//                            }
                             
-                            lettersCount = 1;
-                            if (c == endLine)
-                            {
-                                buffs[lettersCountByte1 / buffLength]
-                                     [lettersCountByte1 % buffLength] = 0;
-                                buffs[lettersCountByte2 / buffLength]
-                                     [lettersCountByte2 % buffLength] = 1;
+//                            lettersCount = 1;
+//                            if (c == endLine)
+//                            {
+//                                buffs[lettersCountByte1 / buffLength]
+//                                     [lettersCountByte1 % buffLength] = 0;
+//                                buffs[lettersCountByte2 / buffLength]
+//                                     [lettersCountByte2 % buffLength] = 1;
 
-                                state = State.ReleaseLine;
-                                break;
-                            }
+//                                state = State.ReleaseLine;
+//                                break;
+//                            }
 
-                            // c == endBuff
-                            backState = State.ReadStringSecondByte;
-                            state = State.LoadNextBuff;
-                            break;
+//                            // c == endBuff
+//                            backState = State.ReadStringSecondByte;
+//                            state = State.LoadNextBuff;
+//                            break;
 
-                        case State.ReadStringTail:
+//                        case State.ReadStringTail:
 
-                            while (currentBuff[i] > endLine) i++;
+//                            while (currentBuff[i] > endLine) i++;
 
-                            if (lettersCountByte2 < buffLength)
-                                lettersCount += i - lettersCountByte2 - 1;
+//                            if (lettersCountByte2 < buffLength)
+//                                lettersCount += i - lettersCountByte2 - 1;
 
-                            if (currentBuff[i] == endLine)
-                            {
-                                if (lettersCountByte2 > buffLength)
-                                    lettersCount += i;
+//                            if (currentBuff[i] == endLine)
+//                            {
+//                                if (lettersCountByte2 > buffLength)
+//                                    lettersCount += i;
 
-                                buffs[lettersCountByte1 / buffLength]
-                                     [lettersCountByte1 % buffLength] = 
-                                            (byte)(lettersCount / byte.MaxValue);
+//                                buffs[lettersCountByte1 / buffLength]
+//                                     [lettersCountByte1 % buffLength] = 
+//                                            (byte)(lettersCount / byte.MaxValue);
 
-                                buffs[lettersCountByte2 / buffLength]
-                                     [lettersCountByte2 % buffLength] = 
-                                            (byte)(lettersCount % byte.MaxValue);
+//                                buffs[lettersCountByte2 / buffLength]
+//                                     [lettersCountByte2 % buffLength] = 
+//                                            (byte)(lettersCount % byte.MaxValue);
 
-                                state = State.ReleaseLine;
-                                break;
-                            }
+//                                state = State.ReleaseLine;
+//                                break;
+//                            }
 
-                            // buff[i] == endBuff
-                            backState = State.ReadStringTail;
-                            state = State.LoadNextBuff;
-                            break;
+//                            // buff[i] == endBuff
+//                            backState = State.ReadStringTail;
+//                            state = State.LoadNextBuff;
+//                            break;
                             
-                        case State.LoadNextBuff:
+//                        case State.LoadNextBuff:
 
-                            switch (backState)
-                            {
-                                case State.ReadStringFirstByte:
-                                case State.ReadStringSecondByte:
-                                case State.ReadStringTail:
-                                    lettersCountByte2 += buffLength;
-                                    goto case State.ReadNumber;
+//                            switch (backState)
+//                            {
+//                                case State.ReadStringFirstByte:
+//                                case State.ReadStringSecondByte:
+//                                case State.ReadStringTail:
+//                                    lettersCountByte2 += buffLength;
+//                                    goto case State.ReadNumber;
 
-                                case State.ReadNumber:
-                                    lettersCountByte1 += buffLength;
-                                    digitsCountByte += buffLength;
-                                    i = 0;
-                                    break;
-                            }
+//                                case State.ReadNumber:
+//                                    lettersCountByte1 += buffLength;
+//                                    digitsCountByte += buffLength;
+//                                    i = 0;
+//                                    break;
+//                            }
                             
-                            var actualBuff = buffs[previous];
-                            buffs[previous] = buffs[current];
-                            buffs[current] = actualBuff;
+//                            var actualBuff = buffs[previous];
+//                            buffs[previous] = buffs[current];
+//                            buffs[current] = actualBuff;
                             
-                            count = inputStream.Read(actualBuff, 0, lastBuffIndex);
-                            if (count == lastBuffIndex)
-                                actualBuff[lastBuffIndex] = endBuff;
-                            else
-                            {
-                                var endStreamIndex = Math.Max(0, count - 1);
-                                if (endStreamIndex == 0)
-                                {
-                                    state = State.Finish;
-                                    break;
-                                }
+//                            count = inputStream.Read(actualBuff, 0, lastBuffIndex);
+//                            if (count == lastBuffIndex)
+//                                actualBuff[lastBuffIndex] = endBuff;
+//                            else
+//                            {
+//                                var endStreamIndex = Math.Max(0, count - 1);
+//                                if (endStreamIndex == 0)
+//                                {
+//                                    state = State.Finish;
+//                                    break;
+//                                }
                                 
-                                actualBuff[endStreamIndex] = endStream;
-                            }
+//                                actualBuff[endStreamIndex] = endStream;
+//                            }
 
-                            state = backState;
-                            break;
+//                            state = backState;
+//                            break;
 
-                        case State.ReleaseLine:
+//                        case State.ReleaseLine:
                             
-                            if (!parts.ContainsKey(id))
-                            {
-                                var name = id.ToString(_partFileNameMask);
-                                parts.Add(id, _ioService.OpenWrite(name));
-                            }
+//                            if (!parts.ContainsKey(id))
+//                            {
+//                                var name = id.ToString(_partFileNameMask);
+//                                names.Add(id, name);
+//                                parts.Add(id, _ioService.OpenWrite(name));
+//                            }
 
-                            var lineLength = digitsCount + lettersCount + 3;
-                            var lineStart = i - lineLength;
-                            var writer = parts[id];
+//                            var lineLength = digitsCount + lettersCount + 3;
+//                            var lineStart = i - lineLength;
+//                            var writer = parts[id];
 
-                            if (lineStart < 0)
-                            {
-                                lineStart = Math.Abs(lineStart);
-                                writer.Write(buffs[previous],
-                                             lastBuffIndex - lineStart,
-                                             lineStart);
+//                            if (lineStart < 0)
+//                            {
+//                                lineStart = Math.Abs(lineStart);
+//                                writer.Write(buffs[previous],
+//                                             lastBuffIndex - lineStart,
+//                                             lineStart);
 
-                                writer.Write(currentBuff, 0, i);
-                            }
-                            else
-                                writer.Write(currentBuff,
-                                             lettersCountByte1,
-                                             lineLength);
+//                                writer.Write(currentBuff, 0, i);
+//                            }
+//                            else
+//                                writer.Write(currentBuff,
+//                                             lettersCountByte1,
+//                                             lineLength);
                             
-                            lettersCount = 0;
-                            digitsCount = 0;
-                            id = 0;
+//                            lettersCount = 0;
+//                            digitsCount = 0;
+//                            id = 0;
 
-                            if (currentBuff[++i] == endBuff)
-                            {
-                                lettersCountByte1 = i + buffLength - 1;
-                                digitsCountByte = 0;
-                                i = 0;
+//                            if (currentBuff[++i] == endBuff)
+//                            {
+//                                lettersCountByte1 = i + buffLength - 1;
+//                                digitsCountByte = 0;
+//                                i = 0;
 
-                                backState = State.CheckFinish;
-                                state = State.LoadNextBuff;
-                                break;
-                            }
+//                                backState = State.CheckFinish;
+//                                state = State.LoadNextBuff;
+//                                break;
+//                            }
 
-                            lettersCountByte1 = i - 1;
-                            digitsCountByte = i;
-                            state = State.CheckFinish;
-                            break;
+//                            lettersCountByte1 = i - 1;
+//                            digitsCountByte = i;
+//                            state = State.CheckFinish;
+//                            break;
 
-                        case State.CheckFinish:
-                            state = currentBuff[i++] == endStream
-                                  ? State.Finish
-                                  : State.ReadNumber;
-                            break;
+//                        case State.CheckFinish:
+//                            state = currentBuff[i++] == endStream
+//                                  ? State.Finish
+//                                  : State.ReadNumber;
+//                            break;
 
-                        case State.Finish:
-                            var option = new ParallelOptions
-                            {
-                                MaxDegreeOfParallelism = Environment.ProcessorCount
-                            };
+//                        case State.Finish:
+//                            var option = new ParallelOptions
+//                            {
+//                                MaxDegreeOfParallelism = Environment.ProcessorCount
+//                            };
 
-                            Parallel.ForEach(parts.Values, option, p => p.Dispose());
-                            _ioService.CurrentDirectory = prevCurrentDirectory;
-                            return _partsDirecory;
-                    }
-                }
-            }
-        }
+//                            Parallel.ForEach(parts.Values, option, p => p.Dispose());
+//                            return names.Values;
+//                    }
+//                }
+//            }
+//        }
 
-        private enum State
-        {
-            ReadNumber,
-            ReadStringFirstByte,
-            ReadStringSecondByte,
-            ReadStringTail,
-            ReleaseLine,
-            LoadNextBuff,
-            CheckFinish,
-            Finish,
-            None
-        }
-    }
-}
+//        private enum State
+//        {
+//            ReadNumber,
+//            ReadStringFirstByte,
+//            ReadStringSecondByte,
+//            ReadStringTail,
+//            ReleaseLine,
+//            LoadNextBuff,
+//            CheckFinish,
+//            Finish,
+//            None
+//        }
+//    }
+//}

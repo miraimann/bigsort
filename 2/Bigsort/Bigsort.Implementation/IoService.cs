@@ -29,6 +29,18 @@ namespace Bigsort.Implementation
         public IWriter OpenWrite(string path) =>
             new Writer(path, _buffersPool.Get());
 
+        public IWriter OpenSharedWrite(string path, long possition) =>
+            new Writer(path, possition, _buffersPool.Get());
+
+        public long SizeOfFile(string path) =>
+            new FileInfo(path).Length;
+
+        public void CreateFile(string path, long length)
+        {
+            using (var stream = new FileStream(path, FileMode.CreateNew))
+                stream.SetLength(length);
+        }
+
         public IEnumerable<string> EnumerateFilesOf(string directory) =>
             Directory.EnumerateFiles(directory);
 
@@ -46,12 +58,31 @@ namespace Bigsort.Implementation
             private readonly Stream _stream;
             private int _offset = 0;
 
-            public Writer(string path, IPooled<byte[]> buffHandler)
+            public Writer(string path, 
+                IPooled<byte[]> buffHandle)
             {       
                 _stream = File.OpenWrite(path);
-                _buffHandle = buffHandler;
+                _buffHandle = buffHandle;
                 _buff = _buffHandle.Value;
             }
+
+            public Writer(string path, long possition, 
+                IPooled<byte[]> buffHandle)
+            {
+                _stream = new FileStream(path,
+                    FileMode.OpenOrCreate,
+                    FileAccess.Read,
+                    FileShare.Write)
+                {
+                    Position = possition
+                };
+
+                _buffHandle = buffHandle;
+                _buff = _buffHandle.Value;
+            }
+
+            public long Length =>
+                _stream.Length;
 
             public void Write(byte[] array, int offset, int count)
             {
@@ -89,10 +120,18 @@ namespace Bigsort.Implementation
                 _buff[_offset++] = x;
             }
 
-            public void Dispose()
+            public void Flush()
             {
                 if (_offset != 0)
+                {
                     _stream.Write(_buff, 0, _offset);
+                    _offset = 0;
+                }
+            }
+
+            public void Dispose()
+            {
+                Flush();
 
                 _buffHandle.Dispose();
                 _stream.Dispose();

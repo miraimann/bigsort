@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Configuration;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Bigsort.Contracts;
 
@@ -10,10 +13,7 @@ namespace Bigsort.Implementation
     public class Grouper_127_255
         : IGrouper_127_255
     {
-        private readonly string
-            _partFileNameMask,
-            _partsDirecory;
-
+        private readonly string _partFileNameMask;
         private readonly IIoService _ioService;
         private readonly IConfig _config;
 
@@ -26,18 +26,18 @@ namespace Bigsort.Implementation
                 (int)Math.Ceiling(Math.Log10(ushort.MaxValue));
             _partFileNameMask = new string('0', ushortDigitsCount);
 
-            _partsDirecory = Path.Combine(
-                _ioService.TempDirectory,
-                _config.PartsDirectory);
+            Group.SetContentRowLength(
+                config.BufferSize - 
+                config.GroupBufferRowReadingEnsurance);
         }
 
-        public string SplitToGroups(string filePath)
+        public IEnumerable<IGroupInfo> SplitToGroups(string filePath)
         {
             int buffLength = _config.BufferSize,
                 maxPartsCount = 96 * 96 + 96 + 1;
 
-            const byte dot = (byte)'.',
-                       endLine = (byte)'\r',
+            const byte dot = (byte) '.',
+                       endLine = (byte) '\r',
                        endStream = 0,
                        endBuff = 1;
 
@@ -47,12 +47,8 @@ namespace Bigsort.Implementation
             byte[][] buffs = new byte[2][];
             buffs[current] = new byte[buffLength];
             buffs[previous] = new byte[buffLength];
-
-            var prevCurrentDirectory = _ioService.CurrentDirectory;
-            _ioService.CreateDirectory(_partsDirecory);
-            _ioService.CurrentDirectory = _partsDirecory;
-
-            var parts = new Dictionary<ushort, IWriter>(maxPartsCount);
+            
+            var groups = new Dictionary<ushort, Group>(maxPartsCount);
             using (var inputStream = _ioService.OpenRead(filePath))
             {
                 const int linePrefixLength = 2;
@@ -198,14 +194,16 @@ namespace Bigsort.Implementation
 
                         case State.ReleaseLine:
 
-                            if (!parts.ContainsKey(id))
+                            if (!groups.ContainsKey(id))
                             {
                                 var name = id.ToString(_partFileNameMask);
-                                parts.Add(id, _ioService.OpenWrite(name));
+                                var group = new Group(name, _ioService.OpenWrite(name));
+                                groups.Add(id, group);
                             }
 
-                            var prevBuff = buffs[previous];
+                            ++groups[id].LinesCount;
 
+                            var prevBuff = buffs[previous];
                             if (lettersIndex < buffLength)
                             {
                                 currentBuff[lettersIndex] = (byte) lettersCount;
@@ -225,7 +223,7 @@ namespace Bigsort.Implementation
 
                             var lineLength = digitsCount + lettersCount + 3;
                             var lineStart = i - lineLength;
-                            var writer = parts[id];
+                            var writer = groups[id].Bytes;
 
                             if (lineStart < 0)
                             {
@@ -271,12 +269,47 @@ namespace Bigsort.Implementation
                                 MaxDegreeOfParallelism = Environment.ProcessorCount
                             };
 
-                            Parallel.ForEach(parts.Values, option, p => p.Dispose());
-                            _ioService.CurrentDirectory = prevCurrentDirectory;
-                            return _partsDirecory;
+                            Parallel.ForEach(groups.Values, option,
+                                group =>
+                                {
+                                    group.Bytes.Flush();
+                                    group.BytesCount = (int)group.Bytes.Length;
+                                    group.Bytes.Dispose();
+                                    group.Bytes = null;
+                                });
+                            
+                            return groups.Values.OrderBy(o => o.Name);
                     }
                 }
             }
+        }
+
+        private class Group
+            : IGroupInfo
+        {
+            private static int _contentRowLength;
+            public static void SetContentRowLength(int x) =>
+                _contentRowLength = x;
+
+            public Group(string name, IWriter writer)
+            {
+                Name = name;
+                Bytes = writer;
+            }
+
+            public string Name { get; }
+            public IWriter Bytes { get; set; }
+
+            public int ContentRowLength =>
+                _contentRowLength;
+
+            public int ContentRowsCount =>
+                (BytesCount / ContentRowLength) +
+                (BytesCount % ContentRowLength == 0 ? 0 : 1);
+
+            public int LinesCount { get; set; }
+            public int BytesCount { get; set; }
+
         }
 
         private enum State

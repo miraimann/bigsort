@@ -9,7 +9,7 @@ namespace Bigsort.Contracts
     {
         [FieldOffset(0)]
         public int start;
-
+        
         [FieldOffset(sizeof(int))]
         public uint fragmentForSort;
         

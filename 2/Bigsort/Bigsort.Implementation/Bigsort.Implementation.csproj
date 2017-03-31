@@ -46,11 +46,12 @@
     <Compile Include="CollectionsFactory.cs" />
     <Compile Include="Grouper_127_255.cs" />
     <Compile Include="Grouper_255_255x255.cs" />
-    <Compile Include="GroupService.cs" />
+    <Compile Include="GroupLoader.cs" />
     <Compile Include="GroupSorter.cs" />
     <Compile Include="IoService.cs" />
     <Compile Include="LinesIndexator.cs" />
     <Compile Include="LineSorter.cs" />
+    <Compile Include="SortedGroupWriter.cs" />
     <Compile Include="SortingFragmentsMoverMaker.cs" />
     <Compile Include="PoolMaker.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

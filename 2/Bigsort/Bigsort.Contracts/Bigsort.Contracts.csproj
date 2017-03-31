@@ -52,11 +52,13 @@
     <Compile Include="IGrouper.cs" />
     <Compile Include="IGrouper_127_255.cs" />
     <Compile Include="IGrouper_255_255x255.cs" />
-    <Compile Include="IGroupService.cs" />
+    <Compile Include="IGroupInfo.cs" />
+    <Compile Include="IGroupLoader.cs" />
     <Compile Include="IGroupSorter.cs" />
     <Compile Include="IIoService.cs" />
     <Compile Include="ILinesIndexator.cs" />
     <Compile Include="ILinesSorter.cs" />
+    <Compile Include="ISortedGroupWriter.cs" />
     <Compile Include="ISortingFragmentsMover.cs" />
     <Compile Include="ISortingFragmentsMoverMaker.cs" />
     <Compile Include="IPool.cs" />
