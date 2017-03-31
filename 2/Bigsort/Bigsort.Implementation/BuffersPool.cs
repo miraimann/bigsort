@@ -11,7 +11,7 @@ namespace Bigsort.Implementation
             IPoolMaker poolMaker,
             IConfig config)
         {
-            _pool = poolMaker.Make(() =>
+            _pool = poolMaker.MakePool(() =>
                     new byte[config.BufferSize]);
         }
 

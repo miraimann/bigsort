@@ -9,5 +9,7 @@
         int MainArraySize { get; }
 
         int MaxLoadedGroupsSize { get; }
+
+        int MaxTasksCount { get; }
     }
 }

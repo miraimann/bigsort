@@ -35,7 +35,8 @@ namespace Bigsort.Tests
 
             var log = TestContext.Out;
             var poolMaker = new PoolMaker();
-            var ioService = new IoService(poolMaker, configMock.Object);
+            var buffersPool = new BuffersPool(poolMaker, configMock.Object);
+            var ioService = new IoService(buffersPool);
             var grouper = new Grouper_255_255x255(ioService, configMock.Object);
 
             var t = DateTime.Now;

@@ -13,14 +13,14 @@ namespace Bigsort.Console
     {
         static unsafe void Main(string[] args)
         {
-            C.WriteLine(Environment.ProcessorCount);
+            #region research 3
+
+            var t = DateTime.Now;
+            using (var stream = new FileStream("E:\\100_Gb.txt", FileMode.Create))
+                stream.SetLength(100L * 1024 * 1024 * 1024);
+
+            C.WriteLine(DateTime.Now - t);
             C.ReadKey();
-
-            #region
-
-            //byte[] x = {1, 2};
-            //C.WriteLine(BitConverter.ToInt32(x, 0));
-            //C.ReadLine();
 
             #endregion
 

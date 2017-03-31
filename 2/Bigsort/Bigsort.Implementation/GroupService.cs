@@ -7,21 +7,30 @@ using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    public class GroupLoader
-        : IGroupLoader
+    public class GroupService
+        : IGroupService
     {
         private readonly IBuffersPool _buffersPool;
         private readonly IConfig _config;
 
-        public GroupLoader(
+        public GroupService(
             IBuffersPool buffersPool,
             IConfig config)
         {
             _config = config;
             _buffersPool = buffersPool;
         }
+        
+        public int LinesCountOfGroup(string path)
+        {
+            var buff = new byte[sizeof(int)];
+            using (var stream = File.OpenRead(path))
+                stream.Read(buff, 0, buff.Length);
 
-        public IGroup Load(string path) =>
+            return BitConverter.ToInt32(buff, 0);
+        }
+
+        public IGroup LoadGroup(string path) =>
             new Group(path, _buffersPool, _config);
 
         private class Group 

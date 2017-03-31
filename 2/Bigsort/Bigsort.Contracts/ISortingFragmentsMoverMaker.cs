@@ -2,8 +2,6 @@
 {
     public interface ISortingFragmentsMoverMaker
     {
-        ISortingFragmentsMover Make(
-            IGroup group,
-            SortingLine[] lines);
+        ISortingFragmentsMover Make(IGroup group, SortingLine[] lines);
     }
 }
