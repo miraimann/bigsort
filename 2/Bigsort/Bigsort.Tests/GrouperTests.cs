@@ -71,15 +71,7 @@ namespace Bigsort.Tests
             configMock
                 .SetupGet(o => o.BufferSize)
                 .Returns(testCase.BufferSize);
-
-            configMock
-                .SetupGet(o => o.PartsDirectory)
-                .Returns(partsDirectory);
-
-            ioServiceMock
-                .SetupGet(o => o.TempDirectory)
-                .Returns(tempDirectory);
-
+            
             var grouper = new Grouper(
                 ioServiceMock.Object,
                 configMock.Object);

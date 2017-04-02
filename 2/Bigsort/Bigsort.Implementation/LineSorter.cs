@@ -38,15 +38,12 @@ namespace Bigsort.Implementation
 
         public void Sort(string inputPath, string outputPath)
         {
-            var groupsDirecory = Path.Combine(
-                _ioService.TempDirectory,
+            var prevCurrentDirectory = _ioService.CurrentDirectory;
+            _ioService.CurrentDirectory = _ioService.TempDirectory;
+            
+            var groupSeeds = _grouper.SplitToGroups(inputPath, 
                 _config.PartsDirectory);
 
-            var prevCurrentDirectory = _ioService.CurrentDirectory;
-            _ioService.CreateDirectory(groupsDirecory);
-            _ioService.CurrentDirectory = groupsDirecory;
-            
-            var groupSeeds = _grouper.SplitToGroups(inputPath);
             var fileLength = _ioService.SizeOfFile(inputPath);
             _ioService.CreateFile(outputPath, fileLength);
             _linesReservation.Load();
@@ -55,6 +52,7 @@ namespace Bigsort.Implementation
             int usedRowsCount = 0;
             long possition = 0;
 
+            _ioService.CurrentDirectory += _config.PartsDirectory;
             foreach (var seed in groupSeeds)
             {
                 var groupPosition = possition;

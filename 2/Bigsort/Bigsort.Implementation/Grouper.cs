@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Threading;
 using System.Threading.Tasks;
 using Bigsort.Contracts;
 
@@ -29,8 +28,24 @@ namespace Bigsort.Implementation
                 config.GroupBufferRowReadingEnsurance);
         }
 
-        public IEnumerable<IGroupInfo> SplitToGroups(string filePath)
+        public IEnumerable<IGroupInfo> SplitToGroups(
+            string inputFile, 
+            string outputDirectory = null)
         {
+            string prevCurrentDirectory = null;
+            if (outputDirectory != null)
+            {
+                prevCurrentDirectory = _ioService.CurrentDirectory;
+                if (!Path.IsPathRooted(outputDirectory))
+                    outputDirectory = Path.Combine(
+                        prevCurrentDirectory, 
+                        outputDirectory);
+
+                if (!_ioService.DirectoryExists(outputDirectory))
+                    _ioService.CreateDirectory(outputDirectory);
+                _ioService.CurrentDirectory = outputDirectory;
+            }
+            
             int buffLength = _config.BufferSize,
                 maxPartsCount = 96 * 96 + 96 + 1;
 
@@ -47,7 +62,7 @@ namespace Bigsort.Implementation
             buffs[previous] = new byte[buffLength];
             
             var groups = new Dictionary<ushort, Group>(maxPartsCount);
-            using (var inputStream = _ioService.OpenRead(filePath))
+            using (var inputStream = _ioService.OpenRead(inputFile))
             {
                 const int linePrefixLength = 2;
                 int lastBuffIndex = buffLength - 1,
@@ -249,7 +264,10 @@ namespace Bigsort.Implementation
                                     group.Bytes.Dispose();
                                     group.Bytes = null;
                                 });
-                            
+
+                            if (prevCurrentDirectory != null)
+                                _ioService.CurrentDirectory = prevCurrentDirectory;
+
                             return groups.Values.OrderBy(o => o.Name);
                     }
                 }

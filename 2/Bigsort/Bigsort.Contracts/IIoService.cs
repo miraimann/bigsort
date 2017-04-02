@@ -20,6 +20,8 @@ namespace Bigsort.Contracts
 
         void CreateFile(string path, long length);
 
+        bool DirectoryExists(string path);
+
         void CreateDirectory(string path);
 
         void DeleteFile(string path);

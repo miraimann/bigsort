@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.Linq;
 using Bigsort.Contracts;
 using Bigsort.Implementation;
 using Bigsort.Tools.TestFileGenerator;
@@ -9,13 +11,23 @@ namespace Bigsort.Tests
 {
     public partial class GrouperTests
     {
-        [TestCase("1_Mb", "[1-32].[0-128]", "E:\\1Mb", 32 * 1025
-            , Ignore = "for hands run only"
-            )]
+        public const string UseExistendFile = "X"; 
 
-        [TestCase("1_Gb", "[1-32].[0-128]", "E:\\1Gb", 32 * 1025
-            , Ignore = "for hands run only"
-            )]
+        [TestCase("1_Mb", "[1-32].[0-128]", "E:\\1Mb", 32*1025
+             , Ignore = "for hands run only"
+         )]
+
+        [TestCase("1_Gb", "[1-32].[0-128]", "E:\\1Gb", 32*1025
+             , Ignore = "for hands run only"
+         )]
+
+        [TestCase(UseExistendFile, "[1-32].[0-128]", "E:\\1Gb", 32 * 1025
+            //, Ignore = "for hands run only"
+         )]
+
+        [TestCase("10_Gb", "[1-32].[0-128]", "E:\\10Gb", 32 * 1025
+         , Ignore = "for hands run only"
+         )]
 
         public void IntegrationTest(
             string size,
@@ -23,14 +35,11 @@ namespace Bigsort.Tests
             string path,
             int buffSize)
         {
+            var resultDir = $"E:\\{Path.GetFileName(path)}Dir";
             var configMock = new Mock<IConfig>();
             configMock
                 .SetupGet(o => o.BufferSize)
                 .Returns(buffSize);
-
-            configMock
-                .SetupGet(o => o.PartsDirectory)
-                .Returns("result");
 
             var log = TestContext.Out;
             var disposableValueMaker = new DisposableValueMaker();
@@ -38,14 +47,37 @@ namespace Bigsort.Tests
             var ioService = new IoService(buffersPool);
             var grouper = new Grouper(ioService, configMock.Object);
 
-            var t = DateTime.Now;
-            Generator.Generate(size, settings, path);
-            log.WriteLine("generation time: {0}", DateTime.Now - t);
+            try
+            {
+                DateTime t;
+                if (size != UseExistendFile)
+                {
+                    t = DateTime.Now;
+                    Generator.Generate(size, settings, path);
+                    log.WriteLine("generation time: {0}", DateTime.Now - t);
+                }
+                
+                // t = DateTime.Now;
+                // grouper.SplitToGroups(path, resultDir);
+                // log.WriteLine("grouping time: {0}", DateTime.Now - t);
+                // log.WriteLine("result path: {0}", resultDir);
 
-            t = DateTime.Now;
-            var resultDiretory = grouper.SplitToGroups(path);
-            log.WriteLine("grouping time: {0}", DateTime.Now - t);
-            log.WriteLine("result path: {0}", resultDiretory);
+                var expectedSize = new FileInfo(path).Length;
+                var resultSize = Directory
+                    .EnumerateFiles(resultDir)
+                    .Select(o => new FileInfo(o).Length)
+                    .Sum();
+
+                log.WriteLine("input file size: {0}", expectedSize);
+                log.WriteLine("group files size: {0}", resultSize);
+
+                Assert.AreEqual(expectedSize, resultSize);
+            }
+            finally
+            {
+                // File.Delete(path);
+                // Directory.Delete(resultDir, true);
+            }
         }
     }
 }
