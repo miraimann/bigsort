@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Bigsort.Contracts;
 
@@ -123,9 +125,7 @@ namespace Bigsort.Implementation
                             }
 
                             // c == endBuff
-                            backState = readFirstLetter
-                                ? State.ReadId
-                                : State.ReadString;
+                            backState = State.ReadId;
                             state = State.LoadNextBuff;
                             break;
 
@@ -152,16 +152,9 @@ namespace Bigsort.Implementation
                             
                         case State.LoadNextBuff:
 
-                            switch (backState)
-                            {
-                                case State.ReadId:
-                                case State.ReadString:
-                                case State.ReadNumber:
-                                    j += buffLength;
-                                    i = 0;
-                                    break;
-                            }
-                            
+                            j += buffLength;
+                            i = 0;
+
                             var actualBuff = buffs[previous];
                             buffs[previous] = buffs[current];
                             buffs[current] = actualBuff;
@@ -228,7 +221,6 @@ namespace Bigsort.Implementation
                             {
                                 backState = State.CheckFinish;
                                 state = State.LoadNextBuff;
-                                i = 0;
                                 break;
                             }
 
