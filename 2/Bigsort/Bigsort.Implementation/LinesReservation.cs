@@ -38,7 +38,6 @@ namespace Bigsort.Implementation
             _free.AddFirst(new Range(0, Length));
         }
 
-
         public IDisposableValue<Range> TryReserveRange(int length)
         {
             const int notFound = -1;
@@ -84,25 +83,23 @@ namespace Bigsort.Implementation
                             {
                                 if (offset + length == link.Value.Offset)
                                 {
-                                    if (prev != null)
+                                    if (prev != null &&
+                                        prev.Value.Offset +
+                                        prev.Value.Length == offset)
                                     {
-                                        if (prev.Value.Offset +
-                                            prev.Value.Length == offset)
-                                        {
-                                            var newLength = prev.Value.Length 
-                                                            + link.Value.Length
-                                                            + length;
+                                        var newLength = prev.Value.Length 
+                                                      + link.Value.Length
+                                                      + length;
 
-                                            prev.Value = new Range(
-                                                prev.Value.Offset,
-                                                newLength);
-                                                
-                                            _free.Remove(link);
-                                        }
+                                        prev.Value = new Range(
+                                            prev.Value.Offset,
+                                            newLength);
+                                            
+                                        _free.Remove(link);
                                     }
                                     else link.Value = new Range(
-                                                link.Value.Offset + length,
-                                                link.Value.Length - length);
+                                            link.Value.Offset - length,
+                                            link.Value.Length + length);
                                 }
                                 else
                                 {
