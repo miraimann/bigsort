@@ -1,7 +1,7 @@
 ﻿namespace Bigsort.Contracts
 {
     public interface IBuffersPool
-        : IPool<byte[]>
     {
+        IDisposableValue<byte[]> GetBuffer();
     }
 }

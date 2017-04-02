@@ -27,10 +27,10 @@ namespace Bigsort.Implementation
             new Reader(path);
 
         public IWriter OpenWrite(string path) =>
-            new Writer(path, _buffersPool.Get());
+            new Writer(path, _buffersPool.GetBuffer());
 
         public IWriter OpenSharedWrite(string path, long possition) =>
-            new Writer(path, possition, _buffersPool.Get());
+            new Writer(path, possition, _buffersPool.GetBuffer());
 
         public long SizeOfFile(string path) =>
             new FileInfo(path).Length;
@@ -53,13 +53,13 @@ namespace Bigsort.Implementation
         private class Writer
             : IWriter
         {
-            private readonly IPooled<byte[]> _buffHandle;
+            private readonly IDisposableValue<byte[]> _buffHandle;
             private readonly byte[] _buff;
             private readonly Stream _stream;
             private int _offset = 0;
 
             public Writer(string path, 
-                IPooled<byte[]> buffHandle)
+                IDisposableValue<byte[]> buffHandle)
             {       
                 _stream = File.OpenWrite(path);
                 _buffHandle = buffHandle;
@@ -67,7 +67,7 @@ namespace Bigsort.Implementation
             }
 
             public Writer(string path, long possition, 
-                IPooled<byte[]> buffHandle)
+                IDisposableValue<byte[]> buffHandle)
             {
                 _stream = new FileStream(path,
                     FileMode.OpenOrCreate,

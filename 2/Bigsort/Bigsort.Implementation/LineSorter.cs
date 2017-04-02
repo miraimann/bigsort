@@ -1,46 +1,38 @@
 ﻿using Bigsort.Contracts;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Bigsort.Implementation
 {
-    public class LineSorter
+    public class LineSorter<TSegment>
         : ILinesSorter
     {
-        private readonly IGrouper_127_255 _grouper;
-        private readonly IGroupLoader _groupLoader;
+        private readonly ILinesReservation<TSegment> _linesReservation; 
+        private readonly IGrouper _grouper;
+        private readonly IGroupBytesLoader _groupLoader;
         private readonly IGroupSorter _groupSorter;
         private readonly ISortedGroupWriter _sortedGroupWriter;
         private readonly IIoService _ioService;
         private readonly ITasksQueue _tasksQueue;
-        private readonly IPoolMaker _poolMaker;
         private readonly IConfig _config;
 
         public LineSorter(
-            IGrouper_127_255 grouper,
-            IGroupLoader groupLoader,
+            ILinesReservation<TSegment> linesReservation,
+            IGrouper grouper,
+            IGroupBytesLoader groupLoader,
             IGroupSorter groupSorter,
             ISortedGroupWriter sortedGroupWriter,
             IIoService ioService,
             ITasksQueue tasksQueue,
-            IPoolMaker poolMaker,
             IConfig config)
         {
+            _linesReservation = linesReservation;
             _grouper = grouper;
             _groupLoader = groupLoader;
             _groupSorter = groupSorter;
             _sortedGroupWriter = sortedGroupWriter;
             _ioService = ioService;
             _tasksQueue = tasksQueue;
-            _poolMaker = poolMaker;
             _config = config;
         }
 
@@ -57,15 +49,7 @@ namespace Bigsort.Implementation
             var groupSeeds = _grouper.SplitToGroups(inputPath);
             var fileLength = _ioService.SizeOfFile(inputPath);
             _ioService.CreateFile(outputPath, fileLength);
-
-            int maxLinesCount = _config.MainArraySize 
-                / Marshal.SizeOf<SortingLine>();
-
-            var linesPool = _poolMaker.MakeFragmentsPool(
-                new SortingLine[maxLinesCount]);
-
-            _ioService.CreateFile(outputPath, 
-                _ioService.SizeOfFile(inputPath));
+            _linesReservation.Load();
 
             var o = new object();
             int usedRowsCount = 0;
@@ -79,27 +63,29 @@ namespace Bigsort.Implementation
                 {
                     bool reenqueue = false;
                     lock (o)
-                        if (usedRowsCount + seed.ContentRowsCount >
+                        if (usedRowsCount + seed.RowsCount >
                             _config.MaxGroupsBuffersCount)
                             reenqueue = true;
-                        else usedRowsCount += seed.ContentRowsCount;
+                        else usedRowsCount += seed.RowsCount;
 
                     if (!reenqueue)
                     {
-                        var linesHandle = linesPool.TryGet(seed.BytesCount);
-                        if (linesHandle == null)
+                        var rangeHandle = _linesReservation
+                            .TryReserveRange(seed.BytesCount);
+
+                        if (rangeHandle == null)
                             reenqueue = true;
 
                         if (!reenqueue)
-                            using (linesHandle)
+                            using (rangeHandle)
                             using (var output = _ioService
                                 .OpenSharedWrite(outputPath, groupPosition))
                             {
-                                var lines = linesHandle.Value;
+                                var linesRange = rangeHandle.Value;
                                 var group = _groupLoader.Load(seed);
 
-                                _groupSorter.Sort(group, lines);
-                                _sortedGroupWriter.Write(group, lines, output);
+                                _groupSorter.Sort(group, linesRange);
+                                _sortedGroupWriter.Write(group, linesRange, output);
                                 _ioService.DeleteFile(seed.Name);
                             }
                     }

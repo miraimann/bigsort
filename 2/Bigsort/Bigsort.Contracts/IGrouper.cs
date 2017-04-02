@@ -7,6 +7,8 @@ namespace Bigsort.Contracts
         /// <summary>
         /// Split file to group files by first 2 chracters of string part of lines.
         /// (Create files in Current directory.)
+        /// File has folloving bytes mapping in lines of result:
+        /// [number length][letters length][number].[string]
         /// </summary>
         /// <param name="filePath">
         /// Source file path.

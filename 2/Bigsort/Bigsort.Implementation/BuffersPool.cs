@@ -1,21 +1,34 @@
-﻿using Bigsort.Contracts;
+﻿using System.Collections.Concurrent;
+using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
     public class BuffersPool
         : IBuffersPool
     {
-        private readonly IPool<byte[]> _pool;
+        private readonly IDisposableValueMaker _disposableValueMaker;
+        private readonly IConfig _config;
+
+        private readonly ConcurrentQueue<byte[]> _storage =
+            new ConcurrentQueue<byte[]>();
 
         public BuffersPool(
-            IPoolMaker poolMaker,
+            IDisposableValueMaker disposableValueMaker,
             IConfig config)
         {
-            _pool = poolMaker.MakePool(() =>
-                    new byte[config.BufferSize]);
+            _disposableValueMaker = disposableValueMaker;
+            _config = config;
         }
 
-        public IPooled<byte[]> Get() =>
-            _pool.Get();
+        public IDisposableValue<byte[]> GetBuffer()
+        {
+            byte[] product;
+            if (_storage.TryDequeue(out product))
+                return _disposableValueMaker
+                    .Make(product, _storage.Enqueue);
+
+            _storage.Enqueue(new byte[_config.BufferSize]);
+            return GetBuffer();
+        }
     }
 }

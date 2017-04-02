@@ -2,7 +2,6 @@
 {
     public interface IGroupSorter
     {
-        void Sort(IGroup group,
-                  ArrayFragment<SortingLine> linesFragment);
+        void Sort(IGroupBytes group, Range linesRange);
     }
 }

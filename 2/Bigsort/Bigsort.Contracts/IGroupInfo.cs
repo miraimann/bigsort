@@ -3,8 +3,8 @@
     public interface IGroupInfo
     {
         string Name { get; }
-        int ContentRowsCount { get; }
-        int ContentRowLength { get; }
+        int RowsCount { get; }
+        int RowLength { get; }
         int LinesCount { get; }
         int BytesCount { get; }
     }

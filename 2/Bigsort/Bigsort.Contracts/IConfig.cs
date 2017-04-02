@@ -6,7 +6,7 @@
          
         int BufferSize { get; }
 
-        int MainArraySize { get; }
+        long MaxMemoryForLines { get; }
 
         int MaxLoadedGroupsSize { get; }
 

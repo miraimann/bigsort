@@ -1,23 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Configuration;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    // ReSharper disable once InconsistentNaming
-    public class Grouper_127_255
-        : IGrouper_127_255
+    public class Grouper
+        : IGrouper
     {
         private readonly string _partFileNameMask;
         private readonly IIoService _ioService;
         private readonly IConfig _config;
 
-        public Grouper_127_255(IIoService ioService, IConfig config)
+        public Grouper(IIoService ioService, IConfig config)
         {
             _ioService = ioService;
             _config = config;
@@ -36,8 +32,8 @@ namespace Bigsort.Implementation
             int buffLength = _config.BufferSize,
                 maxPartsCount = 96 * 96 + 96 + 1;
 
-            const byte dot = (byte) '.',
-                       endLine = (byte) '\r',
+            const byte dot = Consts.Dot,
+                       endLine = Consts.EndLineByte1,
                        endStream = 0,
                        endBuff = 1;
 
@@ -53,11 +49,10 @@ namespace Bigsort.Implementation
             {
                 const int linePrefixLength = 2;
                 int lastBuffIndex = buffLength - 1,
-                    lettersIndex = 0,
-                    digitsIndex = 1,
                     lettersCount = 0,
                     digitsCount = 0,
-                    i = 2;
+                    i = linePrefixLength,
+                    j = linePrefixLength;
 
                 ushort id = 0;
                 byte c;
@@ -80,15 +75,15 @@ namespace Bigsort.Implementation
                             
                             while (currentBuff[i] > dot) i++;
 
-                            if (digitsIndex < buffLength)
-                                digitsCount += i - digitsIndex - 1;
+                            if (j < buffLength)
+                                digitsCount += i - j;
 
                             if (currentBuff[i] == dot)
                             {
-                                if (digitsIndex > buffLength)
+                                if (j > buffLength)
                                     digitsCount += i;
-                                
-                                lettersIndex = i++;
+
+                                j = ++i;
                                 state = State.ReadId;
                                 break;
                             }
@@ -138,12 +133,12 @@ namespace Bigsort.Implementation
 
                             while (currentBuff[i] > endLine) i++;
 
-                            if (lettersIndex < buffLength)
-                                lettersCount += i - lettersIndex - 1;
+                            if (j < buffLength)
+                                lettersCount += i - j;
 
                             if (currentBuff[i] == endLine)
                             {
-                                if (lettersIndex > buffLength)
+                                if (j > buffLength)
                                     lettersCount += i;
 
                                 state = State.ReleaseLine;
@@ -161,11 +156,8 @@ namespace Bigsort.Implementation
                             {
                                 case State.ReadId:
                                 case State.ReadString:
-                                    lettersIndex += buffLength;
-                                    goto case State.ReadNumber;
-
                                 case State.ReadNumber:
-                                    digitsIndex += buffLength;
+                                    j += buffLength;
                                     i = 0;
                                     break;
                             }
@@ -203,56 +195,43 @@ namespace Bigsort.Implementation
 
                             ++groups[id].LinesCount;
 
-                            var prevBuff = buffs[previous];
-                            if (lettersIndex < buffLength)
-                            {
-                                currentBuff[lettersIndex] = (byte) lettersCount;
-                                if (digitsIndex < buffLength)
-                                     currentBuff[digitsIndex] = (byte) digitsCount;
-                                else
-                                    prevBuff[digitsIndex - buffLength] = 
-                                        (byte) digitsCount;
-                            }
-                            else
-                            {
-                                prevBuff[digitsIndex - buffLength] = 
-                                    (byte) digitsCount;
-                                prevBuff[lettersIndex - buffLength] = 
-                                    (byte) lettersCount;
-                            }
-
                             var lineLength = digitsCount + lettersCount + 3;
                             var lineStart = i - lineLength;
                             var writer = groups[id].Bytes;
 
                             if (lineStart < 0)
                             {
+                                var prevBuff = buffs[previous];
                                 lineLength = Math.Abs(lineStart);
-                                lineStart += lastBuffIndex;   
-                                prevBuff[lineStart] = linePrefixLength;
+                                lineStart += lastBuffIndex;
+                                
+                                prevBuff[lineStart] = (byte) lettersCount;
+                                if (lineLength > 1)
+                                    prevBuff[lineStart + 1] = (byte) digitsCount;
+                                else currentBuff[0] = (byte) digitsCount;
                                 
                                 writer.Write(prevBuff, lineStart, lineLength);
                                 writer.Write(currentBuff, 0, i);
                             }
                             else
                             {
-                                currentBuff[lineStart] = linePrefixLength;
+                                currentBuff[lineStart] = (byte) lettersCount;
+                                currentBuff[lineStart + 1] = (byte)digitsCount;
                                 writer.Write(currentBuff, lineStart, lineLength);
                             }
 
                             lettersCount = 0;
                             digitsCount = 0;
                             id = 0;
-
+                            
                             if (currentBuff[++i] == endBuff)
                             {
-                                digitsIndex = i = 0;
                                 backState = State.CheckFinish;
                                 state = State.LoadNextBuff;
+                                i = 0;
                                 break;
                             }
-                            
-                            digitsIndex = i;
+
                             state = State.CheckFinish;
                             break;
 
@@ -260,6 +239,7 @@ namespace Bigsort.Implementation
                             state = currentBuff[i++] == endStream
                                   ? State.Finish
                                   : State.ReadNumber;
+                            j = i;
                             break;
 
                         case State.Finish:
@@ -300,12 +280,12 @@ namespace Bigsort.Implementation
             public string Name { get; }
             public IWriter Bytes { get; set; }
 
-            public int ContentRowLength =>
+            public int RowLength =>
                 _contentRowLength;
 
-            public int ContentRowsCount =>
-                (BytesCount / ContentRowLength) +
-                (BytesCount % ContentRowLength == 0 ? 0 : 1);
+            public int RowsCount =>
+                (BytesCount / RowLength) +
+                (BytesCount % RowLength == 0 ? 0 : 1);
 
             public int LinesCount { get; set; }
             public int BytesCount { get; set; }

@@ -2,9 +2,8 @@
 {
     public interface ISortedGroupWriter
     {
-        void Write(
-            IGroup group,
-            ArrayFragment<SortingLine> lines,
-            IWriter output);
+        void Write(IGroupBytes group, 
+                   Range linesRange, 
+                   IWriter output);
     }
 }
