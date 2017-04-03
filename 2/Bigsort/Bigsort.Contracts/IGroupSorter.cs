@@ -2,6 +2,6 @@
 {
     public interface IGroupSorter
     {
-        void Sort(IGroupBytes group, Range linesRange);
+        void Sort(IGroupBytesMatrix group, Range linesRange);
     }
 }

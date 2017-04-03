@@ -19,10 +19,7 @@ namespace Bigsort.Tests
         [TestCaseSource(nameof(Cases))]
         public void Test(TestCase testCase)
         {
-            const string
-                inputPath = "ZZZZZzzzzZzZZzzzZZZzzz",
-                partsDirectory = "VVvvvVvVVVVvvvVvV",
-                tempDirectory = "OOOOOooooOOOOooooo";
+            const string inputPath = "ZZZZZzzzzZzZZzzzZZZzzz";
 
             var ioServiceMock = new Mock<IIoService>();
             var configMock = new Mock<IConfig>();
@@ -124,14 +121,6 @@ namespace Bigsort.Tests
                     Cases1
                 }
                 .Aggregate(Enumerable.Concat);
-
-        private static byte[] BytesOf(string[] lines, bool withEndLines) =>
-            string.Join(withEndLines ? Environment.NewLine : string.Empty, lines)
-                  .Select(o => (byte)o)
-                  .Concat(withEndLines && lines.Any()
-                            ? Environment.NewLine.Select(o => (byte)o)
-                            : Enumerable.Empty<byte>())
-                  .ToArray();
 
         private static string KeyView(string key)
         {

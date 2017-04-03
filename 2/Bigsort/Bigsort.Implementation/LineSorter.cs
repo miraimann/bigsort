@@ -1,6 +1,7 @@
 ﻿using Bigsort.Contracts;
 using System;
 using System.IO;
+using System.Linq;
 
 namespace Bigsort.Implementation
 {
@@ -53,7 +54,8 @@ namespace Bigsort.Implementation
             long possition = 0;
 
             _ioService.CurrentDirectory += _config.PartsDirectory;
-            foreach (var seed in groupSeeds)
+            foreach (var info in groupSeeds
+                .Select(_groupLoader.CalculateMatrixInfo))
             {
                 var groupPosition = possition;
                 Action sortGroup = null;
@@ -61,15 +63,15 @@ namespace Bigsort.Implementation
                 {
                     bool reenqueue = false;
                     lock (o)
-                        if (usedRowsCount + seed.RowsCount >
+                        if (usedRowsCount + info.RowsCount >
                             _config.MaxGroupsBuffersCount)
                             reenqueue = true;
-                        else usedRowsCount += seed.RowsCount;
+                        else usedRowsCount += info.RowsCount;
 
                     if (!reenqueue)
                     {
                         var rangeHandle = _linesReservation
-                            .TryReserveRange(seed.BytesCount);
+                            .TryReserveRange(info.BytesCount);
 
                         if (rangeHandle == null)
                             reenqueue = true;
@@ -80,11 +82,11 @@ namespace Bigsort.Implementation
                                 .OpenSharedWrite(outputPath, groupPosition))
                             {
                                 var linesRange = rangeHandle.Value;
-                                var group = _groupLoader.Load(seed);
+                                var group = _groupLoader.LoadMatrix(info);
 
                                 _groupSorter.Sort(group, linesRange);
                                 _sortedGroupWriter.Write(group, linesRange, output);
-                                _ioService.DeleteFile(seed.Name);
+                                _ioService.DeleteFile(info.Name);
                             }
                     }
 
@@ -93,7 +95,7 @@ namespace Bigsort.Implementation
                 };
                 
                 _tasksQueue.Enqueue(sortGroup);
-                possition += seed.BytesCount;
+                possition += info.BytesCount;
             }
 
             _ioService.CurrentDirectory = prevCurrentDirectory;

@@ -2,6 +2,7 @@
 {
     public interface IGroupBytesLoader
     {
-        IGroupBytes Load(IGroupInfo seed);
+        IGroupBytesMatrix LoadMatrix(IGroupBytesMatrixInfo seed);
+        IGroupBytesMatrixInfo CalculateMatrixInfo(IGroupInfo seed);
     }
 }

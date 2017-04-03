@@ -2,8 +2,8 @@
 
 namespace Bigsort.Contracts
 {
-    public interface IGroupBytes
-        : IGroupInfo
+    public interface IGroupBytesMatrix
+        : IGroupBytesMatrixInfo
         , IFixedSizeList<byte>
         , IDisposable
     {

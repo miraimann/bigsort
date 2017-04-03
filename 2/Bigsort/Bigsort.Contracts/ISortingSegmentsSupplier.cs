@@ -2,6 +2,7 @@
 {
     public interface ISortingSegmentsSupplier
     {
-        void SupplyNext(IGroupBytes group, Range linesRange);
+        void SupplyNext(IGroupBytesMatrix group, Range linesRange);
+        void SupplyNext(IGroupBytesMatrix group, int offset, int count);
     }
 }

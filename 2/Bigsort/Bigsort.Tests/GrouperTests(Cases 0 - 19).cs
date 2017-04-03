@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using static Bigsort.Tests.Tools;
 
 namespace Bigsort.Tests
 {
@@ -11,7 +12,7 @@ namespace Bigsort.Tests
                 var testCase = new TestCase("0")
                 {
                     BufferSize = 1024,
-                    Source = BytesOf(new[]
+                    Source = BytesOfString_s(new[]
                     {
                         "111.ab~~~~~~~~~",
                         "111.aa~~~~~~~~~~~~~~~~~",
@@ -19,24 +20,24 @@ namespace Bigsort.Tests
                         "111.ab-------------",
                         "111.aa----------------------------",
                         "111.aa--------------------"
-                    }, withEndLines: true),
+                    }, addEndLines: true),
                     ExpectedResult = new Dictionary<string, byte[]>
                     {
                         {
-                            id("aa"), BytesOf(new[]
+                            id("aa"), BytesOfString_s(new[]
                             {
                                 s(19, 3) + "111.aa~~~~~~~~~~~~~~~~~",
                                 s(08, 3) + "111.aa~~~~~~",
                                 s(30, 3) + "111.aa----------------------------",
                                 s(22, 3) + "111.aa--------------------"
-                            }, withEndLines: false)
+                            }, addEndLines: false)
                         },
                         {
-                            id("ab"), BytesOf(new[]
+                            id("ab"), BytesOfString_s(new[]
                             {
                                 s(11, 3) + "111.ab~~~~~~~~~",
                                 s(15, 3) + "111.ab-------------"
-                            }, withEndLines: false)
+                            }, addEndLines: false)
                         }
                     }
                 };
@@ -60,7 +61,7 @@ namespace Bigsort.Tests
                 testCase = new TestCase("3")
                 {
                     BufferSize = 6,
-                    Source = BytesOf(new[]
+                    Source = BytesOfString_s(new[]
                     {
                         "1.",
                         "1.",
@@ -69,11 +70,11 @@ namespace Bigsort.Tests
                         "1.",
                         "1.",
                         "1."
-                    }, withEndLines: true),
+                    }, addEndLines: true),
                     ExpectedResult = new Dictionary<string, byte[]>
                     {
                         {
-                            id(""), BytesOf(new[]
+                            id(""), BytesOfString_s(new[]
                             {
                                 s(0, 1) + "1.",
                                 s(0, 1) + "1.",
@@ -82,7 +83,7 @@ namespace Bigsort.Tests
                                 s(0, 1) + "1.",
                                 s(0, 1) + "1.",
                                 s(0, 1) + "1."
-                            }, withEndLines: false)
+                            }, addEndLines: false)
                         }
                     }
                 };
@@ -106,7 +107,7 @@ namespace Bigsort.Tests
                 testCase = new TestCase("6")
                 {
                     BufferSize = 12,
-                    Source = BytesOf(new[]
+                    Source = BytesOfString_s(new[]
                     {
                         "111111.a",
                         "111111.a",
@@ -115,11 +116,11 @@ namespace Bigsort.Tests
                         "111111.a",
                         "111111.a",
                         "111111.a"
-                    }, withEndLines: true),
+                    }, addEndLines: true),
                     ExpectedResult = new Dictionary<string, byte[]>
                     {
                         {
-                            id("a"), BytesOf(new[]
+                            id("a"), BytesOfString_s(new[]
                             {
                                 s(1, 6) + "111111.a",
                                 s(1, 6) + "111111.a",
@@ -128,7 +129,7 @@ namespace Bigsort.Tests
                                 s(1, 6) + "111111.a",
                                 s(1, 6) + "111111.a",
                                 s(1, 6) + "111111.a"
-                            }, withEndLines: false)
+                            }, addEndLines: false)
                         }
                     }
                 };
@@ -152,7 +153,7 @@ namespace Bigsort.Tests
                 testCase = new TestCase("9")
                 {
                     BufferSize = 9,
-                    Source = BytesOf(new[]
+                    Source = BytesOfString_s(new[]
                     {
                         "1.a",
                         "1.b",
@@ -161,16 +162,16 @@ namespace Bigsort.Tests
                         "1.e",
                         "1.f",
                         "1.g"
-                    }, withEndLines: true),
+                    }, addEndLines: true),
                     ExpectedResult = new Dictionary<string, byte[]>
                     {
-                        { id("a"), BytesOf(new[] { s(1, 1) + "1.a" }, false) },
-                        { id("b"), BytesOf(new[] { s(1, 1) + "1.b" }, false) },
-                        { id("c"), BytesOf(new[] { s(1, 1) + "1.c" }, false) },
-                        { id("d"), BytesOf(new[] { s(1, 1) + "1.d" }, false) },
-                        { id("e"), BytesOf(new[] { s(1, 1) + "1.e" }, false) },
-                        { id("f"), BytesOf(new[] { s(1, 1) + "1.f" }, false) },
-                        { id("g"), BytesOf(new[] { s(1, 1) + "1.g" }, false) }
+                        { id("a"), BytesOfString_s(new[] { s(1, 1) + "1.a" }, false) },
+                        { id("b"), BytesOfString_s(new[] { s(1, 1) + "1.b" }, false) },
+                        { id("c"), BytesOfString_s(new[] { s(1, 1) + "1.c" }, false) },
+                        { id("d"), BytesOfString_s(new[] { s(1, 1) + "1.d" }, false) },
+                        { id("e"), BytesOfString_s(new[] { s(1, 1) + "1.e" }, false) },
+                        { id("f"), BytesOfString_s(new[] { s(1, 1) + "1.f" }, false) },
+                        { id("g"), BytesOfString_s(new[] { s(1, 1) + "1.g" }, false) }
                     }
                 };
 
@@ -193,7 +194,7 @@ namespace Bigsort.Tests
                 testCase = new TestCase("12")
                 {
                     BufferSize = 24,
-                    Source = BytesOf(new[]
+                    Source = BytesOfString_s(new[]
                     {
                         "1.a'''''''''''''''''",
                         "1.b'''''''''''''''''",
@@ -202,16 +203,16 @@ namespace Bigsort.Tests
                         "1.e'''''''''''''''''",
                         "1.f'''''''''''''''''",
                         "1.g'''''''''''''''''"
-                    }, withEndLines: true),
+                    }, addEndLines: true),
                     ExpectedResult = new Dictionary<string, byte[]>
                     {
-                        { id("a'"), BytesOf(new[] { s(18, 1) + "1.a'''''''''''''''''" }, false) },
-                        { id("b'"), BytesOf(new[] { s(18, 1) + "1.b'''''''''''''''''" }, false) },
-                        { id("c'"), BytesOf(new[] { s(18, 1) + "1.c'''''''''''''''''" }, false) },
-                        { id("d'"), BytesOf(new[] { s(18, 1) + "1.d'''''''''''''''''" }, false) },
-                        { id("e'"), BytesOf(new[] { s(18, 1) + "1.e'''''''''''''''''" }, false) },
-                        { id("f'"), BytesOf(new[] { s(18, 1) + "1.f'''''''''''''''''" }, false) },
-                        { id("g'"), BytesOf(new[] { s(18, 1) + "1.g'''''''''''''''''" }, false) }
+                        { id("a'"), BytesOfString_s(new[] { s(18, 1) + "1.a'''''''''''''''''" }, false) },
+                        { id("b'"), BytesOfString_s(new[] { s(18, 1) + "1.b'''''''''''''''''" }, false) },
+                        { id("c'"), BytesOfString_s(new[] { s(18, 1) + "1.c'''''''''''''''''" }, false) },
+                        { id("d'"), BytesOfString_s(new[] { s(18, 1) + "1.d'''''''''''''''''" }, false) },
+                        { id("e'"), BytesOfString_s(new[] { s(18, 1) + "1.e'''''''''''''''''" }, false) },
+                        { id("f'"), BytesOfString_s(new[] { s(18, 1) + "1.f'''''''''''''''''" }, false) },
+                        { id("g'"), BytesOfString_s(new[] { s(18, 1) + "1.g'''''''''''''''''" }, false) }
                     }
                 };
 
@@ -248,7 +249,7 @@ namespace Bigsort.Tests
                 testCase = new TestCase("17")
                 {
                     BufferSize = 12,
-                    Source = BytesOf(new[]
+                    Source = BytesOfString_s(new[]
                     {
                         "123.a",
                         "11.bb",
@@ -257,40 +258,40 @@ namespace Bigsort.Tests
                         "133.",
                         "1.bbccc",
                         "12.g"
-                    }, withEndLines: true),
+                    }, addEndLines: true),
                     ExpectedResult = new Dictionary<string, byte[]>
                     {
                         {
-                            id("a"), BytesOf(new[]
+                            id("a"), BytesOfString_s(new[]
                                 {
                                     s(1, 3) + "123.a"
-                                }, withEndLines: false)
+                                }, addEndLines: false)
                         },
                         {
-                            id("bb"), BytesOf(new[]
+                            id("bb"), BytesOfString_s(new[]
                                 {
                                     s(2, 2) + "11.bb",
                                     s(5, 1) + "1.bbccc"
-                                }, withEndLines: false)
+                                }, addEndLines: false)
                         },
                         {
-                            id(""), BytesOf(new[]
+                            id(""), BytesOfString_s(new[]
                                 {
                                     s(0, 8) + "11111111.",
                                     s(0, 3) + "133."
-                                }, withEndLines: false)
+                                }, addEndLines: false)
                         },
                         {
-                            id("d"), BytesOf(new[]
+                            id("d"), BytesOfString_s(new[]
                                 {
                                     s(1, 6) + "132323.d"
-                                }, withEndLines: false)
+                                }, addEndLines: false)
                         },
                         {
-                            id("g"), BytesOf(new[]
+                            id("g"), BytesOfString_s(new[]
                                 {
                                     s(1, 2) + "12.g"
-                                }, withEndLines: false)
+                                }, addEndLines: false)
                         }
                     }
                 };

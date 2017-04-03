@@ -31,19 +31,12 @@ namespace Bigsort.Implementation
                 group[i] = Consts.EndLineByte1;
 
                 line.digitsCount = group[++i];
-                group[i] = Consts.EndLineByte2;
-
-                if (line.lettersCount <= 2)
-                {
-                    line.sortingOffset = 0;
-                    line.sortByDigits = true;
-                }
-                else
-                {
-                    line.sortingOffset = line.lettersCount;
-                    line.sortByDigits = false;
-                }
-
+                // it is nessesary for sort
+                // it will be written in SortedGroupWriter 
+                // group[i] = Consts.EndLineByte2;
+                
+                line.sortingOffset = 2;
+                // line.sortByDigits = false;
                 i += line.digitsCount;
                 i += line.lettersCount;
                 i += 3;

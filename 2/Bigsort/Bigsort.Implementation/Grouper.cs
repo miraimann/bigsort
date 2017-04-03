@@ -22,10 +22,6 @@ namespace Bigsort.Implementation
             var ushortDigitsCount =
                 (int)Math.Ceiling(Math.Log10(ushort.MaxValue));
             _partFileNameMask = new string('0', ushortDigitsCount);
-
-            Group.SetContentRowLength(
-                config.BufferSize - 
-                config.GroupBufferRowReadingEnsurance);
         }
 
         public IEnumerable<IGroupInfo> SplitToGroups(
@@ -277,10 +273,6 @@ namespace Bigsort.Implementation
         private class Group
             : IGroupInfo
         {
-            private static int _contentRowLength;
-            public static void SetContentRowLength(int x) =>
-                _contentRowLength = x;
-
             public Group(string name, IWriter writer)
             {
                 Name = name;
@@ -289,17 +281,8 @@ namespace Bigsort.Implementation
 
             public string Name { get; }
             public IWriter Bytes { get; set; }
-
-            public int RowLength =>
-                _contentRowLength;
-
-            public int RowsCount =>
-                (BytesCount / RowLength) +
-                (BytesCount % RowLength == 0 ? 0 : 1);
-
             public int LinesCount { get; set; }
             public int BytesCount { get; set; }
-
         }
 
         private enum State

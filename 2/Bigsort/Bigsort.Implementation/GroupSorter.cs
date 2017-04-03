@@ -28,46 +28,32 @@ namespace Bigsort.Implementation
             _lineSegmentsOut = segmentService.DigitsOut;
         }
 
-        public void Sort(IGroupBytes group, Range linesRange)
+        public void Sort(IGroupBytesMatrix group, Range linesRange)
         {
-            _linesIndexesExtractor
-                .ExtractIndexes(group, linesRange);
-            
-            _segmentsSupplier
-                .SupplyNext(group, linesRange);
-            
-            Array.Sort(_segments, _lines,
-                linesRange.Offset,
-                linesRange.Length);
+            _linesIndexesExtractor.ExtractIndexes(group, linesRange);
+            Sort(group, linesRange.Offset, linesRange.Length);
+        }
 
-            int offset = linesRange.Offset,
-                n = offset + linesRange.Length - 1,
-                next = 0,
-                count = 1;
+        private void Sort(
+            IGroupBytesMatrix group, 
+            int offset, 
+            int length)
+        {
+            _segmentsSupplier.SupplyNext(group, offset, length);
+            Array.Sort(_segments, _lines, offset, length);
 
-            TSegment 
-                lineSegment = default(TSegment),
-                nextLineSegment = default(TSegment);
-            
+            int n = offset + length;
             while (offset < n)
             {
-                var isSingle = count == 1;
-                if (isSingle)
-                {
-                    lineSegment = _segments[offset];
-                    nextLineSegment = _segments[next = offset + 1];
-                }
+                int i = offset;
+                TSegment current = _segments[i], next = _segments[++i];
+                while (i < n && current.Equals(next) &&
+                       !next.Equals(_lineSegmentsOut))
+                    next = _segments[++i];
 
-                if (nextLineSegment.Equals(lineSegment) &&
-                    !nextLineSegment.Equals(_lineSegmentsOut))
-                    nextLineSegment = _segments[next + ++count];
-                else if (isSingle) offset++;
-                else
-                {
-                    _segmentsSupplier.SupplyNext(group, linesRange);
-                    Array.Sort(_segments, _lines, offset, count);
-                    count = 1;
-                }
+                i -= offset;
+                if (i != 1) Sort(group, offset, i);
+                offset += i;
             }
         }
     }

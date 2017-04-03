@@ -61,6 +61,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IDisposableValueMaker.cs" />
+    <Compile Include="IGroupBytesMatrixInfo.cs" />
     <Compile Include="ILinesIndexesStorage.cs" />
     <Compile Include="ILinesReservation.cs" />
     <Compile Include="ILinesStorage.cs" />
@@ -68,7 +69,7 @@
     <Compile Include="Range.cs" />
     <Compile Include="IBuffersPool.cs" />
     <Compile Include="IFixedSizeList.cs" />
-    <Compile Include="IGroupBytes.cs" />
+    <Compile Include="IGroupBytesMatrix.cs" />
     <Compile Include="IConfig.cs" />
     <Compile Include="IGrouper.cs" />
     <Compile Include="IGroupInfo.cs" />

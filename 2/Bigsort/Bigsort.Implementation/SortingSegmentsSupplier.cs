@@ -28,41 +28,44 @@ namespace Bigsort.Implementation
             _segmentSize = _segment.SegmentSize;
         }
 
-        public void SupplyNext(IGroupBytes group, Range linesRange)
+        public void SupplyNext(IGroupBytesMatrix group, Range linesRange) =>
+            SupplyNext(group, linesRange.Offset, linesRange.Length);
+
+        public void SupplyNext(IGroupBytesMatrix group, int offset, int count)
         {
-            var offset = linesRange.Offset;
-            var n = offset + linesRange.Length;
+            var n = offset + count;
             for (; offset < n; ++offset)
             {
                 var line = _lines[offset];
                 var i = line.start;
 
                 TSegment x;
-                byte symbolsCount;
-
-                if (line.sortByDigits)
-                {
-                    symbolsCount = line.digitsCount;
-                    x = Read(group, i + 2);
-                }
+                // byte symbolsCount;
+                int maxLength = (line.sortByDigits
+                              ?  line.digitsCount
+                              :  line.lettersCount)
+                              -  line.sortingOffset;
+                if (maxLength <= 0)
+                    x = line.sortByDigits 
+                      ? _digitsOut 
+                      : _lettersOut;
                 else
                 {
-                    symbolsCount = line.lettersCount;
-                    x = Read(group, i + line.digitsCount + 3);
+                    x = line.sortByDigits 
+                      ? Read(group, i + 2 + line.sortingOffset)
+                      : Read(group, i + 3 + line.sortingOffset + line.digitsCount);
+
+                    if (maxLength < _segmentSize)
+                        x = _segment.ShiftRight(x, _segmentSize - maxLength);
                 }
 
-                var maxLength = symbolsCount - line.sortingOffset;
-                if (maxLength < _segmentSize)
-                    x = maxLength <= 0
-                        ? (line.sortByDigits ? _digitsOut : _lettersOut)
-                        : _segment.ShiftRight(x, _segmentSize - maxLength);
-
                 line.sortingOffset += _segmentSize;
+                _lines[offset] = line;
                 _segments[offset] = x;
             }
         }
 
-        private TSegment Read(IGroupBytes group, int i)
+        private TSegment Read(IGroupBytesMatrix group, int i)
         {
             int rowLength = group.RowLength,
                 cellIndex = i % rowLength,

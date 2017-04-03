@@ -2,7 +2,7 @@
 {
     public interface ISortedGroupWriter
     {
-        void Write(IGroupBytes group, 
+        void Write(IGroupBytesMatrix group, 
                    Range linesRange, 
                    IWriter output);
     }

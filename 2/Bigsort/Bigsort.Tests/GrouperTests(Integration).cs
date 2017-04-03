@@ -22,7 +22,7 @@ namespace Bigsort.Tests
          )]
 
         [TestCase(UseExistendFile, "[1-32].[0-128]", "E:\\1Gb", 32 * 1025
-            //, Ignore = "for hands run only"
+            , Ignore = "for hands run only"
          )]
 
         [TestCase("10_Gb", "[1-32].[0-128]", "E:\\10Gb", 32 * 1025
@@ -57,10 +57,10 @@ namespace Bigsort.Tests
                     log.WriteLine("generation time: {0}", DateTime.Now - t);
                 }
                 
-                // t = DateTime.Now;
-                // grouper.SplitToGroups(path, resultDir);
-                // log.WriteLine("grouping time: {0}", DateTime.Now - t);
-                // log.WriteLine("result path: {0}", resultDir);
+                t = DateTime.Now;
+                grouper.SplitToGroups(path, resultDir);
+                log.WriteLine("grouping time: {0}", DateTime.Now - t);
+                log.WriteLine("result path: {0}", resultDir);
 
                 var expectedSize = new FileInfo(path).Length;
                 var resultSize = Directory

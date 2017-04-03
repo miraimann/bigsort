@@ -11,7 +11,7 @@ namespace Bigsort.Implementation
             _lines = linesStorage.Indexes;
         }
 
-        public void Write(IGroupBytes group, 
+        public void Write(IGroupBytesMatrix group, 
                           Range linesRange, 
                           IWriter output)
         {
@@ -34,10 +34,19 @@ namespace Bigsort.Implementation
                 var row = rows[i];
                 if (rowLeftLength < lineLength)
                 {
-                     output.Write(row, j, rowLeftLength);
-                     output.Write(rows[i + 1], 0, lineLength - rowLeftLength);
+                    var nextRow = rows[i + 1];
+                    if (rowLeftLength > 1)
+                         row[j + 1] = Consts.EndLineByte2;
+                    else nextRow[0] = Consts.EndLineByte2;
+
+                    output.Write(row, j, rowLeftLength);
+                    output.Write(nextRow, 0, lineLength - rowLeftLength);
                 }
-                else output.Write(row, j, lineLength - rowLeftLength);                
+                else
+                {
+                    row[j + 1] = Consts.EndLineByte2;
+                    output.Write(row, j, lineLength - rowLeftLength);
+                }                
             }
 
             output.Write(Consts.EndLineByte1);

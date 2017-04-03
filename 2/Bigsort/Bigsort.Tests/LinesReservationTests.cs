@@ -8,6 +8,7 @@ using Bigsort.Contracts;
 using Bigsort.Implementation;
 using Moq;
 using NUnit.Framework;
+using static Bigsort.Tests.Tools;
 using Range = Bigsort.Contracts.Range;
 
 namespace Bigsort.Tests
@@ -231,13 +232,13 @@ namespace Bigsort.Tests
         {
             scenario = scenario.Substring(4);
             var handles = new Dictionary<string, IDisposable>();
-            var commands = Split(scenario, ", ");
+            var commands = SplitString(scenario, ", ");
             foreach (var cmd in commands)
             {
                 TestContext.Out?.WriteLine(cmd);
                 if (cmd[0] == '+')
                 {
-                    var parts = Split(cmd.Substring(1), "|");
+                    var parts = SplitString(cmd.Substring(1), "|");
                     var name = parts[0];
                     var length = int.Parse(parts[1]);
                     var offset = int.Parse(parts[2]);
@@ -255,10 +256,6 @@ namespace Bigsort.Tests
                 }
             }
         }
-
-        private static string[] Split(string str, string separator) =>
-            str.Split(new[] {separator}, 
-                StringSplitOptions.RemoveEmptyEntries);
 
         private void Check(
             IDisposableValue<Range> result,
