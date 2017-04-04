@@ -5,7 +5,8 @@ namespace Bigsort.Tests
 {
     public partial class GrouperTests
     {
-        public static IEnumerable<TestCase> Cases1
+        // ReSharper disable once InconsistentNaming
+        public static IEnumerable<TestCase> Cases_00_19
         {
             get
             {

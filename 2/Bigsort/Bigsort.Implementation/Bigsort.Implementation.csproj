@@ -45,6 +45,7 @@
     <Compile Include="BuffersPool.cs" />
     <Compile Include="ByteSegmentService.cs" />
     <Compile Include="Consts.cs" />
+    <Compile Include="Dbg.cs" />
     <Compile Include="DisposableValueMaker.cs" />
     <Compile Include="Grouper.cs" />
     <Compile Include="GroupBytesLoader.cs" />

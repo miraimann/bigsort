@@ -38,9 +38,9 @@ namespace Bigsort.Implementation
             IGroupBytesMatrix group, 
             int offset, 
             int length)
-        {
-            _segmentsSupplier.SupplyNext(group, offset, length);
-            Array.Sort(_segments, _lines, offset, length);
+        {                                                        var dbg0 = Dbg.View(_segments, offset, length);
+            _segmentsSupplier.SupplyNext(group, offset, length); var dbg1 = Dbg.View(_segments, offset, length);
+            Array.Sort(_segments, _lines, offset, length);       var dbg2 = Dbg.View(_segments, offset, length);
 
             int n = offset + length;
             while (offset < n)

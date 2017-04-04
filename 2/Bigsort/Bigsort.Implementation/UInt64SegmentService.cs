@@ -15,7 +15,7 @@ namespace Bigsort.Implementation
             else _read = DirectRead;
         }
 
-        public byte SegmentSize { get; } = sizeof(uint);
+        public byte SegmentSize { get; } = sizeof(ulong);
         public ulong LettersOut { get; } = ulong.MinValue;
         public ulong DigitsOut { get; } = ulong.MaxValue;
 

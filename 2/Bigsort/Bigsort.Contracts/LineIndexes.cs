@@ -6,6 +6,9 @@ namespace Bigsort.Contracts
     [StructLayout(LayoutKind.Explicit, Size = sizeof(long))]
     public struct LineIndexes : IEquatable<LineIndexes>
     {
+        public const byte DefaultSortingOffset = 2;
+        public const bool DefaultSortByDigits = false;
+
         [FieldOffset(0)] private readonly long asLong;
         [FieldOffset(0)] public int start;
         [FieldOffset(4)] public byte digitsCount;
@@ -45,8 +48,14 @@ namespace Bigsort.Contracts
                 start = int.Parse(parts[0]),
                 lettersCount = byte.Parse(parts[1]),
                 digitsCount = byte.Parse(parts[2]),
-                sortingOffset = byte.Parse(parts[3]),
-                sortByDigits = bool.Parse(parts[4])
+
+                sortingOffset = parts.Length < 4 
+                              ? DefaultSortingOffset 
+                              : byte.Parse(parts[3]),
+
+                sortByDigits = parts.Length < 5 
+                             ? DefaultSortByDigits
+                             : bool.Parse(parts[4])
             };
         }
     }

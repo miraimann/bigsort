@@ -37,31 +37,41 @@ namespace Bigsort.Implementation
             for (; offset < n; ++offset)
             {
                 var line = _lines[offset];
-                var i = line.start;
-
                 TSegment x;
-                // byte symbolsCount;
+
                 int maxLength = (line.sortByDigits
-                              ?  line.digitsCount
-                              :  line.lettersCount)
-                              -  line.sortingOffset;
+                                    ? line.digitsCount + 1
+                                    : line.lettersCount) -
+                                 line.sortingOffset;
                 if (maxLength <= 0)
-                    x = line.sortByDigits 
-                      ? _digitsOut 
-                      : _lettersOut;
+                {
+                    line.sortingOffset = 0;
+                    if (line.sortByDigits)
+                        x = _digitsOut;
+                    else
+                    {
+                        x = _lettersOut;
+                        line.sortByDigits = true;
+                    }
+                }
                 else
                 {
-                    x = line.sortByDigits 
-                      ? Read(group, i + 2 + line.sortingOffset)
-                      : Read(group, i + 3 + line.sortingOffset + line.digitsCount);
+                    var lineReadingOffset = line.start 
+                        +  line.sortingOffset
+                        + (line.sortByDigits ? 1 : line.digitsCount + 3);
 
-                    if (maxLength < _segmentSize)
-                        x = _segment.ShiftRight(x, _segmentSize - maxLength);
-                }
-
-                line.sortingOffset += _segmentSize;
-                _lines[offset] = line;
-                _segments[offset] = x;
+                    x = Read(group, lineReadingOffset);                             var dbg1 = Dbg.View(x);
+                    if (maxLength < _segmentSize)                                   
+                    {                                                               
+                        x = _segment.ShiftRight(x, _segmentSize - maxLength);       var dbg2 = Dbg.View(x);
+                        x = _segment.ShiftLeft(x, _segmentSize - maxLength);        var dbg3 = Dbg.View(x);
+                    }                                                               
+                                                                                    
+                    line.sortingOffset += _segmentSize;                             
+                }                                                                   
+                                                                                    
+                _lines[offset] = line;                                              
+                _segments[offset] = x;                                              var dbg4 = Dbg.View(x);
             }
         }
 
@@ -71,20 +81,20 @@ namespace Bigsort.Implementation
                 cellIndex = i % rowLength,
                  rowIndex = i / rowLength;
 
-            var result = _segment.Read(group.Rows[rowIndex], cellIndex);
+            var result = _segment.Read(group.Rows[rowIndex], cellIndex);            var dbg1 = Dbg.View(result);
             var rowLeftLength = rowLength - cellIndex;
-            if (rowLeftLength > _segmentSize) // is not broken to two rows
+            if (rowLeftLength >= _segmentSize) // is not broken to two rows
                 return result;
 
             var offset = _segmentSize - rowLeftLength;
-            result = _segment.ShiftRight(result, offset);
-            result = _segment.ShiftLeft(result, offset);
+            result = _segment.ShiftRight(result, offset);                           var dbg2 = Dbg.View(result);
+            result = _segment.ShiftLeft(result, offset);                            var dbg3 = Dbg.View(result);
 
             if (++rowIndex < group.RowsCount)
             {
-                TSegment additionBytes = _segment.Read(group.Rows[rowIndex], 0);
-                additionBytes = _segment.ShiftLeft(additionBytes, rowLeftLength);
-                result = _segment.Merge(result, additionBytes);
+                TSegment additionBytes = _segment.Read(group.Rows[rowIndex], 0);    var dbg4 = Dbg.View(additionBytes);
+                additionBytes = _segment.ShiftRight(additionBytes, rowLeftLength);  var dbg5 = Dbg.View(additionBytes);
+                result = _segment.Merge(result, additionBytes);                     var dbg6 = Dbg.View(result);
             }
 
             return result;

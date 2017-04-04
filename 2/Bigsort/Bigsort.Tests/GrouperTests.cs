@@ -118,7 +118,7 @@ namespace Bigsort.Tests
         public static IEnumerable<TestCase> Cases =>
             new[]
                 {
-                    Cases1
+                    Cases_00_19
                 }
                 .Aggregate(Enumerable.Concat);
 
