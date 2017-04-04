@@ -43,12 +43,14 @@ namespace Bigsort.Tests
             public IGroupBytesLoader GroupBytesLoader;
             public IGroupBytesMatrix Group;
 
-            public Setup(ISegmentService<T> segmentService)
+            public Setup(ISegmentService<T> segmentService, 
+                bool forIntegration = false)
             {
                 StorageLineIndexes = new LineIndexes[LinesStorageLength];
                 Segments = new T[LinesStorageLength];
 
                 MockOf = new Mocks();
+                
                 MockOf.LinesStorage = new Mock<ILinesStorage<T>>();
                 MockOf.LinesStorage
                       .SetupGet(o => o.Length)
@@ -170,57 +172,34 @@ namespace Bigsort.Tests
                 public Mock<ILinesStorage<T>> LinesStorage;
             }
         }
-        
-        [Test][Timeout(10000)]
+
+        [Test]
+        [Timeout(10000)]
         public void ByteSegmentTest(
-            [ValueSource(nameof(TestCases))] TestCase testCase,
-            [ValueSource(nameof(BufferSizes))] BufferSize bufferSize)
-        {
-            var setup = new Setup<byte>(new ByteSegmentService());
-            setup.SetupCase(testCase, bufferSize);
-            
-            setup.GroupSorter.Sort(setup.Group, 
-                new Range(LinesRangeOffset, testCase.InputLines.Length));
-
-            var resultLines = new LineIndexes[testCase.InputLines.Length];
-            Array.Copy(setup.StorageLineIndexes, LinesRangeOffset,
-                       resultLines, 0, testCase.InputLines.Length);
-            
-            Assert.AreEqual(
-                testCase.ExpectedSortedLines, 
-                resultLines.Select(o => o.start)
-                );
-        }
-
-        [Test][Timeout(10000)]
+                [ValueSource(nameof(TestCases))] TestCase testCase,
+                [ValueSource(nameof(BufferSizes))] BufferSize bufferSize) =>
+            Test(new Setup<byte>(new ByteSegmentService()), testCase, bufferSize);
+       
+        [Test]
+        [Timeout(10000)]
         public void UInt32SegmentTest(
-            [ValueSource(nameof(TestCases))] TestCase testCase,
-            [ValueSource(nameof(BufferSizes))] BufferSize bufferSize)
-        {
-            var setup = new Setup<uint>(new UInt32SegmentService(
-                BitConverter.IsLittleEndian));
-            setup.SetupCase(testCase, bufferSize);
+                [ValueSource(nameof(TestCases))] TestCase testCase,
+                [ValueSource(nameof(BufferSizes))] BufferSize bufferSize) =>
+            Test(new Setup<uint>(new UInt32SegmentService(BitConverter.IsLittleEndian)),
+                testCase, bufferSize);
 
-            setup.GroupSorter.Sort(setup.Group,
-                new Range(LinesRangeOffset, testCase.InputLines.Length));
-
-            var resultLines = new LineIndexes[testCase.InputLines.Length];
-            Array.Copy(setup.StorageLineIndexes, LinesRangeOffset,
-                       resultLines, 0, testCase.InputLines.Length);
-
-            Assert.AreEqual(
-                testCase.ExpectedSortedLines,
-                resultLines.Select(o => o.start)
-                );
-        }
-         
-        [Test][Timeout(10000)]
+        [Test]
+        [Timeout(10000)]
         public void UInt64SegmentTest(
-            [ValueSource(nameof(TestCases))] TestCase testCase,
-            [ValueSource(nameof(BufferSizes))] BufferSize bufferSize)
+                [ValueSource(nameof(TestCases))] TestCase testCase,
+                [ValueSource(nameof(BufferSizes))] BufferSize bufferSize) =>
+            Test(new Setup<ulong>(new UInt64SegmentService(BitConverter.IsLittleEndian)),
+                 testCase, bufferSize);
+
+        private void Test<T>(Setup<T> setup, 
+            TestCase testCase, BufferSize bufferSize) 
+                where T : IEquatable<T>, IComparable<T>
         {
-            var setup = new Setup<ulong>(new UInt64SegmentService(
-                BitConverter.IsLittleEndian));
             setup.SetupCase(testCase, bufferSize);
 
             setup.GroupSorter.Sort(setup.Group,
@@ -271,10 +250,8 @@ namespace Bigsort.Tests
                     new List<Item>();
 
                 public void Add(
-                    // start|letters count|digits count|sort by digits|offset
-                    string indexes,
-                    // xxnumber.string
-                    string bytesView)
+                    string indexes,   // start|letters count|digits count
+                    string bytesView) // xxnumber.string
                 {
                     BytesView += Environment.NewLine;
                     BytesView += bytesView;

@@ -15,19 +15,19 @@ namespace Bigsort.Tests
         {
             public const string UseExistendFile = "X";
 
-            [TestCase("1_Mb", "[1-32].[0-128]", "E:\\1Mb", 32*1025
+            [TestCase("1_Mb", "[1-32].[0-128]", "E:\\1Mb", 32*1025, true
                  , Ignore = "for hands run only"
              )]
 
-            [TestCase("1_Gb", "[1-32].[0-128]", "E:\\1Gb", 32*1025
+            [TestCase("1_Gb", "[1-32].[0-128]", "E:\\1Gb", 32*1025, true
                  , Ignore = "for hands run only"
              )]
 
-            [TestCase(UseExistendFile, "[1-32].[0-128]", "E:\\1Gb", 32*1025
+            [TestCase(UseExistendFile, "[1-32].[0-128]", "E:\\1Gb", 32*1025, true
                  , Ignore = "for hands run only"
              )]
 
-            [TestCase("10_Gb", "[1-32].[0-128]", "E:\\10Gb", 32*1025
+            [TestCase("10_Gb", "[1-32].[0-128]", "E:\\10Gb", 32*1025, true
                  , Ignore = "for hands run only"
              )]
 
@@ -35,7 +35,8 @@ namespace Bigsort.Tests
                 string size,
                 string settings,
                 string path,
-                int buffSize)
+                int buffSize,
+                bool clear)
             {
                 var resultDir = $"E:\\{Path.GetFileName(path)}Dir";
                 var configMock = new Mock<IConfig>();
@@ -77,8 +78,14 @@ namespace Bigsort.Tests
                 }
                 finally
                 {
-                    // File.Delete(path);
-                    // Directory.Delete(resultDir, true);
+                    if (clear)
+                    {
+                        if (File.Exists(path))
+                            File.Delete(path);
+
+                        if (Directory.Exists(resultDir))
+                            Directory.Delete(resultDir, true);
+                    }
                 }
             }
         }

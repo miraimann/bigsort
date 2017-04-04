@@ -21,7 +21,7 @@ namespace Bigsort.Tools.TestFileGenerator
 
         public static int Generate(
             string sizeData,     // "12345_Kb"  | "12_Mb"
-            string lineSettings, // "[3].[789]" | ".[3-7].[7-787]"
+            string lineSettings, // "[3].[789]" | "[3-7].[7-787]"
             string path)
         {
          
