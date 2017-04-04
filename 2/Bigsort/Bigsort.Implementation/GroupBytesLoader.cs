@@ -93,8 +93,8 @@ namespace Bigsort.Implementation
 
             public byte this[int i]
             {
-                get { return Rows[i / RowsCount][i % RowsCount]; }
-                set { Rows[i / RowsCount][i % RowsCount] = value; }
+                get { return Rows[i / RowLength][i % RowLength]; }
+                set { Rows[i / RowLength][i % RowLength] = value; }
             }
 
             public IEnumerator<byte> GetEnumerator() =>

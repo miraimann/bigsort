@@ -49,6 +49,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GroupBytesLoaderTests.Integration.cs" />
     <Compile Include="GroupGenerator.cs" />
     <Compile Include="GroupInfo.cs" />
     <Compile Include="GroupSorterTests.Cases_10_19.cs" />

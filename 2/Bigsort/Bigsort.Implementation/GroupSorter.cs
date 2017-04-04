@@ -11,10 +11,8 @@ namespace Bigsort.Implementation
     {
         private readonly ISortingSegmentsSupplier _segmentsSupplier;
         private readonly ILinesIndexesExtractor _linesIndexesExtractor;
-        private readonly LineIndexes[] _lines;
-        private readonly TSegment[] _segments;
+        private readonly ILinesStorage<TSegment> _linesStorage;
         private readonly TSegment _lineSegmentsOut;
-        
         public GroupSorter(
             ISortingSegmentsSupplier segmentsSupplier,
             ILinesIndexesExtractor linesIndexesExtractor, 
@@ -23,8 +21,7 @@ namespace Bigsort.Implementation
         {
             _segmentsSupplier = segmentsSupplier;
             _linesIndexesExtractor = linesIndexesExtractor;
-            _lines = linesStorage.Indexes;
-            _segments = linesStorage.Segments;
+            _linesStorage = linesStorage;
             _lineSegmentsOut = segmentService.DigitsOut;
         }
 
@@ -38,18 +35,21 @@ namespace Bigsort.Implementation
             IGroupBytesMatrix group, 
             int offset, 
             int length)
-        {                                                        var dbg0 = Dbg.View(_segments, offset, length);
-            _segmentsSupplier.SupplyNext(group, offset, length); var dbg1 = Dbg.View(_segments, offset, length);
-            Array.Sort(_segments, _lines, offset, length);       var dbg2 = Dbg.View(_segments, offset, length);
+        {
+            var lines = _linesStorage.Indexes;
+            var segments = _linesStorage.Segments;               var dbg0 = Dbg.View(segments, offset, length);
+
+            _segmentsSupplier.SupplyNext(group, offset, length); var dbg1 = Dbg.View(segments, offset, length);
+            Array.Sort(segments, lines, offset, length);         var dbg2 = Dbg.View(segments, offset, length);
 
             int n = offset + length;
             while (offset < n)
             {
                 int i = offset;
-                TSegment current = _segments[i], next = _segments[++i];
+                TSegment current = segments[i], next = segments[++i];
                 while (i < n && current.Equals(next) &&
                        !next.Equals(_lineSegmentsOut))
-                    next = _segments[++i];
+                    next = segments[++i];
 
                 i -= offset;
                 if (i != 1) Sort(group, offset, i);

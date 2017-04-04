@@ -5,16 +5,18 @@ namespace Bigsort.Implementation
     public class SortedGroupWriter
         : ISortedGroupWriter
     {
-        private readonly LineIndexes[] _lines;
+        private readonly ILinesIndexesStorage _linesStorage;
+
         public SortedGroupWriter(ILinesIndexesStorage linesStorage)
         {
-            _lines = linesStorage.Indexes;
+            _linesStorage = linesStorage;
         }
 
         public void Write(IGroupBytesMatrix group, 
                           Range linesRange, 
                           IWriter output)
         {
+            var lines = _linesStorage.Indexes;
             var rows = group.Rows;
             int rowLength = group.RowLength,
                 offset = linesRange.Offset,
@@ -22,7 +24,7 @@ namespace Bigsort.Implementation
             
             for (; offset < n; ++offset)
             {
-                var line = _lines[offset];
+                var line = lines[offset];
                 int lineLength = line.digitsCount + line.lettersCount + 3,
                     i = line.start / rowLength,
                     j = line.start % rowLength,
@@ -45,7 +47,7 @@ namespace Bigsort.Implementation
                 else
                 {
                     row[j + 1] = Consts.EndLineByte2;
-                    output.Write(row, j, lineLength - rowLeftLength);
+                    output.Write(row, j, lineLength);
                 }                
             }
 

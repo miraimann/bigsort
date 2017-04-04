@@ -1,4 +1,6 @@
-﻿namespace Bigsort.Contracts
+﻿using System;
+
+namespace Bigsort.Contracts
 {
     public interface ILinesIndexesStorage
     {

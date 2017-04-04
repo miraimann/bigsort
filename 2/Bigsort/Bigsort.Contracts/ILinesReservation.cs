@@ -1,10 +1,12 @@
-﻿namespace Bigsort.Contracts
+﻿using System;
+
+namespace Bigsort.Contracts
 {
     public interface ILinesReservation<out TSegment>
         : ILinesStorage<TSegment>
     {
-        IDisposableValue<Range> TryReserveRange(int length);
-
         void Load();
+
+        IDisposableValue<Range> TryReserveRange(int length);
     }
 }

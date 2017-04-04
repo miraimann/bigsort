@@ -37,10 +37,10 @@ namespace Bigsort.Tests
                     random.NextBytes(buff);
                     buff[0] = (byte) stringLength;
                     buff[1] = (byte) numberLength;
-                    buff[2] = (byte) random.Next(1, 9);
+                    buff[2] = (byte) (random.Next(1, 9) + DigitsShift);
 
                     int j = 3;
-                    for (; j < numberLength + 2; j++)
+                    for (; j < numberLength + 2; j++) 
                         buff[j] = (byte) (buff[j] % 10 + DigitsShift);
 
                     buff[j++] = Dot;

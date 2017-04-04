@@ -4,19 +4,20 @@ namespace Bigsort.Implementation
 {
     public class LinesIndexesExtractor
         : ILinesIndexesExtractor
-    {   
-        private readonly LineIndexes[] _lines;
-
+    {
+        private readonly ILinesIndexesStorage _linesStorage;
+        
         public LinesIndexesExtractor(
             ILinesIndexesStorage linesStorage)
         {
-            _lines = linesStorage.Indexes;
+            _linesStorage = linesStorage;
         }
 
         public void ExtractIndexes(
             IFixedSizeList<byte> group, 
             Range linesRange)
         {
+            var lines = _linesStorage.Indexes;
             int offset = linesRange.Offset,
                 length = linesRange.Length,
                 last = offset + length, 
@@ -24,7 +25,7 @@ namespace Bigsort.Implementation
 
             while (offset <= last)
             {
-                var line = _lines[offset++];
+                var line = lines[offset++];
                 line.start = i;
 
                 line.lettersCount = group[i];

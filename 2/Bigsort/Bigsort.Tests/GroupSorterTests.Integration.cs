@@ -121,6 +121,9 @@ namespace Bigsort.Tests
                     new UInt64SegmentService(BitConverter.IsLittleEndian));
             }
 
+            [TestCase(128, 225, 10000, 32*1000, false
+                //, Ignore = "for hands run only"
+             )]
             public void Test(
                 int maxNumberLength,
                 int maxStringLength,
@@ -192,46 +195,51 @@ namespace Bigsort.Tests
 
             private Func<IGroupInfo, string, string, string, bool> RunnerFor<T>(Setup<T> setup)
                 where T : IEquatable<T>, IComparable<T> => (group, inputPath, outputPath, logPrefix) =>
+            {
+                var prevDir = Environment.CurrentDirectory;
+                Environment.CurrentDirectory = // HOT FIX
+                    Path.Combine(WorkingDirectory, logPrefix);
+
+                DateTime t = DateTime.Now;
+                var groupBytes =
+                    setup.GroupLoader.LoadMatrix(
+                        setup.GroupLoader.CalculateMatrixInfo(group));
+
+                Out?.WriteLine($"[{logPrefix}] grop loading time: " +
+                               $"{DateTime.Now - t}");
+
+                setup.LinesReservation.Load();
+                setup.LinesReservation.TryReserveRange(group.LinesCount);
+
+                var linesRange = new Range(0, group.LinesCount);
+
+                t = DateTime.Now;
+                setup.Sorter.Sort(groupBytes, linesRange);
+                Out?.WriteLine($"[{logPrefix}] grop sorting time: " +
+                               $"{DateTime.Now - t}");
+
+                t = DateTime.Now;
+                using (var output = setup.IoService.OpenWrite(outputPath))
+                    setup.SortedGroupWriter.Write(groupBytes, linesRange, output);
+                Out?.WriteLine($"[{logPrefix}] result writing time: " +
+                               $"{DateTime.Now - t}");
+
+                var outputSize = new FileInfo(outputPath).Length;
+                Out?.WriteLine($"[{logPrefix}] output size: {outputSize}");
+
+                var success = outputSize == new FileInfo(inputPath).Length;
+                if (success)
                 {
-                    DateTime t = DateTime.Now;
-                    var groupBytes =
-                        setup.GroupLoader.LoadMatrix(
-                            setup.GroupLoader.CalculateMatrixInfo(group));
-                    
-                    Out?.WriteLine($"[{logPrefix}] grop loading time: " +
-                                   $"{DateTime.Now - t}");
-
-                    setup.LinesReservation.Load();
-                    setup.LinesReservation.TryReserveRange(group.LinesCount);
-
-                    var linesRange = new Range(0, group.LinesCount);
-
                     t = DateTime.Now;
-                    setup.Sorter.Sort(groupBytes, linesRange);
-                    Out?.WriteLine($"[{logPrefix}] grop sorting time: " +
+                    success = Checker.IsSorted(outputPath);
+                    Out?.WriteLine($"[{logPrefix}] sorting check time: " +
                                    $"{DateTime.Now - t}");
+                }
 
-                    t = DateTime.Now;
-                    using (var output = setup.IoService.OpenWrite(outputPath))
-                        setup.SortedGroupWriter.Write(groupBytes, linesRange, output);
-                    Out?.WriteLine($"[{logPrefix}] result writing time: " +
-                                   $"{DateTime.Now - t}");
-
-                    var outputSize = new FileInfo(outputPath).Length;
-                    Out?.WriteLine($"[{logPrefix}] output size: {outputSize}");
-
-                    var success = outputSize == new FileInfo(inputPath).Length;
-                    if (success)
-                    {
-                        t = DateTime.Now;
-                        success = Checker.IsSorted(outputPath);
-                        Out?.WriteLine($"[{logPrefix}] sorting check time: " +
-                                       $"{DateTime.Now - t}");
-                    }
-
-                    Out?.WriteLine();
-                    return success;
-                };
+                Environment.CurrentDirectory = prevDir;
+                Out?.WriteLine();
+                return success;
+            };
         }
     }
 }
