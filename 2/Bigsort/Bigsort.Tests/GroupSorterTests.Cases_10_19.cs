@@ -99,7 +99,6 @@ namespace Bigsort.Tests
                     },
                     new[] { 152, 043, 129, 086, 000 });
 
-
                 yield return new TestCase("17",
                     new TestCase.InputLineList
                     {

@@ -52,7 +52,9 @@
     <Compile Include="GroupGenerator.cs" />
     <Compile Include="GroupInfo.cs" />
     <Compile Include="GroupSorterTests.Cases_10_19.cs" />
+    <Compile Include="GroupSorterTests.Cases_20_29.cs" />
     <Compile Include="GroupSorterTests.Integration.cs" />
+    <Compile Include="GroupSorterTests.MonsterCase.cs" />
     <Compile Include="LinesReservationTests.cs" />
     <Compile Include="GrouperTests.Cases_00_19.cs" />
     <Compile Include="GrouperTests.Integration.cs" />

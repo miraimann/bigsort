@@ -167,6 +167,7 @@ namespace Bigsort.Tests
                     File.Copy(inputPath[ForByte], inputPath[ForUInt64]);
 
                     Out?.WriteLine($"input size: {groupInfo.BytesCount}");
+                    Out?.WriteLine();
 
                     var testResult =
                         Names.Zip(inputPath, (logPrefix, input) => new { logPrefix, input })
@@ -179,7 +180,7 @@ namespace Bigsort.Tests
                         testResult.All(o => o.success),
                         testResult.Where(o => !o.success)
                                   .Select(o => o.name)
-                                  .Aggregate("failed = {", (acc, o) => $"{acc} {o}") + "}"
+                                  .Aggregate("failed = {{", (acc, o) => $"{acc} {o}") + "}}"
                                   );
                 }
                 finally
@@ -228,6 +229,7 @@ namespace Bigsort.Tests
                                        $"{DateTime.Now - t}");
                     }
 
+                    Out?.WriteLine();
                     return success;
                 };
         }
