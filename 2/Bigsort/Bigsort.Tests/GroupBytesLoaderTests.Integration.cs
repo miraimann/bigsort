@@ -21,7 +21,7 @@ namespace Bigsort.Tests
                 GroupBufferRowReadingEnsurance = 7;
 
             [TestCase(128, 225, 10000, 32 * 1000, false
-                , Ignore = "for hands run only"
+                //, Ignore = "for hands run only"
             )]
             public void Test(
                 int maxNumberLength,

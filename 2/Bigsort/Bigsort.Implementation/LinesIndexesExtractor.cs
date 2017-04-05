@@ -20,12 +20,12 @@ namespace Bigsort.Implementation
             var lines = _linesStorage.Indexes;
             int offset = linesRange.Offset,
                 length = linesRange.Length,
-                last = offset + length, 
+                n = offset + length, 
                 i = 0;
 
-            while (offset <= last)
+            while (offset < n)
             {
-                var line = lines[offset++];
+                var line = lines[offset];
                 line.start = i;
 
                 line.lettersCount = group[i];
@@ -35,12 +35,15 @@ namespace Bigsort.Implementation
                 // it is nessesary for sort
                 // it will be written in SortedGroupWriter 
                 // group[i] = Consts.EndLineByte2;
-                
-                line.sortingOffset = 2;
+
                 // line.sortByDigits = false;
+                line.sortingOffset = 2;
+                lines[offset] = line;
                 i += line.digitsCount;
                 i += line.lettersCount;
-                i += 3;
+                i += 2;
+
+                ++offset;
             }
         }
     }

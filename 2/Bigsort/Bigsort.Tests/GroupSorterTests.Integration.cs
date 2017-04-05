@@ -121,8 +121,16 @@ namespace Bigsort.Tests
                     new UInt64SegmentService(BitConverter.IsLittleEndian));
             }
 
-            [TestCase(128, 225, 10000, 32*1000, false
-                //, Ignore = "for hands run only"
+            [TestCase(128, 225, 10000, 32*1000, true
+               , Ignore = "for hands run only"
+             )]
+
+            [TestCase(128, 225, 250000, 32 * 1000, true
+             , Ignore = "for hands run only"
+             )]
+
+            [TestCase(128, 225, 2500000, 32 * 1000, true
+             //, Ignore = "for hands run only"
              )]
             public void Test(
                 int maxNumberLength,
@@ -133,8 +141,8 @@ namespace Bigsort.Tests
             {
                 var runners = new[]
                 {
-                    RunnerFor(_sorterByByteSetup),
-                    RunnerFor(_sorterByUInt32Setup),
+                    Ignore(RunnerFor(_sorterByByteSetup)),
+                    Ignore(RunnerFor(_sorterByUInt32Setup)),
                     RunnerFor(_sorterByUInt64Setup)
                 };
 
@@ -152,7 +160,8 @@ namespace Bigsort.Tests
 
                 if (!Directory.Exists(WorkingDirectory))
                      Directory.CreateDirectory(WorkingDirectory);
-                
+
+                var prevDirectory = Environment.CurrentDirectory;
                 Environment.CurrentDirectory = WorkingDirectory;
                 foreach (var dir in subWorkingDirectories)
                     if (!Directory.Exists(dir))
@@ -183,11 +192,12 @@ namespace Bigsort.Tests
                         testResult.All(o => o.success),
                         testResult.Where(o => !o.success)
                                   .Select(o => o.name)
-                                  .Aggregate("failed = {{", (acc, o) => $"{acc} {o}") + "}}"
+                                  .Aggregate("failed = {", (acc, o) => $"{acc} {o}") + " }"
                                   );
                 }
                 finally
                 {
+                    Environment.CurrentDirectory = prevDirectory;
                     if (clear && Directory.Exists(WorkingDirectory))
                         Directory.Delete(WorkingDirectory, true);
                 }
@@ -205,7 +215,7 @@ namespace Bigsort.Tests
                     setup.GroupLoader.LoadMatrix(
                         setup.GroupLoader.CalculateMatrixInfo(group));
 
-                Out?.WriteLine($"[{logPrefix}] grop loading time: " +
+                Out?.WriteLine($"[{logPrefix}] group loading time: " +
                                $"{DateTime.Now - t}");
 
                 setup.LinesReservation.Load();
@@ -215,7 +225,7 @@ namespace Bigsort.Tests
 
                 t = DateTime.Now;
                 setup.Sorter.Sort(groupBytes, linesRange);
-                Out?.WriteLine($"[{logPrefix}] grop sorting time: " +
+                Out?.WriteLine($"[{logPrefix}] group sorting time: " +
                                $"{DateTime.Now - t}");
 
                 t = DateTime.Now;
@@ -240,6 +250,10 @@ namespace Bigsort.Tests
                 Out?.WriteLine();
                 return success;
             };
+
+            private Func<IGroupInfo, string, string, string, bool> Ignore(
+                    Func<IGroupInfo, string, string, string, bool> _) =>
+                (__, ___, ____, _____) => true;
         }
     }
 }

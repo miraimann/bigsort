@@ -216,7 +216,7 @@ namespace Bigsort.Tests
         }
 
         public static IEnumerable<TestCase> TestCases =>
-            new[] {Cases_00_09, Cases_10_19, Cases_20_29, MonstrCase}
+            new[] {Cases_00_09, Cases_10_19, Cases_20_29}
                 .Aggregate(Enumerable.Concat);
         
         public class TestCase

@@ -31,7 +31,7 @@ namespace Bigsort.Tests
                 for (int i = 0; i < linesCount; i++)
                 {
                     int numberLength = random.Next(1, maxNumberLength),
-                        stringLength = random.Next(0, maxStringLength),
+                        stringLength = random.Next(id.Length, maxStringLength),
                           lineLength = numberLength + stringLength + 3;
 
                     random.NextBytes(buff);
@@ -45,8 +45,8 @@ namespace Bigsort.Tests
 
                     buff[j++] = Dot;
 
-                    for (; j < id.Length; j++)
-                        buff[j] = (byte) id[j];
+                    for (int k = 0; k < id.Length; k++, j++)
+                        buff[j] = (byte) id[k];
 
                     for (; j < lineLength; j++)
                         buff[j] = (byte) (buff[j] % 95 + 32);
