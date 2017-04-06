@@ -19,12 +19,12 @@ namespace Bigsort.Tests
                  , Ignore = "for hands run only"
              )]
 
-            [TestCase("1_Gb", "[1-32].[0-128]", "E:\\1Gb", 32*1025, true
+            [TestCase("1_Gb", "[1-32].[0-128]", "E:\\1Gb", 32*1025, false
                  , Ignore = "for hands run only"
              )]
 
-            [TestCase(UseExistendFile, "[1-32].[0-128]", "E:\\1Gb", 32*1025, true
-                 , Ignore = "for hands run only"
+            [TestCase(UseExistendFile, "[1-32].[0-128]", "E:\\1Gb", 32*1025, false
+                 // , Ignore = "for hands run only"
              )]
 
             [TestCase("10_Gb", "[1-32].[0-128]", "E:\\10Gb", 32*1025, true
@@ -44,11 +44,28 @@ namespace Bigsort.Tests
                     .SetupGet(o => o.BufferSize)
                     .Returns(buffSize);
 
+                configMock
+                    .SetupGet(o => o.IsLittleEndian)
+                    .Returns(BitConverter.IsLittleEndian);
+
                 var log = TestContext.Out;
                 var disposableValueMaker = new DisposableValueMaker();
                 var buffersPool = new BuffersPool(disposableValueMaker, configMock.Object);
                 var ioService = new IoService(buffersPool);
-                var grouper = new Grouper(ioService, configMock.Object);
+                var bytesEnumeratorMaker = new BytesEnumeratorMaker(configMock.Object);
+                // var grouper = new Grouper(
+                //     ioService,
+                //     configMock.Object);
+
+                var grouper = new Grouper1(
+                    ioService,
+                    configMock.Object);
+
+
+                // var grouper = new UInt64ReadingGrouper(
+                //     bytesEnumeratorMaker,
+                //     ioService,
+                //     configMock.Object);
 
                 try
                 {
@@ -64,7 +81,7 @@ namespace Bigsort.Tests
                     grouper.SplitToGroups(path, resultDir);
                     log.WriteLine("grouping time: {0}", DateTime.Now - t);
                     log.WriteLine("result path: {0}", resultDir);
-
+                    
                     var expectedSize = new FileInfo(path).Length;
                     var resultSize = Directory
                         .EnumerateFiles(resultDir)
@@ -80,7 +97,8 @@ namespace Bigsort.Tests
                 {
                     if (clear)
                     {
-                        if (File.Exists(path))
+                        if ((size != UseExistendFile) &
+                            File.Exists(path))
                             File.Delete(path);
 
                         if (Directory.Exists(resultDir))

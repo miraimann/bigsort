@@ -31,7 +31,7 @@ namespace Bigsort.Tests
 
             private const int
                 BufferSize = 32*1024,
-                MaxMemoryForLines = 64*1024*1024;
+                MaxMemoryForLines = 512*1024*1024;
 
             private Setup<byte> _sorterByByteSetup;
             private Setup<uint> _sorterByUInt32Setup;
@@ -121,17 +121,22 @@ namespace Bigsort.Tests
                     new UInt64SegmentService(BitConverter.IsLittleEndian));
             }
 
-            [TestCase(128, 225, 10000, 32*1000, true
-               , Ignore = "for hands run only"
+            [TestCase(128, 225, 10000, 32*1024, true
+                // , Ignore = "for hands run only"
              )]
 
-            [TestCase(128, 225, 250000, 32 * 1000, true
-             , Ignore = "for hands run only"
+            [TestCase(128, 225, 100000, 32 * 1024, true
+                // , Ignore = "for hands run only"
              )]
 
-            [TestCase(128, 225, 2500000, 32 * 1000, true
-             //, Ignore = "for hands run only"
+            [TestCase(128, 225, 1000000, 32 * 1024, true
+                // , Ignore = "for hands run only"
              )]
+
+            [TestCase(128, 225, 10000000, 32 * 1024, true
+             // , Ignore = "for hands run only"
+             )]
+            
             public void Test(
                 int maxNumberLength,
                 int maxStringLength,
@@ -168,12 +173,15 @@ namespace Bigsort.Tests
                          Directory.CreateDirectory(dir);
                 try
                 {
+                    var t = DateTime.Now; 
                     var groupInfo = GroupGenerator
                         .Generate(GroupId,
                                   inputPath[ForByte],
                                   linesCount,
                                   maxNumberLength,
                                   maxStringLength);
+                    
+                    Out?.WriteLine($"group generation time: {DateTime.Now - t}");
 
                     File.Copy(inputPath[ForByte], inputPath[ForUInt32]);
                     File.Copy(inputPath[ForByte], inputPath[ForUInt64]);

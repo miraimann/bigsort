@@ -11,7 +11,7 @@ namespace Bigsort.Implementation
         public UInt64SegmentService(bool isLittleEndian)
         {
             if (isLittleEndian)
-                _read = ReverseRead;
+                 _read = ReverseRead;
             else _read = DirectRead;
         }
 

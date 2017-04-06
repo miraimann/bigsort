@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Bigsort.Lib;
 
@@ -13,6 +14,35 @@ namespace Bigsort.Console
     {
         static unsafe void Main(string[] args)
         {
+
+            byte[] buff = { 1, 2, 9, 7, 8, 6, 3, 4 };
+
+            var x = new LittleEndianBytesIterator(buff);
+            C.WriteLine($"{x.index}");
+            C.WriteLine($"{(++x).index}");
+            C.WriteLine($"{(x++).index}");
+            C.WriteLine($"{(++x).index}");
+            C.WriteLine($"{(++x).index}");
+            C.WriteLine($"{(x++).index}");
+            C.WriteLine($"{(++x).index}");
+            C.WriteLine($"{x.index}");
+
+            C.WriteLine();
+
+            x = new LittleEndianBytesIterator(buff);
+            C.WriteLine($"{x++.value}");
+            C.WriteLine($"{x++.value}");
+            C.WriteLine($"{x++.value}");
+            C.WriteLine($"{x++.value}");
+            C.WriteLine($"{x++.value}");
+            C.WriteLine($"{x++.value}");
+            C.WriteLine($"{x++.value}");
+            C.WriteLine($"{x.value}");
+            C.ReadKey();
+
+
+            C.ReadKey();
+
             #region research 3
 
             var t = DateTime.Now;
@@ -141,6 +171,97 @@ namespace Bigsort.Console
             //BigSorter.Sort(
             //    inputFilePath: args[0], 
             //    outputFilePath: args[1]);
+        }
+
+        [StructLayout(LayoutKind.Explicit,
+           Size = sizeof(ulong))]
+        private struct UInt64Segment
+        {
+            [FieldOffset(0)]
+            public ulong value;
+            [FieldOffset(0)]
+            public readonly byte byte0;
+            [FieldOffset(1)]
+            public readonly byte byte1;
+            [FieldOffset(2)]
+            public readonly byte byte2;
+            [FieldOffset(3)]
+            public readonly byte byte3;
+            [FieldOffset(4)]
+            public readonly byte byte4;
+            [FieldOffset(5)]
+            public readonly byte byte5;
+            [FieldOffset(6)]
+            public readonly byte byte6;
+            [FieldOffset(7)]
+            public readonly byte byte7;
+        }
+
+        private struct LittleEndianBytesIterator
+        {
+            public LittleEndianBytesIterator(byte[] source)
+                : this(source,
+                       new UInt64Segment { value = BitConverter.ToUInt64(source, 0) },
+                       source[0],
+                       0,
+                       0)
+            {
+            }
+
+            private LittleEndianBytesIterator(
+                byte[] source,
+                UInt64Segment segment,
+                byte value,
+                int index,
+                int segmentByteIndex)
+            {
+                _source = source;
+                _segment = segment;
+                _segmentIndex = segmentByteIndex;
+                this.value = value;
+                this.index = index;
+            }
+
+            private readonly byte[] _source;
+            private readonly UInt64Segment _segment;
+            private readonly int _segmentIndex;
+
+            public readonly byte value;
+            public readonly int index;
+
+            public static LittleEndianBytesIterator operator
+                ++(LittleEndianBytesIterator x)
+            {
+                var i = x.index + 1;
+                var j = x._segmentIndex + 1;
+                var segment = x._segment;
+
+                if (j == sizeof(ulong))
+                {
+                    j = 0;
+                    segment = new UInt64Segment
+                    {
+                        value = BitConverter.ToUInt64(x._source, i)
+                    };
+                }
+
+                byte value;
+                switch (j)
+                {
+                    case 0: value = x._segment.byte0; break;
+                    case 1: value = x._segment.byte1; break;
+                    case 2: value = x._segment.byte2; break;
+                    case 3: value = x._segment.byte3; break;
+                    case 4: value = x._segment.byte4; break;
+                    case 5: value = x._segment.byte5; break;
+                    case 6: value = x._segment.byte6; break;
+                    case 7: value = x._segment.byte7; break;
+                    default: value = 0; break;
+                }
+
+                return new LittleEndianBytesIterator(
+                    x._source, segment, value, i, j);
+            }
         }
     }
 }

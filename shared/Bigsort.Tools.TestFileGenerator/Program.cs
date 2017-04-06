@@ -11,8 +11,9 @@ namespace Bigsort.Tools.TestFileGenerator
                 Console.WriteLine("invalid args");
                 return 1;
             }
-
+            
             Generator.Generate(args[0], args[1], args[2]);
+
             return 0;
         }   
     }

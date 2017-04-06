@@ -37,10 +37,10 @@ namespace Bigsort.Implementation
             int length)
         {
             var lines = _linesStorage.Indexes;
-            var segments = _linesStorage.Segments;               var dbg0 = Dbg.View(segments, offset, length);
+            var segments = _linesStorage.Segments;               // var dbg0 = Dbg.View(segments, offset, length);
 
-            _segmentsSupplier.SupplyNext(group, offset, length); var dbg1 = Dbg.View(segments, offset, length);
-            Array.Sort(segments, lines, offset, length);         var dbg2 = Dbg.View(segments, offset, length);
+            _segmentsSupplier.SupplyNext(group, offset, length); // var dbg1 = Dbg.View(segments, offset, length);
+            Array.Sort(segments, lines, offset, length);         // var dbg2 = Dbg.View(segments, offset, length);
 
             int n = offset + length;
             while (offset < n)

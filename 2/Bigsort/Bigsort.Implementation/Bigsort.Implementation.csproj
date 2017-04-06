@@ -64,11 +64,14 @@
   <ItemGroup>
     <Compile Include="BuffersPool.cs" />
     <Compile Include="ByteSegmentService.cs" />
+    <Compile Include="BytesEnumeratorMaker.cs" />
+    <Compile Include="BytesReader.cs" />
     <Compile Include="Consts.cs" />
     <Compile Include="Dbg.cs" />
     <Compile Include="DisposableValueMaker.cs" />
     <Compile Include="Grouper.cs" />
     <Compile Include="GroupBytesLoader.cs" />
+    <Compile Include="Grouper1.cs" />
     <Compile Include="GroupSorter.cs" />
     <Compile Include="IoService.cs" />
     <Compile Include="LinesIndexesExtractor.cs" />
@@ -79,6 +82,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TasksQueue.cs" />
     <Compile Include="UInt32SegmentService.cs" />
+    <Compile Include="UInt64ReadingGrouper.cs" />
     <Compile Include="UInt64SegmentService.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -62,10 +62,10 @@
   <ItemGroup>
     <Compile Include="IDisposableValueMaker.cs" />
     <Compile Include="IGroupBytesMatrixInfo.cs" />
+    <Compile Include="IBytesEnumeratorMaker.cs" />
     <Compile Include="ILinesIndexesStorage.cs" />
     <Compile Include="ILinesReservation.cs" />
     <Compile Include="ILinesStorage.cs" />
-    <Compile Include="ISegmentServiceFactory.cs" />
     <Compile Include="Range.cs" />
     <Compile Include="IBuffersPool.cs" />
     <Compile Include="IFixedSizeList.cs" />
