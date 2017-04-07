@@ -17,7 +17,7 @@ namespace Bigsort.Tests
     public class LinesReservationTests
     {
         private const int ArrayLength = 20;
-        private IDisposableValueMaker _disposableValueMaker;
+        private IUsingHandleMaker _disposableValueMaker;
         private Mock<IConfig> _configMock; 
         private ILinesReservation<int> _reservation;
         
@@ -32,7 +32,7 @@ namespace Bigsort.Tests
                 .SetupGet(o => o.MaxMemoryForLines)
                 .Returns(ArrayLength * itemSize);
 
-            _disposableValueMaker = new DisposableValueMaker();
+            _disposableValueMaker = new UsingHandleMaker();
             _reservation = new LinesReservation<int>(
                 _disposableValueMaker,
                 _configMock.Object);
@@ -258,7 +258,7 @@ namespace Bigsort.Tests
         }
 
         private void Check(
-            IDisposableValue<Range> result,
+            IUsingHandle<Range> result,
             int expectedOffset,
             int expectedLength)
         {

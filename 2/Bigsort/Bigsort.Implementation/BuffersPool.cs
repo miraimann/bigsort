@@ -6,21 +6,21 @@ namespace Bigsort.Implementation
     public class BuffersPool
         : IBuffersPool
     {
-        private readonly IDisposableValueMaker _disposableValueMaker;
+        private readonly IUsingHandleMaker _disposableValueMaker;
         private readonly IConfig _config;
 
         private readonly ConcurrentQueue<byte[]> _storage =
             new ConcurrentQueue<byte[]>();
 
         public BuffersPool(
-            IDisposableValueMaker disposableValueMaker,
+            IUsingHandleMaker disposableValueMaker,
             IConfig config)
         {
             _disposableValueMaker = disposableValueMaker;
             _config = config;
         }
 
-        public IDisposableValue<byte[]> GetBuffer()
+        public IUsingHandle<byte[]> GetBuffer()
         {
             byte[] product;
             if (_storage.TryDequeue(out product))

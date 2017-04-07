@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
@@ -19,6 +20,8 @@ namespace Bigsort.Implementation
         public ulong LettersOut { get; } = ulong.MinValue;
         public ulong DigitsOut { get; } = ulong.MaxValue;
 
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ulong ShiftLeft(ulong value, int bytesCount) =>
             value << (bytesCount * 8);
 
@@ -27,16 +30,16 @@ namespace Bigsort.Implementation
 
         public ulong Read(byte[] buff, int offset) =>
             _read(buff, offset);
-
+        
         public ulong Merge(ulong a, ulong b) =>
             a | b;
 
         private static ulong DirectRead(byte[] buff, int offset) =>
             BitConverter.ToUInt64(buff, offset);
-
+        
         private static ulong ReverseRead(byte[] buff, int offset) =>
             Reverse(DirectRead(buff, offset));
-
+        
         private static ulong Reverse(ulong x) =>
              ((x & 0xFF00000000000000) >> 56)
            | ((x & 0x00FF000000000000) >> 40)

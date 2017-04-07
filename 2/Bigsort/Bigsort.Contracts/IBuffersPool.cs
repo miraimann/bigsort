@@ -2,6 +2,6 @@
 {
     public interface IBuffersPool
     {
-        IDisposableValue<byte[]> GetBuffer();
+        IUsingHandle<byte[]> GetBuffer();
     }
 }

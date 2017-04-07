@@ -12,6 +12,12 @@ namespace Bigsort.Contracts
 
         IWriter OpenWrite(string path);
 
+        IWriter OpenBufferingWrite(string path);
+        
+        IAsyncWriter OpenAsyncBufferingWrite(string path, ITasksQueue taskQueue);
+        
+        IWriter OpenBufferingAsyncWrite(string path, ITasksQueue taskQueue);
+
         IWriter OpenSharedWrite(string path, long possition);
 
         IEnumerable<string> EnumerateFilesOf(string directory);

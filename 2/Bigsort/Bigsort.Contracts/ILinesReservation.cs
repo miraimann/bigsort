@@ -7,6 +7,6 @@ namespace Bigsort.Contracts
     {
         void Load();
 
-        IDisposableValue<Range> TryReserveRange(int length);
+        IUsingHandle<Range> TryReserveRange(int length);
     }
 }

@@ -60,12 +60,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="IDisposableValueMaker.cs" />
+    <Compile Include="IAsyncWriter.cs" />
+    <Compile Include="IMultiUsingHandle.cs" />
+    <Compile Include="IUsingHandleMaker.cs" />
     <Compile Include="IGroupBytesMatrixInfo.cs" />
     <Compile Include="IBytesEnumeratorMaker.cs" />
     <Compile Include="ILinesIndexesStorage.cs" />
     <Compile Include="ILinesReservation.cs" />
     <Compile Include="ILinesStorage.cs" />
+    <Compile Include="ITasksQueueMaker.cs" />
     <Compile Include="Range.cs" />
     <Compile Include="IBuffersPool.cs" />
     <Compile Include="IFixedSizeList.cs" />
@@ -81,7 +84,7 @@
     <Compile Include="ILinesSorter.cs" />
     <Compile Include="ISortedGroupWriter.cs" />
     <Compile Include="ISortingSegmentsSupplier.cs" />
-    <Compile Include="IDisposableValue.cs" />
+    <Compile Include="IUsingHandle.cs" />
     <Compile Include="IReader.cs" />
     <Compile Include="ITasksQueue.cs" />
     <Compile Include="IWriter.cs" />

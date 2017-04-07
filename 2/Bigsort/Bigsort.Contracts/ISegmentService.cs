@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 
 namespace Bigsort.Contracts
 {
@@ -10,7 +11,7 @@ namespace Bigsort.Contracts
 
         TSegment LettersOut { get; }
         TSegment DigitsOut { get; }
-
+        
         TSegment ShiftLeft(TSegment value, int bytesCount);
 
         TSegment ShiftRight(TSegment value, int bytesCount);

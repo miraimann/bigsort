@@ -7,20 +7,20 @@ using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    public class Grouper
+    public class Grouper2
         : IGrouper
     {
         private readonly string _partFileNameMask;
         private readonly IIoService _ioService;
         private readonly IConfig _config;
 
-        public Grouper(IIoService ioService, IConfig config)
+        public Grouper2(IIoService ioService, IConfig config)
         {
             _ioService = ioService;
             _config = config;
 
             var ushortDigitsCount =
-                (int)Math.Ceiling(Math.Log10(ushort.MaxValue));
+                (int)Math.Ceiling(Math.Log10(96 * 96 + 96 + 1));
             _partFileNameMask = new string('0', ushortDigitsCount);
         }
 
@@ -52,8 +52,9 @@ namespace Bigsort.Implementation
 
             byte[] currentBuff = new byte[buffLength],
                   previousBuff = new byte[buffLength];
-            
-            var groups = new Dictionary<ushort, Group>(maxPartsCount);
+
+            var groups = new Group[maxPartsCount];
+            //var groups = new Dictionary<ushort, Group>(maxPartsCount);
             using (var inputStream = _ioService.OpenRead(inputFile))
             {
                 const int linePrefixLength = 2;
@@ -63,8 +64,8 @@ namespace Bigsort.Implementation
                     i = linePrefixLength,
                     j = linePrefixLength;
 
-                ushort id = 0;
-                byte c = default(byte);
+                //ushort id = 0;
+                byte c, id0 = 0, id1 = 0;
 
                 int countForRead = lastBuffIndex - linePrefixLength;
                 int count = inputStream.Read(currentBuff, linePrefixLength, countForRead);
@@ -103,19 +104,19 @@ namespace Bigsort.Implementation
 
                         case State.ReadId:
 
-                            var readFirstLetter = id == 0;
+                            var readFirstLetter = id0 == 0;
                             c = currentBuff[i];
 
                             if (c > endLine)
                             {
                                 if (readFirstLetter)
                                 {
-                                    id = (ushort)(c * byte.MaxValue);
+                                    id0 = c;
                                     state = State.ReadId;
                                 }
                                 else
                                 {
-                                    id += c;
+                                    id1 = c;
                                     state = State.ReadString;
                                 }
 
@@ -185,11 +186,14 @@ namespace Bigsort.Implementation
 
                         case State.ReleaseLine:
 
-                            if (!groups.ContainsKey(id))
+                            var id = (id0 == 0 ? 0 : (id0 - 31)) * 96 
+                                   + (id1 == 0 ? 0 : (id1 - 31));
+
+                            if (groups[id] == null)
                             {
                                 var name = id.ToString(_partFileNameMask);
-                                var group = new Group(name, _ioService.OpenWrite(name));
-                                groups.Add(id, group);
+                                groups[id] = new Group((ushort)id, name, 
+                                    writer: _ioService.OpenWrite(name));
                             }
 
                             ++groups[id].LinesCount;
@@ -220,7 +224,8 @@ namespace Bigsort.Implementation
 
                             lettersCount = 0;
                             digitsCount = 0;
-                            id = 0;
+                            id0 = 0;
+                            id1 = 0;
 
                             if (currentBuff[++i] == endBuff)
                             {
@@ -243,12 +248,22 @@ namespace Bigsort.Implementation
 
                             var option = new ParallelOptions
                             {
-                                MaxDegreeOfParallelism = Environment.ProcessorCount
+                                MaxDegreeOfParallelism = Environment.ProcessorCount - 1
                             };
 
-                            Parallel.ForEach(groups.Values, option,
+                            Array.Sort(groups, Comparer<Group>.Create((a, b) =>
+                            {
+                                if (a == null) return b == null ? 0 : -1;
+                                if (b == null) return 1;
+                                return a.Id - b.Id;
+                            }));
+                            
+                            Parallel.ForEach(groups, option,
                                 group =>
                                 {
+                                    if (group == null)
+                                        return;
+
                                     group.Bytes.Flush();
                                     group.BytesCount = (int)group.Bytes.Length;
                                     group.Bytes.Dispose();
@@ -258,20 +273,24 @@ namespace Bigsort.Implementation
                             if (prevCurrentDirectory != null)
                                 _ioService.CurrentDirectory = prevCurrentDirectory;
 
-                            return groups.Values.OrderBy(o => o.Name);
+                            return groups
+                                .SkipWhile(x => x == null);
                     }
                 }
             }
         }
-
+        
         private class Group
             : IGroupInfo
         {
-            public Group(string name, IWriter writer)
+            public Group(ushort id, string name, IWriter writer)
             {
+                Id = id;
                 Name = name;
                 Bytes = writer;
             }
+
+            public ushort Id { get; }
 
             public string Name { get; }
             public IWriter Bytes { get; set; }

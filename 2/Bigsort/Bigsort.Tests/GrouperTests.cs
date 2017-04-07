@@ -1,4 +1,4 @@
-﻿// #define DETAILED
+﻿#define DETAILED
 
 using System;
 using System.Collections.Concurrent;
@@ -69,7 +69,7 @@ namespace Bigsort.Tests
                 .SetupGet(o => o.BufferSize)
                 .Returns(testCase.BufferSize);
             
-            var grouper = new Grouper(
+            var grouper = new Grouper2(
                 ioServiceMock.Object,
                 configMock.Object);
 

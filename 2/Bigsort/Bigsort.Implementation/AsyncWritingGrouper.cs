@@ -2,27 +2,37 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    public class Grouper
+    public class AsyncWritingGrouper
         : IGrouper
     {
         private readonly string _partFileNameMask;
+        private readonly ITasksQueueMaker _tasksQueueMaker;
         private readonly IIoService _ioService;
+        private readonly IBuffersPool _buffersPool;
         private readonly IConfig _config;
 
-        public Grouper(IIoService ioService, IConfig config)
+        public AsyncWritingGrouper(
+            ITasksQueueMaker tasksQueueMaker, 
+            IBuffersPool buffersPool, 
+            IIoService ioService, 
+            IConfig config)
         {
+            _tasksQueueMaker = tasksQueueMaker;
             _ioService = ioService;
+            _buffersPool = buffersPool;
             _config = config;
 
             var ushortDigitsCount =
                 (int)Math.Ceiling(Math.Log10(ushort.MaxValue));
             _partFileNameMask = new string('0', ushortDigitsCount);
         }
+
 
         public IEnumerable<IGroupInfo> SplitToGroups(
             string inputFile,
@@ -50,9 +60,15 @@ namespace Bigsort.Implementation
                        endStream = 0,
                        endBuff = 1;
 
-            byte[] currentBuff = new byte[buffLength],
-                  previousBuff = new byte[buffLength];
+            var tasksQueue = _tasksQueueMaker.Make(
+                Environment.ProcessorCount / 2);
+
+            var currentBuffHandle = _buffersPool.GetBuffer();
+            var previousBuffHandle = _buffersPool.GetBuffer();
             
+            byte[] currentBuff = currentBuffHandle.Value,
+                  previousBuff = previousBuffHandle.Value;
+
             var groups = new Dictionary<ushort, Group>(maxPartsCount);
             using (var inputStream = _ioService.OpenRead(inputFile))
             {
@@ -188,7 +204,8 @@ namespace Bigsort.Implementation
                             if (!groups.ContainsKey(id))
                             {
                                 var name = id.ToString(_partFileNameMask);
-                                var group = new Group(name, _ioService.OpenWrite(name));
+                                var group = new Group(name, 
+                                    _ioService.OpenBufferingAsyncWrite(name, tasksQueue));
                                 groups.Add(id, group);
                             }
 
@@ -240,6 +257,12 @@ namespace Bigsort.Implementation
                             break;
 
                         case State.Finish:
+                            
+                            foreach (var group in groups.Values)
+                                group.Bytes.Flush();
+                            
+                            while (tasksQueue.IsProcessing)
+                                Thread.Sleep(100);
 
                             var option = new ParallelOptions
                             {
@@ -247,13 +270,7 @@ namespace Bigsort.Implementation
                             };
 
                             Parallel.ForEach(groups.Values, option,
-                                group =>
-                                {
-                                    group.Bytes.Flush();
-                                    group.BytesCount = (int)group.Bytes.Length;
-                                    group.Bytes.Dispose();
-                                    group.Bytes = null;
-                                });
+                                group => group.Bytes.Dispose());
 
                             if (prevCurrentDirectory != null)
                                 _ioService.CurrentDirectory = prevCurrentDirectory;

@@ -40,7 +40,7 @@ namespace Bigsort.Tests
                     .Returns(GroupBufferRowReadingEnsurance);
 
                 var disposableMaker =
-                    new DisposableValueMaker();
+                    new UsingHandleMaker();
 
                 var pool = new BuffersPool(
                     disposableMaker,

@@ -24,12 +24,24 @@ namespace Bigsort.Tests
              )]
 
             [TestCase(UseExistendFile, "[1-32].[0-128]", "E:\\1Gb", 32*1025, false
-                 // , Ignore = "for hands run only"
-             )]
-
-            [TestCase("10_Gb", "[1-32].[0-128]", "E:\\10Gb", 32*1025, true
                  , Ignore = "for hands run only"
              )]
+            
+            [TestCase(UseExistendFile, "[1-32].[0-128]", "E:\\1Gb", 32 * 1024, false
+               // , Ignore = "for hands run only"
+             )]
+
+            [TestCase(UseExistendFile, "[1-32].[0-128]", "E:\\1Gb", 4 * 1025, false
+               , Ignore = "for hands run only"
+             )]
+
+            [TestCase("10_Gb", "[1-32].[0-128]", "E:\\10Gb", 32*1024, true
+                , Ignore = "for hands run only"
+             )]
+
+            [TestCase(UseExistendFile, "[1-32].[0-128]", "E:\\10Gb", 32 * 1024, false
+               , Ignore = "for hands run only"
+            )]
 
             public void Test(
                 string size,
@@ -49,21 +61,21 @@ namespace Bigsort.Tests
                     .Returns(BitConverter.IsLittleEndian);
 
                 var log = TestContext.Out;
-                var disposableValueMaker = new DisposableValueMaker();
+                var disposableValueMaker = new UsingHandleMaker();
                 var buffersPool = new BuffersPool(disposableValueMaker, configMock.Object);
                 var ioService = new IoService(buffersPool);
-                var bytesEnumeratorMaker = new BytesEnumeratorMaker(configMock.Object);
-                // var grouper = new Grouper(
-                //     ioService,
-                //     configMock.Object);
-
-                var grouper = new Grouper1(
+                var taskQueueMaker = new TasksQueueMaker();
+                var usingHandleMaker = new UsingHandleMaker();
+                
+                var grouper = new AsyncWritingGrouper(
+                    taskQueueMaker,
+                    buffersPool,
                     ioService,
                     configMock.Object);
 
-
-                // var grouper = new UInt64ReadingGrouper(
-                //     bytesEnumeratorMaker,
+                // var grouper = new Grouper(
+                //     //taskQueueMaker,
+                //     //buffersPool,
                 //     ioService,
                 //     configMock.Object);
 

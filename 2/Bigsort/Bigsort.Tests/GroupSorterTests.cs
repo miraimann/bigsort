@@ -33,7 +33,7 @@ namespace Bigsort.Tests
             public readonly T[] Segments;
             public readonly MemoryStream GroupStream;
             public readonly IBuffersPool BuffersPool;
-            public readonly IDisposableValueMaker DisposableValueMaker;
+            public readonly IUsingHandleMaker DisposableValueMaker;
             public readonly ISegmentService<T> SegmentService;
             public readonly ISortingSegmentsSupplier SortingSegmentsSupplier;
             
@@ -104,7 +104,7 @@ namespace Bigsort.Tests
                       .SetupGet(o => o.GroupBufferRowReadingEnsurance)
                       .Returns(GroupBufferRowReadingEnsurance);
 
-                DisposableValueMaker = new DisposableValueMaker();
+                DisposableValueMaker = new UsingHandleMaker();
                 BuffersPool = new BuffersPool(
                     DisposableValueMaker,
                     MockOf.Config.Object);

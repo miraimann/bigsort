@@ -12,11 +12,11 @@ namespace Bigsort.Implementation
         private readonly LinkedList<Range> _free = 
             new LinkedList<Range>();
 
-        private readonly IDisposableValueMaker _disposableValueMaker; 
+        private readonly IUsingHandleMaker _disposableValueMaker; 
         private readonly IConfig _config;
 
         public LinesReservation(
-            IDisposableValueMaker disposableValueMaker,
+            IUsingHandleMaker disposableValueMaker,
             IConfig config)
         {
             _disposableValueMaker = disposableValueMaker;
@@ -39,7 +39,7 @@ namespace Bigsort.Implementation
             _free.AddFirst(new Range(0, Length));
         }
 
-        public IDisposableValue<Range> TryReserveRange(int length)
+        public IUsingHandle<Range> TryReserveRange(int length)
         {
             const int notFound = -1;
             int offset = notFound;

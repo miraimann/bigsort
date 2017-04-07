@@ -2,7 +2,7 @@
 
 namespace Bigsort.Contracts
 {
-    public interface IDisposableValue<out T>
+    public interface IUsingHandle<out T>
         : IDisposable
     {
         T Value { get; }

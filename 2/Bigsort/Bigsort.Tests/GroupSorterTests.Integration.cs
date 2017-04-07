@@ -43,7 +43,7 @@ namespace Bigsort.Tests
             {
                 public Mock<IConfig> ConfigMock;
 
-                public IDisposableValueMaker DisposableValueMaker;
+                public IUsingHandleMaker DisposableValueMaker;
                 public ILinesReservation<T> LinesReservation;
                 public ILinesIndexesExtractor LinesIndexesExtractor;
                 public ISegmentService<T> SegmentService;
@@ -75,7 +75,7 @@ namespace Bigsort.Tests
                         .SetupGet(o => o.MaxMemoryForLines)
                         .Returns(MaxMemoryForLines);
 
-                    DisposableValueMaker = new DisposableValueMaker();
+                    DisposableValueMaker = new UsingHandleMaker();
                     LinesReservation = new LinesReservation<T>(
                         DisposableValueMaker,
                         ConfigMock.Object);
