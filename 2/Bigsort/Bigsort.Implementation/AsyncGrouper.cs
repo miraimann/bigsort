@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
@@ -11,38 +12,27 @@ namespace Bigsort.Implementation
         : IGrouper
     {
         private readonly string _partFileNameMask;
-        private readonly IUsingHandleMaker _usingHandleMaker;
         private readonly ITasksQueueMaker _tasksQueueMaker;
-        private readonly IBuffersPool _buffersPool;
         private readonly IIoService _ioService;
+        private readonly IBuffersPool _buffersPool;
         private readonly IConfig _config;
 
         public AsyncGrouper(
-            UsingHandleMaker usingHandleMaker,
-            ITasksQueueMaker tasksQueueMaker, 
-            IBuffersPool buffersPool, 
-            IIoService ioService, 
+            ITasksQueueMaker tasksQueueMaker,
+            IBuffersPool buffersPool,
+            IIoService ioService,
             IConfig config)
         {
-            _usingHandleMaker = usingHandleMaker;
             _tasksQueueMaker = tasksQueueMaker;
-            _buffersPool = buffersPool;
             _ioService = ioService;
+            _buffersPool = buffersPool;
             _config = config;
 
             var ushortDigitsCount =
                 (int)Math.Ceiling(Math.Log10(ushort.MaxValue));
             _partFileNameMask = new string('0', ushortDigitsCount);
         }
-
-        private IMultiUsingHandle<byte[]> GetBuffHandle()
-        {
-            var buffHandle = _buffersPool.GetBuffer();
-            return _usingHandleMaker.MakeForMultiUse(
-                        buffHandle.Value, 
-                        _ => buffHandle.Dispose());
-        }
-
+        
         public IEnumerable<IGroupInfo> SplitToGroups(
             string inputFile,
             string outputDirectory = null)
@@ -69,18 +59,16 @@ namespace Bigsort.Implementation
                        endStream = 0,
                        endBuff = 1;
 
-            var groupsWritingQueue =
-                _tasksQueueMaker.Make(300); // LOOK
-
-            IMultiUsingHandle<byte[]>
-                previousBuffHandle = GetBuffHandle(),
-                currentBuffHandle = GetBuffHandle();
-
-            byte[] currentBuff = currentBuffHandle.Value,
-                  previousBuff = previousBuffHandle.Value;
+            var tasksQueue = _tasksQueueMaker.MakeQueue(2);
+            // Environment.ProcessorCount / 2);
             
+            Action disposeCurrentBuffHandle  = () => { }, 
+                   disposePreviousBuffHandle = () => { };
+            byte[] currentBuff, previousBuff = null;
+
             var groups = new Dictionary<ushort, Group>(maxPartsCount);
-            using (var inputStream = _ioService.OpenRead(inputFile))
+            using (var inputStream = _ioService.OpenAsyncRead(inputFile, 
+                _tasksQueueMaker.MakeQueue(1)))
             {
                 const int linePrefixLength = 2;
                 int lastBuffIndex = buffLength - 1,
@@ -92,12 +80,11 @@ namespace Bigsort.Implementation
                 ushort id = 0;
                 byte c = default(byte);
 
-                int countForRead = lastBuffIndex - linePrefixLength;
-                int count = inputStream.Read(currentBuff, linePrefixLength, countForRead);
-                if (count == countForRead)
-                    currentBuff[lastBuffIndex] = endBuff;
-                else currentBuff[count + 1] = endStream;
+                // int countForRead = lastBuffIndex - linePrefixLength;
 
+                currentBuff = new byte[linePrefixLength + 1];
+                currentBuff[linePrefixLength] = endBuff;
+                
                 State backState = State.None,
                       state = State.ReadNumber;
 
@@ -187,13 +174,16 @@ namespace Bigsort.Implementation
                             j += buffLength;
                             i = 0;
 
-                            previousBuffHandle.Dispose();
-                            previousBuffHandle = currentBuffHandle;
-                            currentBuffHandle = GetBuffHandle();
+                            disposePreviousBuffHandle();
+                            disposePreviousBuffHandle = disposeCurrentBuffHandle;
                             previousBuff = currentBuff;
-                            currentBuff = currentBuffHandle.Value;
+                            
+                            IUsingHandle<byte[]> handle;
+                            var count = inputStream.Read(out handle);
 
-                            count = inputStream.Read(currentBuff, 0, lastBuffIndex);
+                            currentBuff = handle.Value;
+                            disposeCurrentBuffHandle = handle.Dispose;
+                            
                             if (count == lastBuffIndex)
                                 currentBuff[lastBuffIndex] = endBuff;
                             else
@@ -217,7 +207,7 @@ namespace Bigsort.Implementation
                             {
                                 var name = id.ToString(_partFileNameMask);
                                 var group = new Group(name,
-                                    _ioService.OpenAsyncBufferingWrite(name, groupsWritingQueue));
+                                    _ioService.OpenBufferingAsyncWrite(name, tasksQueue));
                                 groups.Add(id, group);
                             }
 
@@ -230,21 +220,21 @@ namespace Bigsort.Implementation
                             if (lineStart < 0)
                             {
                                 lineLength = Math.Abs(lineStart);
-                                lineStart += lastBuffIndex;
+                                lineStart += previousBuff.Length - 1; // lastBuffIndex;
 
                                 previousBuff[lineStart] = (byte)lettersCount;
                                 if (lineLength > 1)
                                     previousBuff[lineStart + 1] = (byte)digitsCount;
                                 else currentBuff[0] = (byte)digitsCount;
 
-                                writer.Write(previousBuffHandle.SubUse(), lineStart, lineLength);
-                                writer.Write(currentBuffHandle.SubUse(), 0, i);
+                                writer.Write(previousBuff, lineStart, lineLength);
+                                writer.Write(currentBuff, 0, i);
                             }
                             else
                             {
                                 currentBuff[lineStart] = (byte)lettersCount;
                                 currentBuff[lineStart + 1] = (byte)digitsCount;
-                                writer.Write(currentBuffHandle.SubUse(), lineStart, lineLength);
+                                writer.Write(currentBuff, lineStart, lineLength);
                             }
 
                             lettersCount = 0;
@@ -269,18 +259,25 @@ namespace Bigsort.Implementation
                             break;
 
                         case State.Finish:
-                            
+
                             foreach (var group in groups.Values)
-                                group.Bytes.Dispose();
+                                group.Bytes.Flush();
+
+                            while (tasksQueue.IsProcessing)
+                                Thread.Sleep(100);
+
+                            var option = new ParallelOptions
+                            {
+                                MaxDegreeOfParallelism = Environment.ProcessorCount - 1
+                            };
+
+                            var t = DateTime.Now;
+                            Parallel.ForEach(groups.Values, option,
+                                group => group.Bytes.Dispose());
+                            Console.WriteLine($"disposing:{DateTime.Now - t}");
 
                             if (prevCurrentDirectory != null)
                                 _ioService.CurrentDirectory = prevCurrentDirectory;
-
-                            while (groupsWritingQueue.IsProcessing)
-                                Thread.Sleep(100);
-
-                            previousBuffHandle.Dispose();
-                            currentBuffHandle.Dispose();
 
                             return groups.Values.OrderBy(o => o.Name);
                     }
@@ -291,14 +288,14 @@ namespace Bigsort.Implementation
         private class Group
             : IGroupInfo
         {
-            public Group(string name, IAsyncWriter writer)
+            public Group(string name, IWriter writer)
             {
                 Name = name;
                 Bytes = writer;
             }
 
             public string Name { get; }
-            public IAsyncWriter Bytes { get; }
+            public IWriter Bytes { get; set; }
             public int LinesCount { get; set; }
             public int BytesCount { get; set; }
         }

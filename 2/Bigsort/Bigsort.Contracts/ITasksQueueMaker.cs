@@ -2,6 +2,8 @@
 {
     public interface ITasksQueueMaker
     {
-        ITasksQueue Make(int maxRunningTasksCount);
+        ITasksQueue MakeQueue(int maxThreadsCount);
+
+        IPriorityTasksQueue MakePriorityQueue(int maxThreadsCount);
     }
 }

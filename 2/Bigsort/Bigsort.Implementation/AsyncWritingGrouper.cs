@@ -60,8 +60,8 @@ namespace Bigsort.Implementation
                        endStream = 0,
                        endBuff = 1;
 
-            var tasksQueue = _tasksQueueMaker.Make(
-                Environment.ProcessorCount / 2);
+            var tasksQueue = _tasksQueueMaker.MakeQueue(3);
+                // Environment.ProcessorCount / 2);
 
             var currentBuffHandle = _buffersPool.GetBuffer();
             var previousBuffHandle = _buffersPool.GetBuffer();
@@ -266,11 +266,13 @@ namespace Bigsort.Implementation
 
                             var option = new ParallelOptions
                             {
-                                MaxDegreeOfParallelism = Environment.ProcessorCount
+                                MaxDegreeOfParallelism = Environment.ProcessorCount - 1
                             };
 
+                            var t = DateTime.Now;
                             Parallel.ForEach(groups.Values, option,
                                 group => group.Bytes.Dispose());
+                            Console.WriteLine($"disposing:{DateTime.Now - t}");
 
                             if (prevCurrentDirectory != null)
                                 _ioService.CurrentDirectory = prevCurrentDirectory;

@@ -60,8 +60,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Buffff.cs" />
+    <Compile Include="IAsyncReader.cs" />
     <Compile Include="IAsyncWriter.cs" />
     <Compile Include="IMultiUsingHandle.cs" />
+    <Compile Include="IPriorityTasksQueue.cs" />
     <Compile Include="IUsingHandleMaker.cs" />
     <Compile Include="IGroupBytesMatrixInfo.cs" />
     <Compile Include="IBytesEnumeratorMaker.cs" />

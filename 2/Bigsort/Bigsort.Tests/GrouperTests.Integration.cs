@@ -36,7 +36,7 @@ namespace Bigsort.Tests
              )]
 
             [TestCase("10_Gb", "[1-32].[0-128]", "E:\\10Gb", 32*1024, true
-                , Ignore = "for hands run only"
+               , Ignore = "for hands run only"
              )]
 
             [TestCase(UseExistendFile, "[1-32].[0-128]", "E:\\10Gb", 32 * 1024, false
@@ -66,12 +66,18 @@ namespace Bigsort.Tests
                 var ioService = new IoService(buffersPool);
                 var taskQueueMaker = new TasksQueueMaker();
                 var usingHandleMaker = new UsingHandleMaker();
-                
-                var grouper = new AsyncWritingGrouper(
+
+                var grouper = new AsyncGrouper(
                     taskQueueMaker,
                     buffersPool,
                     ioService,
                     configMock.Object);
+                
+                // var grouper = new AsyncWritingGrouper(
+                //     taskQueueMaker,
+                //     buffersPool,
+                //     ioService,
+                //     configMock.Object);
 
                 // var grouper = new Grouper(
                 //     //taskQueueMaker,

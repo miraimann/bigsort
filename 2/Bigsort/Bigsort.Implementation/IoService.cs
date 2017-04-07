@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
@@ -25,6 +26,9 @@ namespace Bigsort.Implementation
 
         public IReader OpenRead(string path) =>
             new Reader(path);
+        
+        public IAsyncReader OpenAsyncRead(string path, ITasksQueue tasksQueue) =>
+            new AsyncReader(path, tasksQueue, _buffersPool);
 
         public IWriter OpenWrite(string path) =>
             new BufferingWriter(path, _buffersPool.GetBuffer());
@@ -61,6 +65,71 @@ namespace Bigsort.Implementation
 
         public void DeleteFile(string path) =>
             File.Delete(path);
+
+        private class AsyncReader
+            : IAsyncReader
+        {
+            private readonly Stream _stream;
+            private readonly ITasksQueue _tasksQueue;
+            private readonly IBuffersPool _buffersPool;
+
+            private IUsingHandle<byte[]> _currentBuffHandle; //, _backBuffHandle;
+            private int _currentBuffLength; //, _backBuffLength;
+
+            public AsyncReader(string path,
+                ITasksQueue tasksQueue, 
+                IBuffersPool buffersPool)
+            {
+                _tasksQueue = tasksQueue;
+                _buffersPool = buffersPool;
+
+                _stream = File.OpenRead(path);
+
+                _currentBuffHandle = _buffersPool.GetBuffer();
+                _currentBuffLength = _stream.Read(_currentBuffHandle.Value, 0,
+                    _currentBuffHandle.Value.Length - 1);
+
+                // _backBuffHandle = _buffersPool.GetBuffer();
+                // _backBuffLength = _stream.Read(_backBuffHandle.Value, 0,
+                //     _backBuffHandle.Value.Length - 1);
+            }
+
+            private bool _loaded = true;
+
+            public int Read(out IUsingHandle<byte[]> buff)
+            {
+                while(!_loaded)
+                    Thread.Sleep(1);
+
+              // if (_currentBuffLength == 0)
+              // {
+              //     buff = null;
+              //     return 0;
+              // }
+
+                var length = _currentBuffLength;
+                buff = _currentBuffHandle;
+                _currentBuffHandle = _buffersPool.GetBuffer();
+                // _currentBuffHandle = _backBuffHandle;
+                // _currentBuffLength = _backBuffLength;
+                // _backBuffHandle = _buffersPool.GetBuffer();
+
+                _loaded = false;
+                _tasksQueue.Enqueue(() =>
+                {
+                    _currentBuffLength = _stream.Read(_currentBuffHandle.Value, 0,
+                        _currentBuffHandle.Value.Length - 1);
+                    _loaded = true;
+                });
+
+                return length;
+            }
+
+            public void Dispose()
+            {
+                _stream.Dispose();
+            }
+        }
 
         private class BufferingWriter
             : IWriter

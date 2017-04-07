@@ -10,6 +10,8 @@ namespace Bigsort.Contracts
         
         IReader OpenRead(string path);
 
+        IAsyncReader OpenAsyncRead(string path, ITasksQueue tasksQueue);
+
         IWriter OpenWrite(string path);
 
         IWriter OpenBufferingWrite(string path);
