@@ -66,12 +66,15 @@ namespace Bigsort.Tests
                 var ioService = new IoService(buffersPool);
                 var taskQueueMaker = new TasksQueueMaker();
                 var usingHandleMaker = new UsingHandleMaker();
+                var buffersReaderMaker = new BuffersReaderMaker(
+                    buffersPool, ioService);
 
                 var grouper = new AsyncGrouper(
                     taskQueueMaker,
                     buffersPool,
                     ioService,
-                    configMock.Object);
+                    configMock.Object,
+                    buffersReaderMaker);
                 
                 // var grouper = new AsyncWritingGrouper(
                 //     taskQueueMaker,

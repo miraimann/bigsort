@@ -12,6 +12,8 @@ namespace Bigsort.Contracts
 
         IAsyncReader OpenAsyncRead(string path, ITasksQueue tasksQueue);
 
+        IPositionableReader OpenPositionableRead(string path, long position = 0);
+
         IWriter OpenWrite(string path);
 
         IWriter OpenBufferingWrite(string path);

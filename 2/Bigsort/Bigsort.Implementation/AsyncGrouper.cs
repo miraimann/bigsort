@@ -15,18 +15,21 @@ namespace Bigsort.Implementation
         private readonly ITasksQueueMaker _tasksQueueMaker;
         private readonly IIoService _ioService;
         private readonly IBuffersPool _buffersPool;
+        private readonly IBuffersReaderMaker _buffersReaderMaker;
         private readonly IConfig _config;
 
         public AsyncGrouper(
             ITasksQueueMaker tasksQueueMaker,
             IBuffersPool buffersPool,
             IIoService ioService,
-            IConfig config)
+            IConfig config, 
+            IBuffersReaderMaker buffersReaderMaker)
         {
             _tasksQueueMaker = tasksQueueMaker;
             _ioService = ioService;
             _buffersPool = buffersPool;
             _config = config;
+            _buffersReaderMaker = buffersReaderMaker;
 
             var ushortDigitsCount =
                 (int)Math.Ceiling(Math.Log10(ushort.MaxValue));
@@ -37,6 +40,8 @@ namespace Bigsort.Implementation
             string inputFile,
             string outputDirectory = null)
         {
+            long dbgReadedSize = 0, dbgWritedSize = 0;
+
             string prevCurrentDirectory = null;
             if (outputDirectory != null)
             {
@@ -59,18 +64,18 @@ namespace Bigsort.Implementation
                        endStream = 0,
                        endBuff = 1;
 
-            var tasksQueue = _tasksQueueMaker.MakeQueue(2);
+            var tasksQueue = _tasksQueueMaker.MakePriorityQueue(3);
             // Environment.ProcessorCount / 2);
             
             Action disposeCurrentBuffHandle  = () => { }, 
                    disposePreviousBuffHandle = () => { };
             byte[] currentBuff, previousBuff = null;
 
+            const int linePrefixLength = 2;
             var groups = new Dictionary<ushort, Group>(maxPartsCount);
-            using (var inputStream = _ioService.OpenAsyncRead(inputFile, 
-                _tasksQueueMaker.MakeQueue(1)))
+            using (var input = _buffersReaderMaker.Make(
+                inputFile, buffLength - 1, tasksQueue.AsHightQueue()))
             {
-                const int linePrefixLength = 2;
                 int lastBuffIndex = buffLength - 1,
                     lettersCount = 0,
                     digitsCount = 0,
@@ -179,7 +184,8 @@ namespace Bigsort.Implementation
                             previousBuff = currentBuff;
                             
                             IUsingHandle<byte[]> handle;
-                            var count = inputStream.Read(out handle);
+                            var count = input.ReadNext(out handle);
+                            dbgReadedSize += count;
 
                             currentBuff = handle.Value;
                             disposeCurrentBuffHandle = handle.Dispose;
@@ -207,7 +213,9 @@ namespace Bigsort.Implementation
                             {
                                 var name = id.ToString(_partFileNameMask);
                                 var group = new Group(name,
-                                    _ioService.OpenBufferingAsyncWrite(name, tasksQueue));
+                                    _ioService.OpenBufferingAsyncWrite(name, 
+                                        tasksQueue.AsLowQueue()));
+
                                 groups.Add(id, group);
                             }
 
@@ -216,7 +224,7 @@ namespace Bigsort.Implementation
                             var lineLength = digitsCount + lettersCount + 3;
                             var lineStart = i - lineLength;
                             var writer = groups[id].Bytes;
-
+                            dbgWritedSize += lineLength;
                             if (lineStart < 0)
                             {
                                 lineLength = Math.Abs(lineStart);
@@ -275,6 +283,8 @@ namespace Bigsort.Implementation
                             Parallel.ForEach(groups.Values, option,
                                 group => group.Bytes.Dispose());
                             Console.WriteLine($"disposing:{DateTime.Now - t}");
+                            Console.WriteLine($"read size:{dbgReadedSize}");
+                            Console.WriteLine($"write size:{dbgWritedSize}");
 
                             if (prevCurrentDirectory != null)
                                 _ioService.CurrentDirectory = prevCurrentDirectory;

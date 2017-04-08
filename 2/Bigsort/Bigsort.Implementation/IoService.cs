@@ -30,6 +30,9 @@ namespace Bigsort.Implementation
         public IAsyncReader OpenAsyncRead(string path, ITasksQueue tasksQueue) =>
             new AsyncReader(path, tasksQueue, _buffersPool);
 
+        public IPositionableReader OpenPositionableRead(string path, long position = 0) =>
+            new Reader(path, position, shared: true);
+
         public IWriter OpenWrite(string path) =>
             new BufferingWriter(path, _buffersPool.GetBuffer());
         
@@ -65,7 +68,7 @@ namespace Bigsort.Implementation
 
         public void DeleteFile(string path) =>
             File.Delete(path);
-
+        
         private class AsyncReader
             : IAsyncReader
         {
@@ -322,7 +325,11 @@ namespace Bigsort.Implementation
                 _tasksQueue = tasksQueue;
                 _buffHandle = _buffersPool.GetBuffer();
                 _buff = _buffHandle.Value;
-                _stream = File.OpenWrite(path);
+                _stream = new FileStream(path, 
+                    FileMode.OpenOrCreate,
+                    FileAccess.Write,
+                    FileShare.None,
+                    bufferSize:0);
             }
 
             public long Length =>
@@ -388,14 +395,30 @@ namespace Bigsort.Implementation
         }
 
         private class Reader
-            : IReader
+            : IPositionableReader
         {
             private readonly Stream _stream;
 
-            public Reader(string path)
+            public Reader(string path, long position = 0, bool shared = false)
             {
-                _stream = File.OpenRead(path);
+                _stream = new FileStream(path,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    shared ? FileShare.Read 
+                           : FileShare.None)
+                {
+                    Position = position
+                };
             }
+
+            public long Possition
+            {
+                get { return _stream.Position; }
+                set { _stream.Position = value; }
+            }
+
+            public long Length =>
+                _stream.Length;
 
             public int Read(byte[] buff, int offset, int count) =>
                 _stream.Read(buff, offset, count);

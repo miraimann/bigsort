@@ -49,7 +49,7 @@ namespace Bigsort.Implementation
             }
         }
 
-        private class Using<T>
+        private struct Using<T>
             : IUsingHandle<T>
         {
             private readonly Action<T> _dispose;

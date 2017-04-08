@@ -64,6 +64,7 @@
   <ItemGroup>
     <Compile Include="AsyncWritingGrouper.cs" />
     <Compile Include="BuffersPool.cs" />
+    <Compile Include="BuffersReaderMaker.cs" />
     <Compile Include="ByteSegmentService.cs" />
     <Compile Include="BytesEnumeratorMaker.cs" />
     <Compile Include="BytesReader.cs" />

@@ -20,20 +20,21 @@ namespace Bigsort.Implementation
         {
             private readonly ConcurrentBag<object> _runPermits;
             private readonly ConcurrentQueue<Action> _tasksQueue;
-            private readonly int _maxRunningTasksCount;
 
-            public Queue(int maxRunningTasksCount)
+            public Queue(int maxThreadsCount)
             {
-                _maxRunningTasksCount = maxRunningTasksCount;
+                MaxThreadsCount = maxThreadsCount;
                 _tasksQueue = new ConcurrentQueue<Action>();
                 _runPermits = new ConcurrentBag<object>(
-                    Enumerable.Range(0, maxRunningTasksCount)
+                    Enumerable.Range(0, MaxThreadsCount)
                               .Select(_ => new object()));
             }
 
+            public int MaxThreadsCount { get; }
+
             public bool IsProcessing =>
                 !_tasksQueue.IsEmpty ||
-                _runPermits.Count != _maxRunningTasksCount;
+                _runPermits.Count != MaxThreadsCount;
 
             public async void Enqueue(Action action)
             {
@@ -57,33 +58,34 @@ namespace Bigsort.Implementation
             : IPriorityTasksQueue
         {
             private readonly ConcurrentBag<object> _runPermits;
-            private readonly ConcurrentQueue<Action> _hightTasksQueue, _lowTasksQueue;
-            private readonly int _maxRunningTasksCount;
+            private readonly ConcurrentQueue<Action> _hightQueue, _lowQueue;
 
-            public PriorityQueue(int maxRunningTasksCount)
+            public PriorityQueue(int maxThreadsCount)
             {
-                _maxRunningTasksCount = maxRunningTasksCount;
-                _hightTasksQueue = new ConcurrentQueue<Action>();
-                _lowTasksQueue = new ConcurrentQueue<Action>();
+                MaxThreadsCount = maxThreadsCount;
+                _hightQueue = new ConcurrentQueue<Action>();
+                _lowQueue = new ConcurrentQueue<Action>();
                 _runPermits = new ConcurrentBag<object>(
-                    Enumerable.Range(0, maxRunningTasksCount)
+                    Enumerable.Range(0, MaxThreadsCount)
                               .Select(_ => new object()));
             }
 
+            public int MaxThreadsCount { get; }
+
             public bool IsProcessing => 
-                   !_lowTasksQueue.IsEmpty
-                || !_hightTasksQueue.IsEmpty
-                || _runPermits.Count != _maxRunningTasksCount;
+                   !_lowQueue.IsEmpty
+                || !_hightQueue.IsEmpty
+                || _runPermits.Count != MaxThreadsCount;
 
             public void EnqueueHight(Action action)
             {
-                _hightTasksQueue.Enqueue(action);
+                _hightQueue.Enqueue(action);
                 StartProcess();
             }
 
             public void EnqueueLow(Action action)
             {
-                _lowTasksQueue.Enqueue(action);
+                _lowQueue.Enqueue(action);
                 StartProcess();
             }
 
@@ -106,8 +108,8 @@ namespace Bigsort.Implementation
             private async Task<object> Process(object runPermit)
             {
                 Action action;
-                while (_hightTasksQueue.TryDequeue(out action) ||
-                         _lowTasksQueue.TryDequeue(out action))
+                while (_hightQueue.TryDequeue(out action) ||
+                         _lowQueue.TryDequeue(out action))
                     await Task.Run(action);
                 return runPermit;
             }
@@ -121,6 +123,9 @@ namespace Bigsort.Implementation
                 {
                     _implementation = implementation;
                 }
+
+                public int MaxThreadsCount =>
+                    _implementation.MaxThreadsCount;
 
                 public bool IsProcessing =>
                     _implementation.IsProcessing;
