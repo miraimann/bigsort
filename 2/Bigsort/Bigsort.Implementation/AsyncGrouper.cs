@@ -82,6 +82,8 @@ namespace Bigsort.Implementation
                     i = linePrefixLength,
                     j = linePrefixLength;
 
+                long sleepingTime = 0;
+
                 ushort id = 0;
                 byte c = default(byte);
 
@@ -184,7 +186,14 @@ namespace Bigsort.Implementation
                             previousBuff = currentBuff;
                             
                             IUsingHandle<byte[]> handle;
-                            var count = input.ReadNext(out handle);
+                            int count = input.ReadNext(out handle);
+                            while (count == -1)
+                            {
+                                ++sleepingTime;
+                                Thread.Sleep(1);
+                                count = input.ReadNext(out handle);
+                            }
+
                             dbgReadedSize += count;
 
                             currentBuff = handle.Value;
@@ -197,6 +206,7 @@ namespace Bigsort.Implementation
                                 var endStreamIndex = Math.Max(0, count - 1);
                                 if (endStreamIndex == 0)
                                 {
+                                    disposeCurrentBuffHandle();
                                     state = State.Finish;
                                     break;
                                 }
@@ -225,6 +235,7 @@ namespace Bigsort.Implementation
                             var lineStart = i - lineLength;
                             var writer = groups[id].Bytes;
                             dbgWritedSize += lineLength;
+
                             if (lineStart < 0)
                             {
                                 lineLength = Math.Abs(lineStart);
@@ -282,9 +293,11 @@ namespace Bigsort.Implementation
                             var t = DateTime.Now;
                             Parallel.ForEach(groups.Values, option,
                                 group => group.Bytes.Dispose());
+
                             Console.WriteLine($"disposing:{DateTime.Now - t}");
                             Console.WriteLine($"read size:{dbgReadedSize}");
                             Console.WriteLine($"write size:{dbgWritedSize}");
+                            Console.WriteLine($"sleeping time:{TimeSpan.FromMilliseconds(sleepingTime)}");
 
                             if (prevCurrentDirectory != null)
                                 _ioService.CurrentDirectory = prevCurrentDirectory;

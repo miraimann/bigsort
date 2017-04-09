@@ -1,9 +1,6 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
@@ -11,148 +8,158 @@ namespace Bigsort.Implementation
     public class BuffersReaderMaker
         : IBuffersReaderMaker
     {
-        private const int Empty = -1, Reserved = -2;
         private readonly IBuffersPool _buffersPool;
         private readonly IIoService _ioService;
+        private readonly IUsingHandleMaker _usingHandleMaker;
 
         public BuffersReaderMaker(
-            IBuffersPool buffersPool, 
-            IIoService ioService)
+            IBuffersPool buffersPool,
+            IIoService ioService,
+            IUsingHandleMaker usingHandleMaker)
         {
             _buffersPool = buffersPool;
             _ioService = ioService;
+            _usingHandleMaker = usingHandleMaker;
         }
 
-        public IBuffersReader Make(string path, int buffLength,
+        public IBuffersReader Make(
+                string path, int buffLength,
                 ITasksQueue tasksQueue) =>
 
-            new BuffersReader(path, buffLength,
-                _buffersPool, tasksQueue, _ioService);
+            new BuffersReader(
+                path, buffLength,
+                _buffersPool,
+                tasksQueue,
+                _ioService,
+                _usingHandleMaker);
 
         private class BuffersReader
             : IBuffersReader
         {
-            private const int CacheSize = 10;
+            private const int InitCapacity = 16,
+                TemporaryMissingResult = -1;
 
+            private readonly string _path;
+            private readonly long _fileLength;
+            private readonly int _bufferLength, _readerStep, _capacity;
+
+            private readonly IUsingHandleMaker _usingHandleMaker;
             private readonly IBuffersPool _buffersPool;
             private readonly ITasksQueue _tasksQueue;
             private readonly IIoService _ioService;
-            private readonly int _buffLength, _readerStep;
-            private readonly IUsingHandle<byte[]>[] _cache;
-            private readonly int[] _buffersLengthes;
-            private readonly IEnumerator<IPositionableReader> _reader;
-            private readonly IEnumerator<int> _r, _w;
-            
+
+            private readonly ConcurrentDictionary<int, Item> _readed;
+            private readonly IEnumerator<int> _readingIndex;
+            private readonly IUsingHandle<byte[]> _zeroHandle;
+
             public BuffersReader(
                 string path,
                 int buffLength,
-                IBuffersPool buffersPool, 
-                ITasksQueue tasksQueue, 
-                IIoService ioService)
+                IBuffersPool buffersPool,
+                ITasksQueue tasksQueue,
+                IIoService ioService,
+                IUsingHandleMaker usingHandleMaker)
             {
+                _usingHandleMaker = usingHandleMaker;
                 _buffersPool = buffersPool;
                 _tasksQueue = tasksQueue;
                 _ioService = ioService;
-                _buffLength = buffLength;
 
-                var readersCount = CacheSize; // _tasksQueue.MaxThreadsCount;
-                _readerStep = _buffLength * (readersCount - 1);
+                _zeroHandle = _usingHandleMaker
+                    .Make<byte[]>(null, _ => { });
 
-                 _cache = new IUsingHandle<byte[]>[CacheSize];
-                _buffersLengthes = Enumerable
-                    .Repeat(Empty, CacheSize)
-                    .ToArray();
+                _path = path;
+                _bufferLength = buffLength;
 
-                _r = CacheIndexes.GetEnumerator();
-                _w = CacheIndexes.GetEnumerator();
-                _reader = CreateReaders(path)
-                    .GetEnumerator();
+                _fileLength = _ioService.SizeOfFile(path);
+                _capacity = (int) Math.Min(
+                    Math.Ceiling((double) _fileLength/_bufferLength),
+                    InitCapacity);
 
-                _reader.MoveNext();
-                _w.MoveNext();
-                _r.MoveNext();
+                _readed = new ConcurrentDictionary<int, Item>(
+                    concurrencyLevel: _tasksQueue.MaxThreadsCount,
+                            capacity: _capacity);
 
-                UpdateCache();
+                _readerStep = (_capacity - 1) * buffLength;
+                _readingIndex = ReadingIndexes.GetEnumerator();
+                _readingIndex.MoveNext();
+                
+                for (int i = 0; i < _capacity; i++)
+                    AddItem(i);
             }
 
             public int ReadNext(out IUsingHandle<byte[]> buffHandle)
             {
-                var r = _r.Current;
-                if (_buffersLengthes[r] <= Empty)
+                Item x;
+                if (_readed.TryRemove(_readingIndex.Current, out x))
                 {
-                    if (_buffersLengthes[r] != Reserved)
-                        UpdateCache();
-
-                    while (_buffersLengthes[r] <= Empty)
-                        Thread.Sleep(1); // LOOK
+                    buffHandle = x.Handle;
+                    _readingIndex.MoveNext();
+                    return x.Length;
                 }
 
-                buffHandle = _cache[r];
-                var length = _buffersLengthes[r];
-                _buffersLengthes[r] = Empty;
-                _r.MoveNext();
-
-                return length;   
+                buffHandle = null;
+                return TemporaryMissingResult;
             }
 
-            private void UpdateCache()
-            {
-                while (_buffersLengthes[_w.Current] == Empty)
-                {
-                    var reader = _reader.Current;
-                    var w = _w.Current;
+            public void Dispose() =>
+                _readingIndex.Dispose();
 
-                    _buffersLengthes[w] = Reserved;
-                    _tasksQueue.Enqueue(() =>
-                    {
-                        _cache[w] = _buffersPool.GetBuffer();
-                        _buffersLengthes[w] = reader
-                            .Read(_cache[w].Value, 0, _buffLength);
-                        reader.Possition += _readerStep;
-                    });
-                    
-                    _reader.MoveNext();
-                    _w.MoveNext();
-                }
-            }
-                
-            private IEnumerable<IPositionableReader> CreateReaders(string path)
-            {
-                var fileLength = _ioService.SizeOfFile(path);
-                var readers = Enumerable
-                    .Range(0, CacheSize) // _tasksQueue.MaxThreadsCount) // LOOK
-                    .Select(i => i * _buffLength)
-                     .Where(i => i < fileLength)
-                    .Select(i => _ioService.OpenPositionableRead(path, i))
-                    .ToArray();
-                
-                while (true)
-                    foreach (var reader in readers)
-                        yield return reader;
-            }
-
-            private IEnumerable<int> CacheIndexes
+            private IEnumerable<int> ReadingIndexes
             {
                 get
                 {
                     while (true)
-                        for (int i = 0; i < CacheSize; i++)
+                        for (int i = 0; i < _capacity; i++)
                             yield return i;
                 }
             }
 
-            public void Dispose()
+            private void AddItem(int i)
             {
-                for (int i = 0; i < CacheSize /* _tasksQueue.MaxThreadsCount */; i++)
-                {
-                    _reader.MoveNext();
-                    _reader.Current.Dispose();
-                }
+                var pooledBuff = _buffersPool.GetBuffer();
+                var reader = _ioService
+                    .OpenPositionableRead(_path, i * _bufferLength);
 
-                _reader.Dispose();
-                _w.Dispose();
-                _r.Dispose();
+                IUsingHandle<byte[]> handle = null;
+                Action readNext = null;
+
+                readNext = delegate
+                {
+                    var length = reader.Read(pooledBuff.Value, 0, _bufferLength);
+                    _readed.TryAdd(i, new Item(length, handle));
+                };
+                
+                handle = _usingHandleMaker.Make(pooledBuff.Value, delegate
+                {
+                    var possition = reader.Possition + _readerStep;
+                    if (possition < _fileLength)
+                    {
+                        reader.Possition = possition;
+                        _tasksQueue.Enqueue(readNext);
+                    }
+                    else
+                    {
+                        _readed.TryAdd(i, new Item(0, _zeroHandle));
+                        pooledBuff.Dispose();
+                        reader.Dispose();
+                    }
+                });
+
+                _tasksQueue.Enqueue(readNext);
             }
+        }
+
+        private struct Item
+        {
+            public Item(int length, IUsingHandle<byte[]> handle)
+            {
+                Length = length;
+                Handle = handle;
+            }
+
+            public readonly int Length;
+            public readonly IUsingHandle<byte[]> Handle;
         }
     }
 }

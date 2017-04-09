@@ -95,6 +95,16 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\2\Bigsort\Bigsort.Contracts\Bigsort.Contracts.csproj">
+      <Project>{6eb892be-e6ba-4b1c-af89-ca87da5fcbd8}</Project>
+      <Name>Bigsort.Contracts</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\2\Bigsort\Bigsort.Implementation\Bigsort.Implementation.csproj">
+      <Project>{750f8e81-6683-494e-99bf-40d7a82aea80}</Project>
+      <Name>Bigsort.Implementation</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

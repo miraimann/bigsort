@@ -251,9 +251,18 @@ namespace Bigsort.Implementation
                                 {
                                     group.Bytes.Flush();
                                     group.BytesCount = (int)group.Bytes.Length;
+
+                                });
+
+                            var t = DateTime.Now;
+                            Parallel.ForEach(groups.Values, option,
+                                group =>
+                                {
                                     group.Bytes.Dispose();
                                     group.Bytes = null;
                                 });
+
+                            Console.WriteLine($"disposing time{DateTime.Now - t}");
 
                             if (prevCurrentDirectory != null)
                                 _ioService.CurrentDirectory = prevCurrentDirectory;

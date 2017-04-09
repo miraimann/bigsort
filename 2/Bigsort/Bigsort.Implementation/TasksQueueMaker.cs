@@ -27,7 +27,7 @@ namespace Bigsort.Implementation
                 _tasksQueue = new ConcurrentQueue<Action>();
                 _runPermits = new ConcurrentBag<object>(
                     Enumerable.Range(0, MaxThreadsCount)
-                              .Select(_ => new object()));
+                              .Select(i => (object)i));
             }
 
             public int MaxThreadsCount { get; }
