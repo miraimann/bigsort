@@ -14,7 +14,7 @@ namespace Bigsort.Contracts
 
         IPositionableReader OpenPositionableRead(string path, long position = 0);
 
-        IWriter OpenWrite(string path);
+        IWriter OpenWrite(string path, long position = 0);
 
         IWriter OpenBufferingWrite(string path);
         

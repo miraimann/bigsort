@@ -5,42 +5,45 @@ using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    public class BuffersReaderMaker
-        : IBuffersReaderMaker
+    public class GrouperBuffersProviderMaker
+        : IGrouperBuffersProviderMaker
     {
         private readonly IBuffersPool _buffersPool;
         private readonly IIoService _ioService;
         private readonly IUsingHandleMaker _usingHandleMaker;
+        private readonly IGrouperTasksQueue _grouperTasksQueue;
 
-        public BuffersReaderMaker(
+        public GrouperBuffersProviderMaker(
             IBuffersPool buffersPool,
             IIoService ioService,
-            IUsingHandleMaker usingHandleMaker)
+            IUsingHandleMaker usingHandleMaker, 
+            IGrouperTasksQueue grouperTasksQueue)
         {
             _buffersPool = buffersPool;
             _ioService = ioService;
             _usingHandleMaker = usingHandleMaker;
+            _grouperTasksQueue = grouperTasksQueue;
         }
+        
+        public IGrouperBuffersProvider Make(string path, int buffLength) =>
+            Make(path, buffLength, 0, _ioService.SizeOfFile(path));
 
-        public IBuffersReader Make(
-                string path, int buffLength,
-                ITasksQueue tasksQueue) =>
+        public IGrouperBuffersProvider Make(string path, int buffLength,
+                long fileOffset, long readingLength) =>
 
-            new BuffersReader(
-                path, buffLength,
+            new BuffersProvider(path, buffLength, fileOffset, readingLength,
                 _buffersPool,
-                tasksQueue,
+                _grouperTasksQueue.AsLowQueue(),
                 _ioService,
                 _usingHandleMaker);
-
-        private class BuffersReader
-            : IBuffersReader
+        
+        private class BuffersProvider
+            : IGrouperBuffersProvider
         {
-            private const int InitCapacity = 16,
-                TemporaryMissingResult = -1;
+            private const int InitCapacity = 16; // TODO: move to config
 
             private readonly string _path;
-            private readonly long _fileLength;
+            private readonly long _readingOut, _readingOffset;
             private readonly int _bufferLength, _readerStep, _capacity;
 
             private readonly IUsingHandleMaker _usingHandleMaker;
@@ -52,9 +55,11 @@ namespace Bigsort.Implementation
             private readonly IEnumerator<int> _readingIndex;
             private readonly IUsingHandle<byte[]> _zeroHandle;
 
-            public BuffersReader(
+            public BuffersProvider(
                 string path,
                 int buffLength,
+                long readingOffset,
+                long readingLength,
                 IBuffersPool buffersPool,
                 ITasksQueue tasksQueue,
                 IIoService ioService,
@@ -71,9 +76,10 @@ namespace Bigsort.Implementation
                 _path = path;
                 _bufferLength = buffLength;
 
-                _fileLength = _ioService.SizeOfFile(path);
+                _readingOffset = readingOffset;
+                _readingOut = readingOffset + readingLength;
                 _capacity = (int) Math.Min(
-                    Math.Ceiling((double) _fileLength/_bufferLength),
+                    Math.Ceiling((double)readingLength / _bufferLength),
                     InitCapacity);
 
                 _readed = new ConcurrentDictionary<int, Item>(
@@ -88,7 +94,7 @@ namespace Bigsort.Implementation
                     AddItem(i);
             }
 
-            public int ReadNext(out IUsingHandle<byte[]> buffHandle)
+            public int TryGetNext(out IUsingHandle<byte[]> buffHandle)
             {
                 Item x;
                 if (_readed.TryRemove(_readingIndex.Current, out x))
@@ -99,7 +105,7 @@ namespace Bigsort.Implementation
                 }
 
                 buffHandle = null;
-                return TemporaryMissingResult;
+                return Consts.TemporaryMissingResult;
             }
 
             public void Dispose() =>
@@ -119,7 +125,7 @@ namespace Bigsort.Implementation
             {
                 var pooledBuff = _buffersPool.GetBuffer();
                 var reader = _ioService
-                    .OpenPositionableRead(_path, i * _bufferLength);
+                    .OpenPositionableRead(_path, _readingOffset + i * _bufferLength);
 
                 IUsingHandle<byte[]> handle = null;
                 Action readNext = null;
@@ -133,7 +139,7 @@ namespace Bigsort.Implementation
                 handle = _usingHandleMaker.Make(pooledBuff.Value, delegate
                 {
                     var possition = reader.Possition + _readerStep;
-                    if (possition < _fileLength)
+                    if (possition < _readingOut)
                     {
                         reader.Possition = possition;
                         _tasksQueue.Enqueue(readNext);

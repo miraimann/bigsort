@@ -14,7 +14,7 @@ namespace Bigsort.Console
     {
         static void Main(string[] args)
         {
-            var path = "E:\\100Mb";
+            var path = "E:\\1Gb";
             var resultDir = "E:\\ODir";
             var configMock = new Mock<IConfig>();
             configMock
@@ -31,7 +31,7 @@ namespace Bigsort.Console
             var ioService = new IoService(buffersPool);
             var taskQueueMaker = new TasksQueueMaker();
             var usingHandleMaker = new UsingHandleMaker();
-            var buffersReaderMaker = new BuffersReaderMaker(
+            var buffersReaderMaker = new GrouperBuffersProviderMaker(
                 buffersPool, ioService, usingHandleMaker);
 
             var grouper = new Grouper(
@@ -56,15 +56,17 @@ namespace Bigsort.Console
 
             resultDir = "E:\\XDir";
 
-            var asyncGrouper = new AsyncGrouper(
+            var asyncGrouper = new AsyncGrouper1(
+                //buffersPool,
+                buffersReaderMaker,
                 taskQueueMaker,
-                buffersPool,
                 ioService,
-                configMock.Object,
-                buffersReaderMaker);
+                configMock.Object);
 
             t = DateTime.Now;
+            //GC.TryStartNoGCRegion(4L*1024*1024);
             asyncGrouper.SplitToGroups(path, resultDir);
+            //GC.EndNoGCRegion();
             log.WriteLine("grouping time: {0}", DateTime.Now - t);
             log.WriteLine("result path: {0}", resultDir);
 

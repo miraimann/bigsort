@@ -134,13 +134,13 @@ namespace Bigsort.Implementation
             }
         }
 
-        private class BufferingWriter
+        private struct BufferingWriter
             : IWriter
         {
             private readonly IUsingHandle<byte[]> _buffHandle;
             private readonly byte[] _buff;
             private readonly Stream _stream;
-            private int _offset = 0;
+            private int _offset;
 
             public BufferingWriter(string path, 
                 IUsingHandle<byte[]> buffHandle)
@@ -148,6 +148,7 @@ namespace Bigsort.Implementation
                 _stream = File.OpenWrite(path);
                 _buffHandle = buffHandle;
                 _buff = _buffHandle.Value;
+                _offset = 0;
             }
 
             public BufferingWriter(string path, long possition, 
@@ -163,6 +164,7 @@ namespace Bigsort.Implementation
 
                 _buffHandle = buffHandle;
                 _buff = _buffHandle.Value;
+                _offset = 0;
             }
 
             public long Length =>
@@ -242,6 +244,12 @@ namespace Bigsort.Implementation
                 _buffHandle = _buffersPool.GetBuffer();
                 _buff = _buffHandle.Value;
                 _stream = File.OpenWrite(path);
+            }
+
+            public long Position
+            {
+                get { return _stream.Position; }
+                set { _stream.Position = value; }
             }
 
             public long Length =>

@@ -70,7 +70,7 @@ namespace Bigsort.Tests
                 var ioService = new IoService(buffersPool);
                 var taskQueueMaker = new TasksQueueMaker();
                 var usingHandleMaker = new UsingHandleMaker();
-                var buffersReaderMaker = new BuffersReaderMaker(
+                var buffersReaderMaker = new GrouperBuffersProviderMaker(
                     buffersPool, ioService, usingHandleMaker);
 
                 var grouper = new AsyncGrouper(

@@ -15,7 +15,7 @@ namespace Bigsort.Implementation
         private readonly ITasksQueueMaker _tasksQueueMaker;
         private readonly IIoService _ioService;
         private readonly IBuffersPool _buffersPool;
-        private readonly IBuffersReaderMaker _buffersReaderMaker;
+        private readonly IGrouperBuffersProviderMaker _buffersReaderMaker;
         private readonly IConfig _config;
 
         public AsyncGrouper(
@@ -23,7 +23,7 @@ namespace Bigsort.Implementation
             IBuffersPool buffersPool,
             IIoService ioService,
             IConfig config, 
-            IBuffersReaderMaker buffersReaderMaker)
+            IGrouperBuffersProviderMaker buffersReaderMaker)
         {
             _tasksQueueMaker = tasksQueueMaker;
             _ioService = ioService;
@@ -186,12 +186,12 @@ namespace Bigsort.Implementation
                             previousBuff = currentBuff;
                             
                             IUsingHandle<byte[]> handle;
-                            int count = input.ReadNext(out handle);
+                            int count = input.TryGetNext(out handle);
                             while (count == -1)
                             {
                                 ++sleepingTime;
                                 Thread.Sleep(1);
-                                count = input.ReadNext(out handle);
+                                count = input.TryGetNext(out handle);
                             }
 
                             dbgReadedSize += count;

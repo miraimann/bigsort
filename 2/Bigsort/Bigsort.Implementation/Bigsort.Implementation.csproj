@@ -9,8 +9,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Bigsort.Implementation</RootNamespace>
     <AssemblyName>Bigsort.Implementation</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -62,15 +63,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AsyncGrouper1.cs" />
     <Compile Include="AsyncWritingGrouper.cs" />
     <Compile Include="BuffersPool.cs" />
-    <Compile Include="BuffersReaderMaker.cs" />
+    <Compile Include="GrouperBuffersProviderMaker.cs" />
     <Compile Include="ByteSegmentService.cs" />
     <Compile Include="BytesEnumeratorMaker.cs" />
     <Compile Include="BytesReader.cs" />
     <Compile Include="Consts.cs" />
     <Compile Include="Dbg.cs" />
     <Compile Include="Grouper.cs" />
+    <Compile Include="GroupsLinesWriterMaker.cs" />
     <Compile Include="UsingHandleMaker.cs" />
     <Compile Include="AsyncGrouper.cs" />
     <Compile Include="Grouper2.cs" />

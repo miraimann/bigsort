@@ -19,9 +19,7 @@ namespace Bigsort.Implementation
         public byte SegmentSize { get; } = sizeof(ulong);
         public ulong LettersOut { get; } = ulong.MinValue;
         public ulong DigitsOut { get; } = ulong.MaxValue;
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         public ulong ShiftLeft(ulong value, int bytesCount) =>
             value << (bytesCount * 8);
 
