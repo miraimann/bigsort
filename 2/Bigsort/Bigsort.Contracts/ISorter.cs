@@ -1,6 +1,6 @@
 ﻿namespace Bigsort.Contracts
 {
-    public interface ILinesSorter
+    public interface ISorter
     {
         void Sort(string inputPath, string outputPath);
     }

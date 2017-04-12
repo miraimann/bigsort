@@ -48,7 +48,7 @@ namespace Bigsort.Tests
                 public ILinesIndexesExtractor LinesIndexesExtractor;
                 public ISegmentService<T> SegmentService;
                 public ISortingSegmentsSupplier SegmentsSupplier;
-                public IGroupBytesLoader GroupLoader;
+                public IGroupBytesMatrixService GroupLoader;
                 public IIoService IoService;
                 public IBuffersPool BuffersPool;
                 public ISortedGroupWriter SortedGroupWriter;

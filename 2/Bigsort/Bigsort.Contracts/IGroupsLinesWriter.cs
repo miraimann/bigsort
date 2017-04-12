@@ -1,10 +1,12 @@
-﻿using System;
+﻿using System.Collections.Generic;
 using System.Threading;
 
 namespace Bigsort.Contracts
 {
     public interface IGroupsLinesWriter
     {
+        IReadOnlyList<IGroupInfo> SummaryGroupsInfo { get; }
+
         void AddLine(ushort groupId, 
             byte[] buff, int offset, int length);
 

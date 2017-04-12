@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Bigsort.Contracts;
@@ -43,11 +44,10 @@ namespace Bigsort.Implementation
             private readonly ITasksQueue _tasksQueue;
 
             private readonly ConcurrentBag<IWriter> _writers;
-            private readonly Item[] _storage;
+            private readonly Group[] _groupsStorage;
             private readonly int _bufferLength;
             private readonly string _path;
-            private readonly long _fileOffset;
-            private long _writedBuffersCount;
+            private long _writingPosition;
 
             public LinesWriter(string path, long fileOffset,
                 IBuffersPool buffersPool, 
@@ -59,21 +59,24 @@ namespace Bigsort.Implementation
                 _buffersPool = buffersPool;
                 _tasksQueue = tasksQueue;
                 _ioService = ioService;
-                _fileOffset = fileOffset;
+                _writingPosition = fileOffset;
                 _bufferLength = config.BufferSize;
 
-                _storage = new Item[Consts.MaxGroupsCount];
+                _groupsStorage = new Group[Consts.MaxGroupsCount];
                 _writers = new ConcurrentBag<IWriter>(
                     Enumerable.Range(0, InitWritersCount)
                               .Select(_ => _ioService.OpenWrite(path)));
             }
 
-            public void AddLine(ushort groupId, 
+            public IReadOnlyList<IGroupInfo> SummaryGroupsInfo =>
+                _groupsStorage;
+
+            public void AddLine(ushort groupId,
                 byte[] buff, int offset, int length)
             {
-                var group = SaveData(GetGroup(groupId), buff, offset, length);
+                var group = GetGroup(groupId);
+                SaveData(group, buff, offset, length);
                 ++group.LinesCount;
-                _storage[groupId] = group;
             }
 
             public void AddBrokenLine(ushort groupId,
@@ -81,30 +84,39 @@ namespace Bigsort.Implementation
                 byte[] rightBuff, int rightOffset, int rightLength)
             {
                 var group = GetGroup(groupId);
-                group = SaveData(group, leftBuff, leftOffset, leftLength);
-                group = SaveData(group, rightBuff, rightOffset, rightLength);
-
+                SaveData(group, leftBuff, leftOffset, leftLength);
+                SaveData(group, rightBuff, rightOffset, rightLength);
                 ++group.LinesCount;
-                _storage[groupId] = group;
             }
 
             public void FlushAndDispose(ManualResetEvent done)
             {
+                Group acc = null;
                 long counter = 0;
-                Item acc = default(Item);
                 int i = 0;
-                
-                while (Item.IsZero(acc = _storage[i++])) ;
-                for (Item group = _storage[i]; 
-                     i < Consts.MaxGroupsCount; 
-                     group = _storage[++i])
-                {
-                    if (Item.IsZero(group)) continue;
 
-                    SaveData(acc, group.BufferHandle.Value, 0, group.BufferOffset,
-                       bufferEnquedToWrite: () => Interlocked.Increment(ref counter),
-                             bufferWritten: () => Interlocked.Decrement(ref counter));
-                    group.BufferHandle.Dispose();
+                while (acc == null)
+                    acc = _groupsStorage[i++];
+
+                acc.BytesCount += acc.BufferOffset;
+                acc.MappingAccumulator.Add(
+                    new LongRange(_writingPosition, acc.BufferOffset));
+                
+                for (; i < Consts.MaxGroupsCount; i++)
+                {
+                    var group = _groupsStorage[i];
+                    if (group == null)
+                        continue;
+
+                    var buffSentToWrite = FinalSaveData(
+                        acc, group, _writingPosition, 
+                        () => Interlocked.Decrement(ref counter));
+
+                    if (buffSentToWrite)
+                    {
+                        Interlocked.Increment(ref counter);
+                        _writingPosition += _bufferLength;
+                    }
                 }
 
                 if (acc.BufferOffset != 0)
@@ -117,10 +129,12 @@ namespace Bigsort.Implementation
                                      0, acc.BufferOffset);
 
                         Interlocked.Decrement(ref counter);
-                        acc.BufferHandle.Dispose();
                         writer.Dispose();
                     });
                 }
+
+                for (i = 0; i < Consts.MaxGroupsCount; i++)
+                    _groupsStorage[i]?.BufferHandle.Dispose();
 
                 _tasksQueue.Enqueue(delegate
                 {
@@ -146,13 +160,9 @@ namespace Bigsort.Implementation
                 });
             }
 
-            private Item GetGroup(ushort groupId)
-            {
-                var group = _storage[groupId];
-                if (Item.IsZero(group))
-                    group = new Item(_buffersPool.GetBuffer());
-                return group;
-            }
+            private Group GetGroup(ushort groupId) =>
+                _groupsStorage[groupId] ?? 
+               (_groupsStorage[groupId] = new Group(_buffersPool.GetBuffer()));
 
             private IWriter GetWriter()
             {
@@ -162,9 +172,56 @@ namespace Bigsort.Implementation
                 return writer;
             }
 
-            private Item SaveData(Item group, byte[] buff, int offset, int length,
-                Action bufferEnquedToWrite = null,
-                Action bufferWritten = null)
+            private bool FinalSaveData(Group acc, Group group, 
+                long reservedPosition,
+                Action bufferWritten)
+            {
+                bool bufferWasEnqueuedToWrite = false;
+                group.BytesCount += group.BufferOffset;
+                group.MappingAccumulator.Add(
+                    new LongRange(reservedPosition + acc.BufferOffset, 
+                                  group.BufferOffset));
+
+                var newOffset = acc.BufferOffset + group.BufferOffset;
+                if (newOffset >= _bufferLength)
+                {
+                    var countToAccBuffEnd = _bufferLength - acc.BufferOffset;
+                    Array.Copy(group.BufferHandle.Value, 0,
+                               acc.BufferHandle.Value, acc.BufferOffset,
+                               countToAccBuffEnd);
+                    
+                    var oldBuffHandle = acc.BufferHandle;
+                    acc.BufferHandle = _buffersPool.GetBuffer();
+
+                    newOffset = group.BufferOffset - countToAccBuffEnd;
+                    Array.Copy(group.BufferHandle.Value, countToAccBuffEnd,
+                               acc.BufferHandle.Value, 0,
+                               newOffset);
+
+                    bufferWasEnqueuedToWrite = true;
+                    _tasksQueue.Enqueue(delegate
+                    {
+                        var writer = GetWriter();
+                        writer.Position = reservedPosition;
+                        writer.Write(oldBuffHandle.Value, 0, _bufferLength);
+
+                        _writers.Add(writer);
+                        oldBuffHandle.Dispose();
+                        bufferWritten();
+                    });
+                }
+                else
+                    Array.Copy(group.BufferHandle.Value, 0,
+                               acc.BufferHandle.Value, acc.BufferOffset,
+                               group.BufferOffset);
+                
+                group.BufferHandle.Dispose();
+                acc.BufferOffset = newOffset;
+                return bufferWasEnqueuedToWrite;
+            }
+
+            private void SaveData(Group group, 
+                byte[] buff, int offset, int length)
             {
                 var newOffset = group.BufferOffset + length;
                 if (newOffset >= _bufferLength)
@@ -176,26 +233,26 @@ namespace Bigsort.Implementation
 
                     var oldBuffHandle = group.BufferHandle;
                     group.BufferHandle = _buffersPool.GetBuffer();
+                    group.BytesCount += _bufferLength;
 
-                    bufferEnquedToWrite?.Invoke();
+                    var reservedPosition = _writingPosition += _bufferLength;
+                    group.MappingAccumulator
+                         .Add(new LongRange(reservedPosition, _bufferLength));
+
+                    newOffset = length - countToBuffEnd;
+                    Array.Copy(buff, offset + countToBuffEnd,
+                               group.BufferHandle.Value, 0,
+                               newOffset);
+
                     _tasksQueue.Enqueue(delegate
                     {
                         var writer = GetWriter();
-                        writer.Position = _fileOffset
-                                        + Interlocked.Increment(ref _writedBuffersCount)
-                                        * _bufferLength;
-
+                        writer.Position = reservedPosition;
                         writer.Write(oldBuffHandle.Value, 0, _bufferLength);
+
                         _writers.Add(writer);
-
                         oldBuffHandle.Dispose();
-                        bufferWritten?.Invoke();
                     });
-
-                    newOffset = length - countToBuffEnd;
-                    Array.Copy(buff, offset,
-                               group.BufferHandle.Value, 0,
-                               length - countToBuffEnd);
                 }
                 else
                     Array.Copy(buff, offset,
@@ -203,25 +260,28 @@ namespace Bigsort.Implementation
                                length);
 
                 group.BufferOffset = newOffset;
-                return group;
             }
 
-            private struct Item
+            private class Group
+                : IGroupInfo
             {
-                public Item(
-                    IUsingHandle<byte[]> bufferHandle, 
-                    int linesCount = 0)
+                public Group(IUsingHandle<byte[]> bufferHandle)
                 {
                     BufferHandle = bufferHandle;
-                    LinesCount = linesCount;
-                    BufferOffset = 0;
-                }   
-                                
-                public IUsingHandle<byte[]> BufferHandle;
-                public int BufferOffset, LinesCount;
+                    MappingAccumulator = new List<LongRange>();
+                }
+                
+                public int BufferOffset { get; set; }
 
-                public static bool IsZero(Item item) =>
-                    item.BufferHandle == null;
+                public IUsingHandle<byte[]> BufferHandle { get; set; }
+
+                public List<LongRange> MappingAccumulator { get; }
+
+                public IEnumerable<LongRange> Mapping =>
+                    MappingAccumulator;
+
+                public int LinesCount { get; set; }
+                public int BytesCount { get; set; }
             }
         }
     }

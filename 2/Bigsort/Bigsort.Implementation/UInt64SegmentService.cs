@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.CompilerServices;
 using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
@@ -9,9 +8,9 @@ namespace Bigsort.Implementation
     {
         private readonly Func<byte[], int, ulong> _read;
 
-        public UInt64SegmentService(bool isLittleEndian)
+        public UInt64SegmentService()
         {
-            if (isLittleEndian)
+            if (BitConverter.IsLittleEndian)
                  _read = ReverseRead;
             else _read = DirectRead;
         }

@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Threading;
 using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
@@ -10,113 +9,174 @@ namespace Bigsort.Implementation
     public class Grouper
         : IGrouper
     {
-        private readonly string _partFileNameMask;
+        private readonly IGroupsSummaryInfoMarger _summaryInfoMarger;
+        private readonly IGrouperIOMaker _grouperIoMaker;
+        private readonly IGrouperTasksQueue _tasksQueue;
         private readonly IIoService _ioService;
         private readonly IConfig _config;
 
-        public Grouper(IIoService ioService, IConfig config)
+        public Grouper(
+            IGroupsSummaryInfoMarger summaryInfoMarger,
+            IGrouperIOMaker grouperIoMaker,
+            IGrouperTasksQueue tasksQueue,
+            IIoService ioService,
+            IConfig config)
         {
+            _summaryInfoMarger = summaryInfoMarger;
+            _grouperIoMaker = grouperIoMaker;
+            _tasksQueue = tasksQueue;
             _ioService = ioService;
             _config = config;
-
-            var ushortDigitsCount =
-                (int)Math.Ceiling(Math.Log10(ushort.MaxValue));
-            _partFileNameMask = new string('0', ushortDigitsCount);
         }
-
-        public IEnumerable<IGroupInfo> SplitToGroups(
-            string inputFile,
-            string outputDirectory = null)
+        
+        public IGroupsSummaryInfo SplitToGroups(string inputPath)
         {
-            string prevCurrentDirectory = null;
-            if (outputDirectory != null)
-            {
-                prevCurrentDirectory = _ioService.CurrentDirectory;
-                if (!Path.IsPathRooted(outputDirectory))
-                    outputDirectory = Path.Combine(
-                        prevCurrentDirectory,
-                        outputDirectory);
+            var outputPath = _config.GroupsFilePath;
+            _ioService.CreateFile(outputPath, 
+                _ioService.SizeOfFile(inputPath));
 
-                if (!_ioService.DirectoryExists(outputDirectory))
-                    _ioService.CreateDirectory(outputDirectory);
-                _ioService.CurrentDirectory = outputDirectory;
+            var enginesCount = Environment.ProcessorCount / 2;
+            var ios = enginesCount <= 1
+                ? new[] {_grouperIoMaker.Make(inputPath, outputPath)}
+                : _grouperIoMaker.MakeMany(inputPath, outputPath, enginesCount);
+
+            var engines = ios
+                .Select(io => new Engine(_tasksQueue, io, _config.BufferSize))
+                .ToArray();
+
+            var doneEvents = Enumerable
+                .Range(0, enginesCount)
+                .Select(_ => new ManualResetEvent(false))
+                .ToArray();
+
+            for (int i = 0; i < enginesCount; i++)
+            {
+                var j = i;
+                _tasksQueue.Enqueue(() => 
+                    engines[j].Run(doneEvents[j]));
             }
 
-            int buffLength = _config.BufferSize,
-                maxPartsCount = 96 * 96 + 96 + 1;
+            WaitHandle.WaitAll(doneEvents);
 
-            const byte dot = Consts.Dot,
-                       endLine = Consts.EndLineByte1,
-                       endStream = 0,
-                       endBuff = 1;
+            return _summaryInfoMarger.Marge( 
+                ios.Select(io => io.Output.SummaryGroupsInfo));
+        }
 
-            byte[] currentBuff = new byte[buffLength],
-                  previousBuff = new byte[buffLength];
+        private class Engine
+        {
+            private const byte
+                FirstIdByteOffset = Consts.AsciiPrintableCharsOffset,
+                SecondIdByteOffset = Consts.AsciiPrintableCharsOffset - 1,
+                FirstIdByteMultiper = Consts.AsciiPrintableCharsCount + 1,
+                EndLine = Consts.EndLineByte1,
+                EndBuff = 1,
+                EndStream = 0;
             
-            var groups = new Dictionary<ushort, Group>(maxPartsCount);
-            using (var inputStream = _ioService.OpenRead(inputFile))
+            private readonly IGrouperIO _io;
+            private readonly ITasksQueue _tasksQueue;
+            private readonly int _buffLength;
+
+            public Engine(
+                ITasksQueue tasksQueue,
+                IGrouperIO io,
+                int buffLength)
             {
-                const int linePrefixLength = 2;
-                int lastBuffIndex = buffLength - 1,
-                    lettersCount = 0,
-                    digitsCount = 0,
-                    i = linePrefixLength,
-                    j = linePrefixLength;
+                _io = io;
+                _tasksQueue = tasksQueue;
+                _buffLength = buffLength;    
+            }
 
-                ushort id = 0;
-                byte c = default(byte);
+            public void Run(ManualResetEvent done)
+            {
+                var newLineLength = Environment.NewLine.Length;
+                var startingBuff = new byte[newLineLength + 1];
+                startingBuff[newLineLength] = EndBuff;
+                
+                Run(new State
+                {
+                    LettersCount = 0,
+                    DigitsCount = 0,
+                    CurrentGroupId = 0,
+                    Iterator = newLineLength,
+                    Anchor = newLineLength,
 
-                int countForRead = lastBuffIndex - linePrefixLength;
-                int count = inputStream.Read(currentBuff, linePrefixLength, countForRead);
-                if (count == countForRead)
-                    currentBuff[lastBuffIndex] = endBuff;
-                else currentBuff[count + 1] = endStream;
+                    DisposeCurrentBuff = Consts.ZeroAction,
+                    DisposePreviousBuff = Consts.ZeroAction,
 
-                State backState = State.None,
-                      state = State.ReadNumber;
+                    CurrentBuff = startingBuff,
+                    PreviousBuff = null,
+
+                    CurrentStage = Stage.ReadNumber,
+                    BackStage = Stage.None,
+                    Done = done
+                });
+            }
+
+            private void Run(State state)
+            {
+                int lettersCount = state.LettersCount,
+                    digitsCount = state.DigitsCount,
+                    i = state.Iterator,
+                    j = state.Anchor;
+
+                ushort id = state.CurrentGroupId;
+
+                byte[] currentBuff = state.CurrentBuff,
+                    previousBuff = state.PreviousBuff;
+
+                Action disposeCurrentBuff = state.DisposeCurrentBuff,
+                    disposePreviousBuff = state.DisposePreviousBuff;
+
+                Stage backStage = state.BackStage,
+                    stage = state.CurrentStage;
+
+                byte c;
 
                 while (true)
                 {
-                    switch (state)
+                    switch (stage)
                     {
-                        case State.ReadNumber:
+                        case Stage.ReadNumber:
 
-                            while (currentBuff[i] > dot) i++;
+                            while (currentBuff[i] > Consts.Dot)
+                                i++;
 
-                            if (j < buffLength)
+                            if (j < _buffLength)
                                 digitsCount += i - j;
 
-                            if (currentBuff[i] == dot)
+                            if (currentBuff[i] == Consts.Dot)
                             {
-                                if (j > buffLength)
+                                if (j > _buffLength)
                                     digitsCount += i;
 
                                 j = ++i;
-                                state = State.ReadId;
+                                stage = Stage.ReadId;
                                 break;
                             }
 
-                            // buff[i] == endBuff
-                            backState = State.ReadNumber;
-                            state = State.LoadNextBuff;
+                            // endBuff
+                            backStage = Stage.ReadNumber;
+                            stage = Stage.LoadNextBuff;
                             break;
 
-                        case State.ReadId:
+                        case Stage.ReadId:
 
                             var readFirstLetter = id == 0;
                             c = currentBuff[i];
 
-                            if (c > endLine)
+                            if (c > EndLine)
                             {
                                 if (readFirstLetter)
                                 {
-                                    id = (ushort)(c * byte.MaxValue);
-                                    state = State.ReadId;
+                                    stage = Stage.ReadId;
+                                    id = (ushort) ((c - FirstIdByteOffset) 
+                                                      * FirstIdByteMultiper 
+                                                      + 1);
                                 }
                                 else
                                 {
-                                    id += c;
-                                    state = State.ReadString;
+                                    id += (ushort)(c - SecondIdByteOffset);
+                                    stage = Stage.ReadString;
                                 }
 
                                 ++i;
@@ -124,180 +184,183 @@ namespace Bigsort.Implementation
                             }
 
                             lettersCount = readFirstLetter ? 0 : 1;
-                            if (c == endLine)
+                            if (c == EndLine)
                             {
-                                state = State.ReleaseLine;
+                                stage = Stage.ReleaseLine;
                                 break;
                             }
 
-                            // c == endBuff
-                            backState = State.ReadId;
-                            state = State.LoadNextBuff;
+                            // endBuff
+                            backStage = Stage.ReadId;
+                            stage = Stage.LoadNextBuff;
                             break;
 
-                        case State.ReadString:
+                        case Stage.ReadString:
 
-                            while (currentBuff[i] > endLine) i++;
+                            while (currentBuff[i] > EndLine)
+                                i++;
 
-                            if (j < buffLength)
+                            if (j < _buffLength)
                                 lettersCount += i - j;
 
-                            if (currentBuff[i] == endLine)
+                            if (currentBuff[i] == EndLine)
                             {
-                                if (j > buffLength)
+                                if (j > _buffLength)
                                     lettersCount += i;
 
-                                state = State.ReleaseLine;
+                                stage = Stage.ReleaseLine;
                                 break;
                             }
 
-                            // buff[i] == endBuff
-                            backState = State.ReadString;
-                            state = State.LoadNextBuff;
+                            // endBuff
+                            backStage = Stage.ReadString;
+                            stage = Stage.LoadNextBuff;
                             break;
 
-                        case State.LoadNextBuff:
+                        case Stage.LoadNextBuff:
 
-                            j += buffLength;
+                            IUsingHandle<byte[]> handle;
+                            int count = _io.Input.TryGetNextBuffer(out handle);
+                            if (count == Consts.TemporaryMissingResult)
+                            {
+                                _tasksQueue.Enqueue(() => Run(
+                                    new State
+                                    {
+                                        LettersCount = lettersCount,
+                                        DigitsCount = digitsCount,
+                                        CurrentGroupId = id,
+                                        Iterator = i,
+                                        Anchor = j,
+
+                                        DisposeCurrentBuff = disposeCurrentBuff,
+                                        DisposePreviousBuff = disposePreviousBuff,
+
+                                        CurrentBuff = currentBuff,
+                                        PreviousBuff = previousBuff,
+
+                                        CurrentStage = stage,
+                                        BackStage = backStage,
+                                        Done = state.Done
+                                    }));
+
+                                return;
+                            }
+
+                            j += _buffLength;
                             i = 0;
 
-                            var actualBuff = previousBuff;
-                            previousBuff = currentBuff;
-                            currentBuff = actualBuff;
+                            disposePreviousBuff();
+                            disposePreviousBuff = disposeCurrentBuff;
+                            disposeCurrentBuff = handle.Dispose;
 
-                            count = inputStream.Read(actualBuff, 0, lastBuffIndex);
-                            if (count == lastBuffIndex)
-                                actualBuff[lastBuffIndex] = endBuff;
+                            previousBuff = currentBuff;
+                            currentBuff = handle.Value;
+
+                            if (count == _buffLength - 1)
+                                currentBuff[_buffLength - 1] = EndBuff;
                             else
                             {
                                 var endStreamIndex = Math.Max(0, count - 1);
                                 if (endStreamIndex == 0)
                                 {
-                                    state = State.Finish;
+                                    disposeCurrentBuff();
+                                    stage = Stage.Finish;
                                     break;
                                 }
 
-                                actualBuff[endStreamIndex] = endStream;
+                                currentBuff[endStreamIndex] = EndStream;
                             }
 
-                            state = backState;
+                            stage = backStage;
                             break;
 
-                        case State.ReleaseLine:
-
-                            if (!groups.ContainsKey(id))
-                            {
-                                var name = id.ToString(_partFileNameMask);
-                                var group = new Group(name, _ioService.OpenWrite(name));
-                                groups.Add(id, group);
-                            }
-
-                            ++groups[id].LinesCount;
-
+                        case Stage.ReleaseLine:
+                            
                             var lineLength = digitsCount + lettersCount + 3;
                             var lineStart = i - lineLength;
-                            var writer = groups[id].Bytes;
-
+                            
                             if (lineStart < 0)
                             {
                                 lineLength = Math.Abs(lineStart);
-                                lineStart += lastBuffIndex;
+                                lineStart += previousBuff.Length - 1; // _buffLength - 1;
 
-                                previousBuff[lineStart] = (byte)lettersCount;
+                                previousBuff[lineStart] = (byte) lettersCount;
                                 if (lineLength > 1)
-                                    previousBuff[lineStart + 1] = (byte)digitsCount;
-                                else currentBuff[0] = (byte)digitsCount;
+                                    previousBuff[lineStart + 1] = (byte) digitsCount;
+                                else currentBuff[0] = (byte) digitsCount;
 
-                                writer.Write(previousBuff, lineStart, lineLength);
-                                writer.Write(currentBuff, 0, i);
+                                _io.Output.AddBrokenLine(id,
+                                    previousBuff, lineStart, lineLength,
+                                    currentBuff, 0, i);
                             }
                             else
                             {
-                                currentBuff[lineStart] = (byte)lettersCount;
-                                currentBuff[lineStart + 1] = (byte)digitsCount;
-                                writer.Write(currentBuff, lineStart, lineLength);
+                                currentBuff[lineStart] = (byte) lettersCount;
+                                currentBuff[lineStart + 1] = (byte) digitsCount;
+                                _io.Output.AddLine(id, 
+                                    currentBuff, lineStart, lineLength);
                             }
 
                             lettersCount = 0;
                             digitsCount = 0;
                             id = 0;
 
-                            if (currentBuff[++i] == endBuff)
+                            if (currentBuff[++i] == EndBuff)
                             {
-                                backState = State.CheckFinish;
-                                state = State.LoadNextBuff;
+                                backStage = Stage.CheckFinish;
+                                stage = Stage.LoadNextBuff;
                                 break;
                             }
 
-                            state = State.CheckFinish;
+                            stage = Stage.CheckFinish;
                             break;
 
-                        case State.CheckFinish:
-                            state = currentBuff[i++] == endStream
-                                  ? State.Finish
-                                  : State.ReadNumber;
+                        case Stage.CheckFinish:
+                            stage = currentBuff[i++] == EndStream
+                                ? Stage.Finish
+                                : Stage.ReadNumber;
                             j = i;
                             break;
 
-                        case State.Finish:
-
-                            var option = new ParallelOptions
-                            {
-                                MaxDegreeOfParallelism = Environment.ProcessorCount
-                            };
-
-                            Parallel.ForEach(groups.Values, option,
-                                group =>
-                                {
-                                    group.Bytes.Flush();
-                                    group.BytesCount = (int)group.Bytes.Length;
-
-                                });
-
-                            var t = DateTime.Now;
-                            Parallel.ForEach(groups.Values, option,
-                                group =>
-                                {
-                                    group.Bytes.Dispose();
-                                    group.Bytes = null;
-                                });
-
-                            Console.WriteLine($"disposing time{DateTime.Now - t}");
-
-                            if (prevCurrentDirectory != null)
-                                _ioService.CurrentDirectory = prevCurrentDirectory;
-
-                            return groups.Values.OrderBy(o => o.Name);
+                        case Stage.Finish:
+                            
+                            _io.Output.FlushAndDispose(state.Done);
+                            _io.Input.Dispose();
+                            return;
                     }
                 }
             }
-        }
 
-        private class Group
-            : IGroupInfo
-        {
-            public Group(string name, IWriter writer)
+            private struct State
             {
-                Name = name;
-                Bytes = writer;
+                public Stage CurrentStage, BackStage;
+
+                public byte[] CurrentBuff, PreviousBuff;
+                public Action 
+                    DisposeCurrentBuff, 
+                    DisposePreviousBuff;   
+                
+                public ushort CurrentGroupId;
+                public int 
+                    LettersCount,
+                    DigitsCount,
+                    Iterator,
+                    Anchor;
+
+                public ManualResetEvent Done;
             }
 
-            public string Name { get; }
-            public IWriter Bytes { get; set; }
-            public int LinesCount { get; set; }
-            public int BytesCount { get; set; }
-        }
-
-        private enum State
-        {
-            ReadNumber,
-            ReadId,
-            ReadString,
-            ReleaseLine,
-            LoadNextBuff,
-            CheckFinish,
-            Finish,
-            None
+            private enum Stage
+            {
+                ReadNumber,
+                ReadId,
+                ReadString,
+                ReleaseLine,
+                LoadNextBuff,
+                CheckFinish,
+                Finish,
+                None
+            }
         }
     }
 }

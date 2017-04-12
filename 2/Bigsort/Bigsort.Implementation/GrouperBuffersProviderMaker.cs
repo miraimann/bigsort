@@ -94,7 +94,7 @@ namespace Bigsort.Implementation
                     AddItem(i);
             }
 
-            public int TryGetNext(out IUsingHandle<byte[]> buffHandle)
+            public int TryGetNextBuffer(out IUsingHandle<byte[]> buffHandle)
             {
                 Item x;
                 if (_readed.TryRemove(_readingIndex.Current, out x))
@@ -128,20 +128,19 @@ namespace Bigsort.Implementation
                     .OpenPositionableRead(_path, _readingOffset + i * _bufferLength);
 
                 IUsingHandle<byte[]> handle = null;
-                Action readNext = null;
-
-                readNext = delegate
+                Action readNext = delegate
                 {
-                    var length = reader.Read(pooledBuff.Value, 0, _bufferLength);
+                    var length = (int) Math.Min(_readingOut - reader.Position, _bufferLength);
+                    length = reader.Read(pooledBuff.Value, 0, length);
                     _readed.TryAdd(i, new Item(length, handle));
                 };
                 
                 handle = _usingHandleMaker.Make(pooledBuff.Value, delegate
                 {
-                    var possition = reader.Possition + _readerStep;
-                    if (possition < _readingOut)
+                    var position = reader.Position + _readerStep;
+                    if (position < _readingOut)
                     {
-                        reader.Possition = possition;
+                        reader.Position = position;
                         _tasksQueue.Enqueue(readNext);
                     }
                     else

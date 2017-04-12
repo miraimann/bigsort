@@ -3,10 +3,12 @@
 namespace Bigsort.Contracts
 {
     public interface IGroupBytesMatrix
-        : IGroupBytesMatrixInfo
+        : IGroupBytesMatrixRowsInfo
         , IFixedSizeList<byte>
         , IDisposable
     {
         byte[][] Rows { get; }
+        int LinesCount { get; }
+        int BytesCount { get; }
     }
 }

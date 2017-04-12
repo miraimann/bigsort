@@ -2,15 +2,16 @@
 
 namespace Bigsort.Implementation
 {
-    public class GrouperIoServiceMaker
-        : IGrouperIoServiceMaker
+    // ReSharper disable once InconsistentNaming
+    public class GrouperIOMaker
+        : IGrouperIOMaker
     {
         private readonly IGrouperBuffersProviderMaker _grouperBuffersProviderMaker;
         private readonly IGroupsLinesWriterMaker _groupsLinesWriterMaker;
         private readonly IoService _ioService;
         private readonly IConfig _config;
 
-        public GrouperIoServiceMaker(
+        public GrouperIOMaker(
             IGrouperBuffersProviderMaker grouperBuffersProviderMaker, 
             IGroupsLinesWriterMaker groupsLinesWriterMaker,
             IoService ioService,
@@ -22,39 +23,47 @@ namespace Bigsort.Implementation
             _config = config;
         }
 
-        public IGrouperIoService Make(string input, string output) =>
-            new Service(_grouperBuffersProviderMaker.Make(input, _config.BufferSize - 1),
-                        _groupsLinesWriterMaker.Make(output));
+        public IGrouperIO Make(string input, string output) =>
+            new IO(_grouperBuffersProviderMaker.Make(input, _config.BufferSize - 1),
+                   _groupsLinesWriterMaker.Make(output));
         
-        public IGrouperIoService[] MakeMany(string input, string output, int count)
+        public IGrouperIO[] MakeMany(string input, string output, int count)
         {
-            var result = new IGrouperIoService[count];
+            var result = new IGrouperIO[count];
             var length = _ioService.SizeOfFile(input);
-            var n = length / count;
+            var blockLength = length / count;
 
-            long offset = 0, j = n;
+            long offset = 0;
             using (var inputStream = _ioService.OpenRead(input))
                 for (int i = 0; i < count; i++)
                 {
-                    inputStream.Position = offset;
-                    while (inputStream.ReadByte() != Consts.EndLineByte1)
-                        j++;
+                    long overBlock;
+
+                    if (i == count - 1)
+                        overBlock = length;
+                    else
+                    {
+                        inputStream.Position = offset + blockLength;
+                        while (inputStream.ReadByte() != Consts.EndLineByte2) ;
+                        overBlock = inputStream.Position + 1;
+                    }
                     
-                    result[i] = new Service(
-                        _grouperBuffersProviderMaker.Make(input, _config.BufferSize - 1, offset, j),
+                    var readingLength = overBlock - offset;
+                    result[i] = new IO(
+                        _grouperBuffersProviderMaker.Make(input, _config.BufferSize - 1, offset, readingLength),
                         _groupsLinesWriterMaker.Make(output, offset));
 
-                    offset += j;
-                    j = n;
+                    offset = overBlock;
                 }
 
             return result;
         }
-
-        private class Service
-            : IGrouperIoService
+        
+        // ReSharper disable once InconsistentNaming
+        private class IO
+            : IGrouperIO
         {
-            public Service(
+            public IO(
                 IGrouperBuffersProvider input, 
                 IGroupsLinesWriter output)
             {

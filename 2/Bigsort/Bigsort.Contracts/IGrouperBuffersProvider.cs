@@ -5,6 +5,6 @@ namespace Bigsort.Contracts
     public interface IGrouperBuffersProvider
         : IDisposable
     {
-        int TryGetNext(out IUsingHandle<byte[]> buffHandle);
+        int TryGetNextBuffer(out IUsingHandle<byte[]> buffHandle);
     }
 }

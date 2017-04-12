@@ -25,7 +25,7 @@ namespace Bigsort.Implementation
         }
 
         public IReader OpenRead(string path) =>
-            new Reader(path);
+            new Reader(path, shared: true);
         
         public IAsyncReader OpenAsyncRead(string path, ITasksQueue tasksQueue) =>
             new AsyncReader(path, tasksQueue, _buffersPool);
@@ -33,8 +33,8 @@ namespace Bigsort.Implementation
         public IPositionableReader OpenPositionableRead(string path, long position = 0) =>
             new Reader(path, position, shared: true);
 
-        public IWriter OpenWrite(string path) =>
-            new BufferingWriter(path, _buffersPool.GetBuffer());
+        public IWriter OpenWrite(string path, long position = 0) =>
+            new Writer(path, position, true);
         
         public IWriter OpenBufferingWrite(string path) =>
             new BufferingWriter(path, _buffersPool.GetBuffer());
@@ -53,7 +53,7 @@ namespace Bigsort.Implementation
 
         public void CreateFile(string path, long length)
         {
-            using (var stream = new FileStream(path, FileMode.CreateNew))
+            using (var stream = new FileStream(path, FileMode.OpenOrCreate))
                 stream.SetLength(length);
         }
 
@@ -134,6 +134,45 @@ namespace Bigsort.Implementation
             }
         }
 
+        private struct Writer
+            : IWriter
+        {
+            private readonly Stream _stream;
+
+            public Writer(string path, long position, bool isShared)
+            {
+                _stream = new FileStream(path,
+                    FileMode.OpenOrCreate,
+                    FileAccess.Write,
+                    isShared ? FileShare.Write 
+                             : FileShare.None)
+                {
+                    Position = position
+                };
+            }
+
+            public long Position
+            {
+                get { return _stream.Position; }
+                set { _stream.Position = value; }
+            }
+
+            public long Length =>
+                _stream.Length;
+
+            public void Write(byte[] array, int offset, int count) =>
+                _stream.Write(array, offset, count);
+
+            public void Write(byte x) =>
+                _stream.WriteByte(x);
+
+            public void Flush() =>
+                _stream.Flush();
+
+            public void Dispose() =>
+                _stream.Dispose();
+        }
+
         private struct BufferingWriter
             : IWriter
         {
@@ -167,6 +206,12 @@ namespace Bigsort.Implementation
                 _offset = 0;
             }
 
+            public long Position
+            {
+                get { return _stream.Position; }
+                set { _stream.Position = value; }
+            }
+            
             public long Length =>
                 _stream.Length;
 
@@ -336,8 +381,7 @@ namespace Bigsort.Implementation
                 _stream = new FileStream(path, 
                     FileMode.OpenOrCreate,
                     FileAccess.Write,
-                    FileShare.None,
-                    bufferSize:0);
+                    FileShare.None);
             }
 
             public long Length =>
@@ -417,11 +461,9 @@ namespace Bigsort.Implementation
                 {
                     Position = position
                 };
-
-                
             }
 
-            public long Possition
+            public long Position
             {
                 get { return _stream.Position; }
                 set { _stream.Position = value; }
@@ -429,9 +471,12 @@ namespace Bigsort.Implementation
 
             public long Length =>
                 _stream.Length;
-
+            
             public int Read(byte[] buff, int offset, int count) =>
                 _stream.Read(buff, offset, count);
+
+            public int ReadByte() =>
+                _stream.ReadByte();
 
             public void Dispose() =>
                 _stream.Dispose();

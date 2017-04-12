@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bigsort.Tools.TestFileGener
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bigsort.Console", "Bigsort.Console\Bigsort.Console.csproj", "{A9A87F61-E8E5-405E-B2D1-74161C154384}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bigsort.Lib", "Bigsort.Lib\Bigsort.Lib.csproj", "{81CDAF3E-30F7-4C5C-B804-AC56274D52A8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,6 +73,14 @@ Global
 		{A9A87F61-E8E5-405E-B2D1-74161C154384}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A9A87F61-E8E5-405E-B2D1-74161C154384}.Release|x64.ActiveCfg = Release|Any CPU
 		{A9A87F61-E8E5-405E-B2D1-74161C154384}.Release|x64.Build.0 = Release|Any CPU
+		{81CDAF3E-30F7-4C5C-B804-AC56274D52A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81CDAF3E-30F7-4C5C-B804-AC56274D52A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81CDAF3E-30F7-4C5C-B804-AC56274D52A8}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{81CDAF3E-30F7-4C5C-B804-AC56274D52A8}.Debug|x64.Build.0 = Debug|Any CPU
+		{81CDAF3E-30F7-4C5C-B804-AC56274D52A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81CDAF3E-30F7-4C5C-B804-AC56274D52A8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{81CDAF3E-30F7-4C5C-B804-AC56274D52A8}.Release|x64.ActiveCfg = Release|Any CPU
+		{81CDAF3E-30F7-4C5C-B804-AC56274D52A8}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

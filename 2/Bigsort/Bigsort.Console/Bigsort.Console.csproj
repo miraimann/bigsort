@@ -34,12 +34,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Castle.Core">
-      <HintPath>..\..\..\..\..\scank\Scank\packages\Castle.Core.4.0.0\lib\net45\Castle.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="Moq">
-      <HintPath>..\..\..\..\..\scank\Scank\packages\Moq.4.7.1\lib\net45\Moq.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -57,13 +51,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Bigsort.Contracts\Bigsort.Contracts.csproj">
-      <Project>{6eb892be-e6ba-4b1c-af89-ca87da5fcbd8}</Project>
-      <Name>Bigsort.Contracts</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Bigsort.Implementation\Bigsort.Implementation.csproj">
-      <Project>{750f8e81-6683-494e-99bf-40d7a82aea80}</Project>
-      <Name>Bigsort.Implementation</Name>
+    <ProjectReference Include="..\Bigsort.Lib\Bigsort.Lib.csproj">
+      <Project>{81cdaf3e-30f7-4c5c-b804-ac56274d52a8}</Project>
+      <Name>Bigsort.Lib</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

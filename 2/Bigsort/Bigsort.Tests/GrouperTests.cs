@@ -42,8 +42,8 @@ namespace Bigsort.Tests
             var realResult = new ConcurrentDictionary<string, byte[]>();
 
             ioServiceMock
-                .Setup(o => o.OpenWrite(It.IsAny<string>()))
-                .Returns((string name) =>
+                .Setup(o => o.OpenWrite(It.IsAny<string>(), 0L))
+                .Returns((string name, long _) =>
                 {
                     var stream = new MemoryStream();
                     var writerMock = new Mock<IWriter>();
@@ -58,7 +58,7 @@ namespace Bigsort.Tests
                         .Callback(() =>
                         {
                             var x = stream.ToArray();
-                            realResult.AddOrUpdate(name, _ => x, (_, __) => x);
+                            realResult.AddOrUpdate(name, __ => x, (__, ___) => x);
                             stream.Close();
                         });
 
@@ -69,7 +69,7 @@ namespace Bigsort.Tests
                 .SetupGet(o => o.BufferSize)
                 .Returns(testCase.BufferSize);
             
-            var grouper = new Grouper2(
+            var grouper = new Grouper(
                 ioServiceMock.Object,
                 configMock.Object);
 

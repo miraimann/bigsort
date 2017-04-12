@@ -1,7 +1,6 @@
 ﻿namespace Bigsort.Contracts
 {
-    public interface IGroupBytesMatrixInfo
-        : IGroupInfo
+    public interface IGroupBytesMatrixRowsInfo
     {
         int RowsCount { get; }
         int RowLength { get; }

@@ -40,7 +40,7 @@ namespace Bigsort.Tests
             public readonly IGroupSorter GroupSorter;
 
             public LineIndexes[] LineIndexes;
-            public IGroupBytesLoader GroupBytesLoader;
+            public IGroupBytesMatrixService GroupBytesLoader;
             public IGroupBytesMatrix Group;
 
             public Setup(ISegmentService<T> segmentService, 

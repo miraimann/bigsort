@@ -53,9 +53,8 @@ namespace Bigsort.Contracts
                               ? DefaultSortingOffset 
                               : byte.Parse(parts[3]),
 
-                sortByDigits = parts.Length < 5 
-                             ? DefaultSortByDigits
-                             : bool.Parse(parts[4])
+                sortByDigits = parts.Length == 5 
+                            && bool.Parse(parts[4])
             };
         }
     }

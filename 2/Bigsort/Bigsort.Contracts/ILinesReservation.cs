@@ -5,8 +5,9 @@ namespace Bigsort.Contracts
     public interface ILinesReservation<out TSegment>
         : ILinesStorage<TSegment>
     {
-        void Load();
+        void Load(int capacity);
 
-        IUsingHandle<Range> TryReserveRange(int length);
+        bool TryReserveRange(int length, 
+            out IUsingHandle<Range> rangeHandle);
     }
 }

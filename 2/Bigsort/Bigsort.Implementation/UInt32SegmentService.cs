@@ -8,9 +8,9 @@ namespace Bigsort.Implementation
     {
         private readonly Func<byte[], int, uint> _read;
 
-        public UInt32SegmentService(bool isLittleEndian)
+        public UInt32SegmentService()
         {
-            if (isLittleEndian)
+            if (BitConverter.IsLittleEndian)
                 _read = ReverseRead;
             else _read = DirectRead;
         }
