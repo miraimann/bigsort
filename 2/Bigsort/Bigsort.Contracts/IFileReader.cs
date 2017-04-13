@@ -2,14 +2,15 @@
 
 namespace Bigsort.Contracts
 {
-    public interface IWriter
+    public interface IFileReader
         : IDisposable
     {
         long Position { get; set; }
+
         long Length { get; }
 
-        void Write(byte[] array, int offset, int count);
-        void Write(byte x);
-        void Flush();
+        int Read(byte[] buff, int offset, int count);
+
+        int ReadByte();
     }
 }

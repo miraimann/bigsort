@@ -14,7 +14,7 @@ namespace Bigsort.Implementation
 
         public void Write(IGroupBytesMatrix group, 
                           Range linesRange, 
-                          IWriter output)
+                          IFileWriter output)
         {
             var lines = _linesStorage.Indexes;
 
@@ -67,7 +67,6 @@ namespace Bigsort.Implementation
                     row[j + lineLength - 1] = Consts.EndLineByte2;
                     output.Write(row, j, lineLength);
                 }
-
             }
             
             output.Flush();

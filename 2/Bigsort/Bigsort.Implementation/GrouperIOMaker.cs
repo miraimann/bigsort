@@ -45,7 +45,7 @@ namespace Bigsort.Implementation
                     {
                         inputStream.Position = offset + blockLength;
                         while (inputStream.ReadByte() != Consts.EndLineByte2) ;
-                        overBlock = inputStream.Position + 1;
+                        overBlock = inputStream.Position;
                     }
                     
                     var readingLength = overBlock - offset;

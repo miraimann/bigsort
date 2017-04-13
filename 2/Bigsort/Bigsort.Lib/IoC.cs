@@ -6,7 +6,7 @@ namespace Bigsort.Lib
 {
     public class IoC
     {
-        private ISorter BuildSorter<TSegment>(
+        internal ISorter BuildSorter<TSegment>(
             ISegmentService<TSegment> segmentService,
             IConfig config)
 

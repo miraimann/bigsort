@@ -76,7 +76,7 @@ namespace Bigsort.Tests
                                      linesRange.Length));
 
                 GroupStream = new MemoryStream(1024);
-                MockOf.GroupReader = new Mock<IReader>();
+                MockOf.GroupReader = new Mock<IFileReader>();
                 MockOf.GroupReader
                       .Setup(o => o.Read(
                           It.IsAny<byte[]>(),
@@ -165,7 +165,7 @@ namespace Bigsort.Tests
             public class Mocks
             {
                 public Mock<IConfig> Config;
-                public Mock<IReader> GroupReader;
+                public Mock<IFileReader> GroupReader;
                 public Mock<IIoService> IoService;
                 public Mock<ILinesIndexesExtractor> LinesIndexesExtructor;
                 public Mock<IGroupInfo> GroupInfo;

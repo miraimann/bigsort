@@ -7,6 +7,6 @@
         IGroupBytesMatrix LoadMatrix(
             IGroupBytesMatrixRowsInfo rowsInfo,
             IGroupInfo groupInfo,
-            IReader groupsFileReader);
+            IFileReader groupsFileReader);
     }
 }

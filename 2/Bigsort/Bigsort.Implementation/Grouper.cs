@@ -35,7 +35,7 @@ namespace Bigsort.Implementation
             _ioService.CreateFile(outputPath, 
                 _ioService.SizeOfFile(inputPath));
 
-            var enginesCount = 1; //Environment.ProcessorCount / 2;
+            var enginesCount = Environment.ProcessorCount;
             var ios = enginesCount <= 1
                 ? new[] {_grouperIoMaker.Make(inputPath, outputPath)}
                 : _grouperIoMaker.MakeMany(inputPath, outputPath, enginesCount);

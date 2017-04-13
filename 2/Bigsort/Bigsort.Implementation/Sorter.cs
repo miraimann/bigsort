@@ -1,5 +1,6 @@
 ﻿using Bigsort.Contracts;
 using System;
+using System.IO;
 using System.Threading;
 using System.Linq;
 
@@ -39,8 +40,7 @@ namespace Bigsort.Implementation
             _config = config;
 
             _tasksQueue = tasksQueueMaker
-                .MakeQueue(1);
-                //.MakeQueue(Environment.ProcessorCount);
+                .MakeQueue(Environment.ProcessorCount);
         }
 
         public void Sort(string inputPath, string outputPath)
@@ -48,31 +48,20 @@ namespace Bigsort.Implementation
             var groupsSummary = _grouper.SplitToGroups(inputPath);
             var fileLength = _ioService.SizeOfFile(inputPath);
 
-            var dbg = groupsSummary
-                .GroupsInfo
-                .Where(o => o != null)
-                .Sum(o => o.BytesCount);
-
-            // using (var rdr = _ioService.OpenRead(_config.GroupsFilePath))
-            // {
-            //     var buff = new byte[1024];
-            //     rdr.Position = 102553;
-            //     var lng = rdr.Read(buff, 0, 96);
-            // }
-            
             _ioService.CreateFile(outputPath, fileLength);
             _linesReservation.Load(groupsSummary.MaxGroupLinesCount *
                                    Environment.ProcessorCount);
 
-            using (var groupsFileReadersPool = _poolMaker.Make(
-                                  productFactory: () => _ioService.OpenRead(_config.GroupsFilePath),
-                               productDestructor: reader => reader.Dispose()))
+            using (var s = File.OpenWrite("E:\\log.txt"))
+            using (var w = new StreamWriter(s))
+            using (var groupsReadersPool = _poolMaker.Make(
+                               productFactory: () => _ioService.OpenRead(_config.GroupsFilePath),
+                            productDestructor: reader => reader.Dispose()))
 
-            using (var resultFileWritersPool = _poolMaker.Make(
-                                  productFactory: () => _ioService.OpenWrite(outputPath),
-                               productDestructor: writer => writer.Dispose()))
+            using (var resultWritersPool = _poolMaker.Make(
+                               productFactory: () => _ioService.OpenWrite(outputPath),
+                            productDestructor: writer => writer.Dispose()))
             {
-                // var groupsSorted = new CountdownEvent(1);
                 var groupsSorted = new CountdownEvent(Consts.MaxGroupsCount);
                 var possition = 0L;
 
@@ -90,31 +79,30 @@ namespace Bigsort.Implementation
 
                     var groupPosition = possition;
                     Action sortGroup = null;
-                    var dbg_i = i;
+
+                    w.Write($"{i:00000000}:{groupPosition:00000000}|"); 
+
                     sortGroup = () =>
                     {
-                        var dbgg_i = dbg_i;
                         IUsingHandle<Range> rangeHandle;
                         if (_linesReservation.TryReserveRange(groupInfo.LinesCount, out rangeHandle))
                             using (rangeHandle)
-                            using (var groupsFileReaderHandle = groupsFileReadersPool.Get())
-                            using (var resultFileWriterHandle = resultFileWritersPool.Get())
-                            using (var group = _groupBytesMatrixService.LoadMatrix(rowsInfo, groupInfo,
-                                                    groupsFileReaderHandle.Value))
+                            using (var groupsReaderHandle = groupsReadersPool.Get())
+                            using (var resultWriterHandle = resultWritersPool.Get())
+                            using (var group = _groupBytesMatrixService
+                                                    .LoadMatrix(rowsInfo, groupInfo, groupsReaderHandle.Value))
                             {
                                 var linesRange = rangeHandle.Value;
                                 _groupSorter.Sort(group, linesRange);
 
-                                resultFileWriterHandle.Value.Position = groupPosition;
-                                _sortedGroupWriter.Write(group, linesRange,
-                                    resultFileWriterHandle.Value);
+                                resultWriterHandle.Value.Position = groupPosition;
+                                _sortedGroupWriter.Write(group, linesRange, resultWriterHandle.Value);
                                 groupsSorted.Signal();
                             }
                         else _tasksQueue.Enqueue(sortGroup);
                     };
 
                     _tasksQueue.Enqueue(sortGroup);
-                    //break;
                     possition += groupInfo.BytesCount;
                 }
 

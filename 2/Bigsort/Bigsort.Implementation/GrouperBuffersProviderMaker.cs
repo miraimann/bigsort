@@ -124,8 +124,7 @@ namespace Bigsort.Implementation
             private void AddItem(int i)
             {
                 var pooledBuff = _buffersPool.GetBuffer();
-                var reader = _ioService
-                    .OpenPositionableRead(_path, _readingOffset + i * _bufferLength);
+                var reader = _ioService.OpenRead(_path, _readingOffset + i * _bufferLength);
 
                 IUsingHandle<byte[]> handle = null;
                 Action readNext = delegate

@@ -1,31 +1,14 @@
-﻿using System.Collections.Generic;
-
-namespace Bigsort.Contracts
+﻿namespace Bigsort.Contracts
 {
     public interface IIoService
     {
-        string TempDirectory { get; }
-
-        string CurrentDirectory { get; set; }
         
-        IReader OpenRead(string path);
+        IFileReader OpenRead(string path, 
+            long position = 0);
 
-        IAsyncReader OpenAsyncRead(string path, ITasksQueue tasksQueue);
-
-        IPositionableReader OpenPositionableRead(string path, long position = 0);
-
-        IWriter OpenWrite(string path, long position = 0);
-
-        IWriter OpenBufferingWrite(string path);
+        IFileWriter OpenWrite(string path, 
+            long position = 0, bool buffering = false);
         
-        IAsyncWriter OpenAsyncBufferingWrite(string path, ITasksQueue taskQueue);
-        
-        IWriter OpenBufferingAsyncWrite(string path, ITasksQueue taskQueue);
-
-        IWriter OpenSharedWrite(string path, long possition);
-
-        IEnumerable<string> EnumerateFilesOf(string directory);
-
         long SizeOfFile(string path);
 
         void CreateFile(string path, long length);
@@ -33,6 +16,8 @@ namespace Bigsort.Contracts
         bool DirectoryExists(string path);
 
         void CreateDirectory(string path);
+
+        bool FileExists(string path);
 
         void DeleteFile(string path);
     }

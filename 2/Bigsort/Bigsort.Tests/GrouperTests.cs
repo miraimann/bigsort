@@ -25,7 +25,7 @@ namespace Bigsort.Tests
             var configMock = new Mock<IConfig>();
 
             var inputStream = new MemoryStream(testCase.Source);
-            var readerMock = new Mock<IReader>();
+            var readerMock = new Mock<IFileReader>();
             readerMock
                 .Setup(o => o.Read(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>()))
                 .Returns((byte[] buff, int offset, int count) =>
@@ -46,7 +46,7 @@ namespace Bigsort.Tests
                 .Returns((string name, long _) =>
                 {
                     var stream = new MemoryStream();
-                    var writerMock = new Mock<IWriter>();
+                    var writerMock = new Mock<IFileWriter>();
 
                     writerMock
                         .Setup(o => o.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>()))

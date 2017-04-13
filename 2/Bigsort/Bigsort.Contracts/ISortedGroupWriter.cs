@@ -4,6 +4,6 @@
     {
         void Write(IGroupBytesMatrix group, 
                    Range linesRange, 
-                   IWriter output);
+                   IFileWriter output);
     }
 }

@@ -27,7 +27,7 @@ namespace Bigsort.Implementation
         public IGroupBytesMatrix LoadMatrix(
                 IGroupBytesMatrixRowsInfo rowsInfo,
                 IGroupInfo groupInfo,
-                IReader groupsFileReader) =>
+                IFileReader groupsFileReader) =>
 
             new Matrix(rowsInfo, groupInfo, groupsFileReader,
                 _buffersPool);
@@ -40,7 +40,7 @@ namespace Bigsort.Implementation
             public Matrix(
                 IGroupBytesMatrixRowsInfo rowsInfo,
                 IGroupInfo groupInfo,
-                IReader groupsFileReader,
+                IFileReader groupsFileReader,
                 IBuffersPool buffersPool)
             {
                 RowsCount = rowsInfo.RowsCount;

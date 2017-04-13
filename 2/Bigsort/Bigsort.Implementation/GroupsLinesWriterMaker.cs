@@ -43,7 +43,7 @@ namespace Bigsort.Implementation
             private readonly IBuffersPool _buffersPool;
             private readonly ITasksQueue _tasksQueue;
 
-            private readonly ConcurrentBag<IWriter> _writers;
+            private readonly ConcurrentBag<IFileWriter> _writers;
             private readonly Group[] _groupsStorage;
             private readonly int _bufferLength;
             private readonly string _path;
@@ -63,7 +63,7 @@ namespace Bigsort.Implementation
                 _bufferLength = config.BufferSize;
 
                 _groupsStorage = new Group[Consts.MaxGroupsCount];
-                _writers = new ConcurrentBag<IWriter>(
+                _writers = new ConcurrentBag<IFileWriter>(
                     Enumerable.Range(0, InitWritersCount)
                               .Select(_ => _ioService.OpenWrite(path)));
             }
@@ -159,9 +159,9 @@ namespace Bigsort.Implementation
                 _groupsStorage[groupId] ?? 
                (_groupsStorage[groupId] = new Group(_buffersPool.GetBuffer()));
 
-            private IWriter GetWriter()
+            private IFileWriter GetWriter()
             {
-                IWriter writer;
+                IFileWriter writer;
                 if (!_writers.TryTake(out writer))
                     writer = _ioService.OpenWrite(_path);
                 return writer;
