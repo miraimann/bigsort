@@ -1,6 +1,7 @@
 ﻿using Bigsort.Contracts;
 using System;
 using System.Threading;
+using System.Linq;
 
 namespace Bigsort.Implementation
 {
@@ -38,14 +39,27 @@ namespace Bigsort.Implementation
             _config = config;
 
             _tasksQueue = tasksQueueMaker
-                .MakeQueue(Environment.ProcessorCount);
+                .MakeQueue(1);
+                //.MakeQueue(Environment.ProcessorCount);
         }
 
         public void Sort(string inputPath, string outputPath)
         {
             var groupsSummary = _grouper.SplitToGroups(inputPath);
-            var fileLength = _ioService.SizeOfFile(inputPath);       
+            var fileLength = _ioService.SizeOfFile(inputPath);
 
+            var dbg = groupsSummary
+                .GroupsInfo
+                .Where(o => o != null)
+                .Sum(o => o.BytesCount);
+
+            // using (var rdr = _ioService.OpenRead(_config.GroupsFilePath))
+            // {
+            //     var buff = new byte[1024];
+            //     rdr.Position = 102553;
+            //     var lng = rdr.Read(buff, 0, 96);
+            // }
+            
             _ioService.CreateFile(outputPath, fileLength);
             _linesReservation.Load(groupsSummary.MaxGroupLinesCount *
                                    Environment.ProcessorCount);
@@ -58,6 +72,7 @@ namespace Bigsort.Implementation
                                   productFactory: () => _ioService.OpenWrite(outputPath),
                                productDestructor: writer => writer.Dispose()))
             {
+                // var groupsSorted = new CountdownEvent(1);
                 var groupsSorted = new CountdownEvent(Consts.MaxGroupsCount);
                 var possition = 0L;
 
@@ -74,11 +89,11 @@ namespace Bigsort.Implementation
                         .CalculateRowsInfo(groupInfo.BytesCount);
 
                     var groupPosition = possition;
-                    var j = i;
-
                     Action sortGroup = null;
+                    var dbg_i = i;
                     sortGroup = () =>
                     {
+                        var dbgg_i = dbg_i;
                         IUsingHandle<Range> rangeHandle;
                         if (_linesReservation.TryReserveRange(groupInfo.LinesCount, out rangeHandle))
                             using (rangeHandle)
@@ -99,6 +114,7 @@ namespace Bigsort.Implementation
                     };
 
                     _tasksQueue.Enqueue(sortGroup);
+                    //break;
                     possition += groupInfo.BytesCount;
                 }
 

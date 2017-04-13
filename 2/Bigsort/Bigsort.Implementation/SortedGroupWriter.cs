@@ -34,8 +34,8 @@ namespace Bigsort.Implementation
                     j = start % rowLength,
                     rowLeftLength = rowLength - j;
 
-                // if (offset == linesRange.Offset)
-                //     j += 2;
+                bool isLastLineInGroup =
+                    line.start + lineLength == group.BytesCount;
 
                 var row = rows[i];
                 if (rowLeftLength < lineLength)
@@ -47,15 +47,27 @@ namespace Bigsort.Implementation
 
                         var nextlength = lineLength - rowLeftLength;
                         var nextRow = rows[next];
-                        nextRow[nextlength - 1] = Consts.EndLineByte2;
 
+                        if (!isLastLineInGroup)
+                            nextRow[nextlength - 1] = Consts.EndLineByte2;
+                        
                         output.Write(nextRow, 0, nextlength);
                         continue;
                     }
                 }
-                
-                row[j + lineLength - 1] = Consts.EndLineByte2;
-                output.Write(row, j, lineLength);
+
+                if (isLastLineInGroup)
+                {
+                    output.Write(row, j, lineLength - 2);
+                    output.Write(Consts.EndLineBytes, 0,
+                        Consts.EndLineBytes.Length);
+                }
+                else
+                {
+                    row[j + lineLength - 1] = Consts.EndLineByte2;
+                    output.Write(row, j, lineLength);
+                }
+
             }
             
             output.Flush();

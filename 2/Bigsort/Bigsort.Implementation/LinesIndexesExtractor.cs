@@ -25,25 +25,23 @@ namespace Bigsort.Implementation
 
             while (offset < n)
             {
-                var line = lines[offset];
-                line.start = i;
+                var line = lines[offset++] = new LineIndexes
+                {
+                    start = i,
+                    lettersCount = group[i],
+                    digitsCount = group[i + 1],
+                    sortingOffset = 2,
+                 // sortByDigits = false;
+                };
 
-                line.lettersCount = group[i];
                 group[i] = Consts.EndLineByte1;
-
-                line.digitsCount = group[++i];
                 // it is nessesary for sort
                 // it will be written in SortedGroupWriter 
-                // group[i] = Consts.EndLineByte2;
-
-                // line.sortByDigits = false;
-                line.sortingOffset = 2;
-                lines[offset] = line;
+                // group[i + 1] = Consts.EndLineByte2;
+                
                 i += line.digitsCount;
                 i += line.lettersCount;
-                i += 2;
-
-                ++offset;
+                i += 3;
             }
         }
     }

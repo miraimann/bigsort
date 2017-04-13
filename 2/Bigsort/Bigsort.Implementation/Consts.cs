@@ -19,6 +19,9 @@ namespace Bigsort.Implementation
             EndLineByte1 = (byte) '\r',
             EndLineByte2 = (byte) '\n';
 
+        public static readonly byte[] EndLineBytes =
+            {EndLineByte1, EndLineByte2};
+
         public static readonly Action ZeroAction = () => { };
     }
 }

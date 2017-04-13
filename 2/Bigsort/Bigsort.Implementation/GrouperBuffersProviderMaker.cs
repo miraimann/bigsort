@@ -33,7 +33,7 @@ namespace Bigsort.Implementation
 
             new BuffersProvider(path, buffLength, fileOffset, readingLength,
                 _buffersPool,
-                _grouperTasksQueue.AsLowQueue(),
+                _grouperTasksQueue, //.AsLowQueue(),
                 _ioService,
                 _usingHandleMaker);
         

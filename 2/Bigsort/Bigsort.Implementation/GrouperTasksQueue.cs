@@ -10,13 +10,16 @@ namespace Bigsort.Implementation
     public class GrouperTasksQueue
         : IGrouperTasksQueue
     {
-        private readonly IPriorityTasksQueue _implementation;
+        // private readonly IPriorityTasksQueue _implementation;
+        private readonly ITasksQueue _implementation;
 
         public GrouperTasksQueue(
             ITasksQueueMaker tasksQueueMaker)
         {
             _implementation = tasksQueueMaker
-                .MakePriorityQueue(Environment.ProcessorCount);
+                   .MakeQueue(Environment.ProcessorCount);
+               // .MakePriorityQueue(1);
+               // .MakePriorityQueue(Environment.ProcessorCount);
         }
 
         public int MaxThreadsCount =>
@@ -28,16 +31,16 @@ namespace Bigsort.Implementation
         public void Enqueue(Action action) =>
             _implementation.Enqueue(action);
 
-        public void EnqueueHight(Action action) =>
-            _implementation.EnqueueHight(action);
+        // public void EnqueueHight(Action action) =>
+        //     _implementation.EnqueueHight(action);
 
-        public void EnqueueLow(Action action) =>
-            _implementation.EnqueueLow(action);
+        // public void EnqueueLow(Action action) =>
+        //    _implementation.EnqueueLow(action);
 
-        public ITasksQueue AsLowQueue() =>
-            _implementation.AsLowQueue();
+        // public ITasksQueue AsLowQueue() =>
+        //     _implementation.AsLowQueue();
 
-        public ITasksQueue AsHightQueue() =>
-            _implementation.AsHightQueue();
+        // public ITasksQueue AsHightQueue() =>
+        //     _implementation.AsHightQueue();
     }
 }

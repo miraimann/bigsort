@@ -35,7 +35,7 @@ namespace Bigsort.Implementation
             _ioService.CreateFile(outputPath, 
                 _ioService.SizeOfFile(inputPath));
 
-            var enginesCount = Environment.ProcessorCount / 2;
+            var enginesCount = 1; //Environment.ProcessorCount / 2;
             var ios = enginesCount <= 1
                 ? new[] {_grouperIoMaker.Make(inputPath, outputPath)}
                 : _grouperIoMaker.MakeMany(inputPath, outputPath, enginesCount);
@@ -219,37 +219,40 @@ namespace Bigsort.Implementation
 
                         case Stage.LoadNextBuff:
 
+                            disposePreviousBuff?.Invoke();
+                            disposePreviousBuff = null;
+
                             IUsingHandle<byte[]> handle;
                             int count = _io.Input.TryGetNextBuffer(out handle);
                             if (count == Consts.TemporaryMissingResult)
                             {
-                                _tasksQueue.Enqueue(() => Run(
-                                    new State
-                                    {
-                                        LettersCount = lettersCount,
-                                        DigitsCount = digitsCount,
-                                        CurrentGroupId = id,
-                                        Iterator = i,
-                                        Anchor = j,
+                                var momento = new State
+                                {
+                                    LettersCount = lettersCount,
+                                    DigitsCount = digitsCount,
+                                    CurrentGroupId = id,
+                                    Iterator = i,
+                                    Anchor = j,
 
-                                        DisposeCurrentBuff = disposeCurrentBuff,
-                                        DisposePreviousBuff = disposePreviousBuff,
+                                    DisposeCurrentBuff = disposeCurrentBuff,
+                                    DisposePreviousBuff = disposePreviousBuff,
 
-                                        CurrentBuff = currentBuff,
-                                        PreviousBuff = previousBuff,
+                                    CurrentBuff = currentBuff,
+                                    PreviousBuff = previousBuff,
 
-                                        CurrentStage = stage,
-                                        BackStage = backStage,
-                                        Done = state.Done
-                                    }));
+                                    CurrentStage = stage,
+                                    BackStage = backStage,
+                                    Done = state.Done
+                                };
 
+                                _tasksQueue.Enqueue(() => 
+                                    Run(momento));
                                 return;
                             }
 
                             j += _buffLength;
                             i = 0;
-
-                            disposePreviousBuff();
+                            
                             disposePreviousBuff = disposeCurrentBuff;
                             disposeCurrentBuff = handle.Dispose;
 
@@ -263,7 +266,6 @@ namespace Bigsort.Implementation
                                 var endStreamIndex = Math.Max(0, count - 1);
                                 if (endStreamIndex == 0)
                                 {
-                                    disposeCurrentBuff();
                                     stage = Stage.Finish;
                                     break;
                                 }
@@ -324,6 +326,7 @@ namespace Bigsort.Implementation
 
                         case Stage.Finish:
                             
+                            disposeCurrentBuff();
                             _io.Output.FlushAndDispose(state.Done);
                             _io.Input.Dispose();
                             return;

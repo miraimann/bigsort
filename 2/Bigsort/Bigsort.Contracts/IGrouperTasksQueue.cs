@@ -1,7 +1,8 @@
 ﻿namespace Bigsort.Contracts
 {
     public interface IGrouperTasksQueue
-        : IPriorityTasksQueue
+        // : IPriorityTasksQueue
+           : ITasksQueue
     {
     }
 }

@@ -24,7 +24,7 @@ namespace Bigsort.Implementation
             _ioService = ioService;
             _buffersPool = buffersPool;
             _config = config;
-            _tasksQueue = tasksQueue.AsLowQueue();
+            _tasksQueue = tasksQueue; //.AsLowQueue();
         }
 
         public IGroupsLinesWriter Make(string path, long fileOffset = 0) =>
@@ -91,71 +91,66 @@ namespace Bigsort.Implementation
 
             public void FlushAndDispose(ManualResetEvent done)
             {
-                Group acc = null;
                 long counter = 0;
-                int i = 0;
+                Action decrementCounter = () => Interlocked.Decrement(ref counter),
+                       incrementCounter = () => Interlocked.Increment(ref counter);
 
-                while (acc == null)
-                    acc = _groupsStorage[i++];
+                var acc = new Group(_buffersPool.GetBuffer());
 
-                acc.BytesCount += acc.BufferOffset;
-                acc.MappingAccumulator.Add(
-                    new LongRange(_writingPosition, acc.BufferOffset));
-                
-                for (; i < Consts.MaxGroupsCount; i++)
+                for (int i = 0; i < Consts.MaxGroupsCount; i++)
                 {
                     var group = _groupsStorage[i];
                     if (group == null)
                         continue;
 
-                    var buffSentToWrite = FinalSaveData(
-                        acc, group, _writingPosition, 
-                        () => Interlocked.Decrement(ref counter));
-
-                    if (buffSentToWrite)
+                 // if buffer was send to write
+                    if (FinalSaveData(acc, group, decrementCounter))
                     {
-                        Interlocked.Increment(ref counter);
+                        incrementCounter();
                         _writingPosition += _bufferLength;
                     }
                 }
 
                 if (acc.BufferOffset != 0)
                 {
-                    Interlocked.Increment(ref counter);
+                    incrementCounter();
                     _tasksQueue.Enqueue(delegate
                     {
                         var writer = GetWriter();
+                        writer.Position = _writingPosition;
                         writer.Write(acc.BufferHandle.Value,
                                      0, acc.BufferOffset);
 
-                        Interlocked.Decrement(ref counter);
+                        decrementCounter();
                         writer.Dispose();
                     });
                 }
 
-                for (i = 0; i < Consts.MaxGroupsCount; i++)
-                    _groupsStorage[i]?.BufferHandle.Dispose();
-
-                _tasksQueue.Enqueue(delegate
+                Action disposeWriters = null;
+                _tasksQueue.Enqueue(disposeWriters = delegate
                 {
-                    while (Interlocked.Read(ref counter) != 0)
-                        Thread.Sleep(1);
+                    if (Interlocked.Read(ref counter) != 0)
+                    {
+                        _tasksQueue.Enqueue(disposeWriters);
+                        return;
+                    }
 
                     foreach (var writer in _writers)
                     {
-                        Interlocked.Increment(ref counter);
+                        incrementCounter();
                         _tasksQueue.Enqueue(delegate
                         {
                             writer.Dispose();
-                            Interlocked.Decrement(ref counter);
+                            decrementCounter();
                         });
                     }
 
-                    _tasksQueue.Enqueue(delegate
+                    Action checkDone = null;
+                    _tasksQueue.Enqueue(checkDone = delegate
                     {
-                        while (Interlocked.Read(ref counter) != 0)
-                            Thread.Sleep(1);
-                        done.Set();
+                        if (Interlocked.Read(ref counter) != 0)
+                            _tasksQueue.Enqueue(checkDone);
+                        else done.Set();
                     });
                 });
             }
@@ -172,14 +167,12 @@ namespace Bigsort.Implementation
                 return writer;
             }
 
-            private bool FinalSaveData(Group acc, Group group, 
-                long reservedPosition,
-                Action bufferWritten)
+            private bool FinalSaveData(Group acc, Group group, Action bufferWritten)
             {
                 bool bufferWasEnqueuedToWrite = false;
                 group.BytesCount += group.BufferOffset;
                 group.MappingAccumulator.Add(
-                    new LongRange(reservedPosition + acc.BufferOffset, 
+                    new LongRange(_writingPosition + acc.BufferOffset, 
                                   group.BufferOffset));
 
                 var newOffset = acc.BufferOffset + group.BufferOffset;
@@ -199,10 +192,11 @@ namespace Bigsort.Implementation
                                newOffset);
 
                     bufferWasEnqueuedToWrite = true;
+                    var positionMomento = _writingPosition;
                     _tasksQueue.Enqueue(delegate
                     {
                         var writer = GetWriter();
-                        writer.Position = reservedPosition;
+                        writer.Position = positionMomento;
                         writer.Write(oldBuffHandle.Value, 0, _bufferLength);
 
                         _writers.Add(writer);
@@ -235,9 +229,9 @@ namespace Bigsort.Implementation
                     group.BufferHandle = _buffersPool.GetBuffer();
                     group.BytesCount += _bufferLength;
 
-                    var reservedPosition = _writingPosition += _bufferLength;
+                    var positionMomento = _writingPosition += _bufferLength;
                     group.MappingAccumulator
-                         .Add(new LongRange(reservedPosition, _bufferLength));
+                         .Add(new LongRange(positionMomento, _bufferLength));
 
                     newOffset = length - countToBuffEnd;
                     Array.Copy(buff, offset + countToBuffEnd,
@@ -247,7 +241,7 @@ namespace Bigsort.Implementation
                     _tasksQueue.Enqueue(delegate
                     {
                         var writer = GetWriter();
-                        writer.Position = reservedPosition;
+                        writer.Position = positionMomento;
                         writer.Write(oldBuffHandle.Value, 0, _bufferLength);
 
                         _writers.Add(writer);

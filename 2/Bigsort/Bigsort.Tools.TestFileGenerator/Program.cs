@@ -1,19 +1,21 @@
 ﻿using System;
+using System.IO;
+using System.Threading.Tasks;
 
-namespace Bigsort.Tools.SortedFileChecker
+namespace Bigsort.Tools.TestFileGenerator
 {
     class Program
     {
         static int Main(string[] args)
         {
-            if (args.Length != 1)
+            if (args.Length != 3)
             {
                 Console.WriteLine("invalid args");
                 return 1;
             }
-
-            Console.WriteLine(Checker.IsSorted(args[0]));
-            Console.ReadKey();
+            
+            Generator.Generate(args[0], args[1], args[2]);
+            
             return 0;
         }
     }
