@@ -71,7 +71,6 @@
     <Compile Include="Consts.cs" />
     <Compile Include="Dbg.cs" />
     <Compile Include="GrouperIOMaker.cs" />
-    <Compile Include="GrouperTasksQueue.cs" />
     <Compile Include="GroupInfoMonoid.cs" />
     <Compile Include="GroupsLinesWriterMaker.cs" />
     <Compile Include="GroupsSummaryInfoMarger.cs" />
@@ -85,7 +84,7 @@
     <Compile Include="LinesReservation.cs" />
     <Compile Include="SortingSegmentsSupplier.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TasksQueueMaker.cs" />
+    <Compile Include="TasksQueue.cs" />
     <Compile Include="UInt32SegmentService.cs" />
     <Compile Include="UInt64SegmentService.cs" />
   </ItemGroup>

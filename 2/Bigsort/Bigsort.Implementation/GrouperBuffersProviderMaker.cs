@@ -11,18 +11,21 @@ namespace Bigsort.Implementation
         private readonly IBuffersPool _buffersPool;
         private readonly IIoService _ioService;
         private readonly IUsingHandleMaker _usingHandleMaker;
-        private readonly IGrouperTasksQueue _grouperTasksQueue;
+        private readonly ITasksQueue _tasksQueue;
+        private readonly IConfig _config;
 
         public GrouperBuffersProviderMaker(
             IBuffersPool buffersPool,
             IIoService ioService,
             IUsingHandleMaker usingHandleMaker, 
-            IGrouperTasksQueue grouperTasksQueue)
+            ITasksQueue tasksQueue, 
+            IConfig config)
         {
             _buffersPool = buffersPool;
             _ioService = ioService;
             _usingHandleMaker = usingHandleMaker;
-            _grouperTasksQueue = grouperTasksQueue;
+            _tasksQueue = tasksQueue;
+            _config = config;
         }
         
         public IGrouperBuffersProvider Make(string path, int buffLength) =>
@@ -33,9 +36,10 @@ namespace Bigsort.Implementation
 
             new BuffersProvider(path, buffLength, fileOffset, readingLength,
                 _buffersPool,
-                _grouperTasksQueue, //.AsLowQueue(),
+                _tasksQueue,
                 _ioService,
-                _usingHandleMaker);
+                _usingHandleMaker,
+                _config);
         
         private class BuffersProvider
             : IGrouperBuffersProvider
@@ -63,7 +67,8 @@ namespace Bigsort.Implementation
                 IBuffersPool buffersPool,
                 ITasksQueue tasksQueue,
                 IIoService ioService,
-                IUsingHandleMaker usingHandleMaker)
+                IUsingHandleMaker usingHandleMaker,
+                IConfig config)
             {
                 _usingHandleMaker = usingHandleMaker;
                 _buffersPool = buffersPool;
@@ -83,7 +88,7 @@ namespace Bigsort.Implementation
                     InitCapacity);
 
                 _readed = new ConcurrentDictionary<int, Item>(
-                    concurrencyLevel: _tasksQueue.MaxThreadsCount,
+                    concurrencyLevel: config.MaxRunningTasksCount,
                             capacity: _capacity);
 
                 _readerStep = (_capacity - 1) * buffLength;

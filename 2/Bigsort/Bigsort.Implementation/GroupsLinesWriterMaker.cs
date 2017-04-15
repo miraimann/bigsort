@@ -18,13 +18,13 @@ namespace Bigsort.Implementation
         public GroupsLinesWriterMaker(
             IIoService ioService, 
             IBuffersPool buffersPool, 
-            IGrouperTasksQueue tasksQueue, 
+            ITasksQueue tasksQueue, 
             IConfig config)
         {
             _ioService = ioService;
             _buffersPool = buffersPool;
             _config = config;
-            _tasksQueue = tasksQueue; //.AsLowQueue();
+            _tasksQueue = tasksQueue;
         }
 
         public IGroupsLinesWriter Make(string path, long fileOffset = 0) =>

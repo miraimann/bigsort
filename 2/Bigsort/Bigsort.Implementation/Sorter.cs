@@ -1,8 +1,6 @@
 ﻿using Bigsort.Contracts;
 using System;
-using System.IO;
 using System.Threading;
-using System.Linq;
 
 namespace Bigsort.Implementation
 {
@@ -26,7 +24,7 @@ namespace Bigsort.Implementation
             IGroupSorter groupSorter,
             ISortedGroupWriter sortedGroupWriter,
             IIoService ioService,
-            ITasksQueueMaker tasksQueueMaker,
+            ITasksQueue tasksQueue,
             IPoolMaker poolMaker,
             IConfig config)
         {
@@ -36,30 +34,27 @@ namespace Bigsort.Implementation
             _groupSorter = groupSorter;
             _sortedGroupWriter = sortedGroupWriter;
             _ioService = ioService;
+            _tasksQueue = tasksQueue;
             _poolMaker = poolMaker;
             _config = config;
-
-            _tasksQueue = tasksQueueMaker
-                .MakeQueue(Environment.ProcessorCount);
         }
 
         public void Sort(string inputPath, string outputPath)
         {
-            var groupsSummary = _grouper.SplitToGroups(inputPath);
             var fileLength = _ioService.SizeOfFile(inputPath);
-
+            var groupsFile = _ioService.CreateTempFile(fileLength);
+            var groupsSummary = _grouper.SplitToGroups(inputPath, groupsFile);
+            
             _ioService.CreateFile(outputPath, fileLength);
             _linesReservation.Load(groupsSummary.MaxGroupLinesCount *
                                    Environment.ProcessorCount);
 
-            using (var s = File.OpenWrite("E:\\log.txt"))
-            using (var w = new StreamWriter(s))
             using (var groupsReadersPool = _poolMaker.Make(
-                               productFactory: () => _ioService.OpenRead(_config.GroupsFilePath),
+                               productFactory: () => _ioService.OpenRead(groupsFile),
                             productDestructor: reader => reader.Dispose()))
 
             using (var resultWritersPool = _poolMaker.Make(
-                               productFactory: () => _ioService.OpenWrite(outputPath),
+                               productFactory: () => _ioService.OpenWrite(outputPath, buffering: true),
                             productDestructor: writer => writer.Dispose()))
             {
                 var groupsSorted = new CountdownEvent(Consts.MaxGroupsCount);
@@ -79,9 +74,6 @@ namespace Bigsort.Implementation
 
                     var groupPosition = possition;
                     Action sortGroup = null;
-
-                    w.Write($"{i:00000000}:{groupPosition:00000000}|"); 
-
                     sortGroup = () =>
                     {
                         IUsingHandle<Range> rangeHandle;
@@ -109,7 +101,7 @@ namespace Bigsort.Implementation
                 groupsSorted.Wait();
             }
 
-            _ioService.DeleteFile(_config.GroupsFilePath);
+            _ioService.DeleteFile(groupsFile);
         }
     }
 }

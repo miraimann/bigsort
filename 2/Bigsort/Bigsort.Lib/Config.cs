@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿using System;
+using System.Configuration;
 using System.IO;
 using Bigsort.Contracts;
 
@@ -9,13 +10,27 @@ namespace Bigsort.Lib
     {
         public Config()
         {
-            GroupsFilePath = ConfigurationManager
-                .AppSettings["BigsortGroupsFilePath"] 
-                ?? Path.GetTempFileName();
+            string raw;
+
+            GroupsFilePath = Path.GetTempFileName();
 
             SortingSegment = ConfigurationManager
                 .AppSettings["BigsortSortingSegment"]
                 ?? "ulong"; // "byte", "uint"
+
+            raw = ConfigurationManager
+                .AppSettings["BigsortMaxRunningTasksCount"];
+
+            MaxRunningTasksCount = raw == null
+                ? Environment.ProcessorCount
+                : int.Parse(raw);
+
+            raw = ConfigurationManager
+                .AppSettings["BigsortGrouperEnginesCount"];
+
+            GrouperEnginesCount = raw == null
+                ? Environment.ProcessorCount / 2
+                : int.Parse(raw);
 
             GroupBufferRowReadingEnsurance =
                 ( SortingSegment == "ulong" ? sizeof(ulong)
@@ -24,7 +39,7 @@ namespace Bigsort.Lib
                 : 0 /* invalid value */) 
                 - 1;
 
-            var raw = ConfigurationManager
+            raw = ConfigurationManager
                 .AppSettings["BigsortBufferSize"];
 
             BufferSize = raw != null
@@ -33,7 +48,7 @@ namespace Bigsort.Lib
 
             raw = ConfigurationManager
                 .AppSettings["BigsortMaxMemoryForLines"];
-
+            
             MaxMemoryForLines = raw != null
                 ? long.Parse(raw)
                 : 320 * 1024 * 1024;
@@ -43,6 +58,8 @@ namespace Bigsort.Lib
         public string SortingSegment { get; }
         public int BufferSize { get; }
         public long MaxMemoryForLines { get; }
+        public int MaxRunningTasksCount { get; }
+        public int GrouperEnginesCount { get; }
         public int GroupBufferRowReadingEnsurance { get; }
     }
 }

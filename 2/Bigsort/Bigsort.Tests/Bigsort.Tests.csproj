@@ -69,6 +69,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GroupBytesLoaderTests.Integration.cs" />
+    <Compile Include="GrouperTests.Group.cs" />
     <Compile Include="GroupGenerator.cs" />
     <Compile Include="GroupInfo.cs" />
     <Compile Include="GroupSorterTests.Cases_10_19.cs" />
@@ -82,6 +83,7 @@
     <Compile Include="GroupSorterTests.Cases_00_09.cs" />
     <Compile Include="GroupSorterTests.cs" />
     <Compile Include="Tools.cs" />
+    <Compile Include="GrouperTests.TrivialGrouper.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

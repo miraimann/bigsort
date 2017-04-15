@@ -41,25 +41,23 @@ namespace Bigsort.Lib
                 new IoService(
                     buffersPool);
 
-            ITasksQueueMaker tasksQueueMaker =
-                new TasksQueueMaker();
-
-            IGrouperTasksQueue grouperTasksQueue =
-                new GrouperTasksQueue(
-                    tasksQueueMaker);
-
+            ITasksQueue tasksQueue =
+                new TasksQueue(
+                    config);
+            
             IGrouperBuffersProviderMaker grouperBuffersProviderMaker =
                 new GrouperBuffersProviderMaker(
                     buffersPool,
                     ioService,
                     usingHandleMaker,
-                    grouperTasksQueue);
+                    tasksQueue,
+                    config);
 
             IGroupsLinesWriterMaker groupsLinesWriterMaker =
                 new GroupsLinesWriterMaker(
                     ioService,
                     buffersPool,
-                    grouperTasksQueue,
+                    tasksQueue,
                     config);
 
             IGrouperIOMaker grouperIoMaker =
@@ -73,8 +71,7 @@ namespace Bigsort.Lib
                 new Grouper(
                     groupsSummaryInfoMarger,
                     grouperIoMaker,
-                    grouperTasksQueue,
-                    ioService,
+                    tasksQueue,
                     config);
 
             IGroupBytesMatrixService groupBytesMatrixService =
@@ -116,7 +113,7 @@ namespace Bigsort.Lib
                     groupSorter,
                     sortedGroupWriter,
                     ioService,
-                    tasksQueueMaker,
+                    tasksQueue,
                     poolMaker,
                     config);
 

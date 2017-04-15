@@ -35,6 +35,13 @@ namespace Bigsort.Implementation
                 stream.SetLength(length);
         }
 
+        public string CreateTempFile(long length)
+        {
+            var path = Path.GetTempFileName();
+            CreateFile(path, length);
+            return path;
+        }
+
         public IEnumerable<string> EnumerateFilesOf(string directory) =>
             Directory.EnumerateFiles(directory);
 
@@ -98,7 +105,7 @@ namespace Bigsort.Implementation
             {
                 _stream = new FileStream(path,
                     FileMode.OpenOrCreate,
-                    FileAccess.Read,
+                    FileAccess.Write,
                     FileShare.Write)
                 {
                     Position = possition

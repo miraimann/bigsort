@@ -27,7 +27,6 @@ namespace Bigsort.Implementation
             while (offset < n)
             {
                 var line = lines[offset++];
-
                 int lineLength = line.digitsCount + line.lettersCount + 3,
                     start = line.start + 2,
                     i = start / rowLength,
@@ -40,27 +39,35 @@ namespace Bigsort.Implementation
                 var row = rows[i];
                 if (rowLeftLength < lineLength)
                 {
-                    var next = i + 1;
-                    if (next < rowsCount)
+                    var nextlength = lineLength - rowLeftLength;
+                    if (!isLastLineInGroup || nextlength != 1)
                     {
                         output.Write(row, j, rowLeftLength);
 
-                        var nextlength = lineLength - rowLeftLength;
-                        var nextRow = rows[next];
+                        // var next = i + 1;
+                        // if (next < rowsCount)
+                        // {
+                            var nextRow = rows[i + 1];
+                            if (isLastLineInGroup)
+                            {
+                                output.Write(nextRow, 0, nextlength - Consts.EndLineBytesCount);
+                                output.Write(Consts.EndLineBytes, 0, Consts.EndLineBytesCount);
+                            }
+                            else
+                            {
+                                nextRow[nextlength - 1] = Consts.EndLineByte2;
+                                output.Write(nextRow, 0, nextlength);
+                            }
 
-                        if (!isLastLineInGroup)
-                            nextRow[nextlength - 1] = Consts.EndLineByte2;
-                        
-                        output.Write(nextRow, 0, nextlength);
-                        continue;
+                            continue;
+                        //}
                     }
                 }
 
                 if (isLastLineInGroup)
                 {
-                    output.Write(row, j, lineLength - 2);
-                    output.Write(Consts.EndLineBytes, 0,
-                        Consts.EndLineBytes.Length);
+                    output.Write(row, j, lineLength - Consts.EndLineBytesCount);
+                    output.Write(Consts.EndLineBytes, 0, Consts.EndLineBytesCount);
                 }
                 else
                 {

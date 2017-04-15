@@ -13,6 +13,8 @@
 
         void CreateFile(string path, long length);
 
+        string CreateTempFile(long length);
+
         bool DirectoryExists(string path);
 
         void CreateDirectory(string path);

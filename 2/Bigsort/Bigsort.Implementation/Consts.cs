@@ -7,12 +7,13 @@ namespace Bigsort.Implementation
         public const int
             AsciiPrintableCharsCount = 95,
             AsciiPrintableCharsOffset = 32,
-            GroupPrefixMaxLettersCount = 2,
-            // all combination from 0 to 2 (GroupPrefixMaxLettersCount) chars 
+            GroupIdLettersCount = 2,
+            // all combination from 0 to 2 (GroupIdLettersCount) chars 
             // where 96 is ASCIIPrintableCharsCount
             MaxGroupsCount = AsciiPrintableCharsCount * AsciiPrintableCharsCount 
                            + AsciiPrintableCharsCount + 1,
-            TemporaryMissingResult = -1;
+            TemporaryMissingResult = -1,
+            EndLineBytesCount = 2;
 
         public const byte
             Dot = (byte) '.',

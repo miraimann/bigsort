@@ -1,61 +1,61 @@
-﻿using System;
-using System.IO;
-using Bigsort.Contracts;
+﻿//using System;
+//using System.IO;
+//using Bigsort.Contracts;
 
-namespace Bigsort.Tests
-{
-    public static class GroupGenerator
-    {
-        public const int
-            MaxNumberLength = byte.MaxValue - 1,
-            MaxStringLength = byte.MaxValue,
-              MaxLineLength = MaxNumberLength
-                            + MaxStringLength
-                            + 3;
+//namespace Bigsort.Tests
+//{
+//    public static class GroupGenerator
+//    {
+//        public const int
+//            MaxNumberLength = byte.MaxValue - 1,
+//            MaxStringLength = byte.MaxValue,
+//              MaxLineLength = MaxNumberLength
+//                            + MaxStringLength
+//                            + 3;
 
-        private const byte
-            DigitsShift = (byte) '0',
-                    Dot = (byte) '.';
+//        private const byte
+//            DigitsShift = (byte) '0',
+//                    Dot = (byte) '.';
 
-        public static IGroupInfo Generate(
-            string id, 
-            string path, 
-            int linesCount,
-            int maxNumberLength,
-            int maxStringLength)
-        {
-            var random = new Random();
-            var buff = new byte[MaxLineLength]; 
+//        public static IGroupInfo Generate(
+//            string id, 
+//            string path, 
+//            int linesCount,
+//            int maxNumberLength,
+//            int maxStringLength)
+//        {
+//            var random = new Random();
+//            var buff = new byte[MaxLineLength]; 
 
-            using (var stream = File.OpenWrite(path))
-                for (int i = 0; i < linesCount; i++)
-                {
-                    int numberLength = random.Next(1, maxNumberLength),
-                        stringLength = random.Next(id.Length, maxStringLength),
-                          lineLength = numberLength + stringLength + 3;
+//            using (var stream = File.OpenWrite(path))
+//                for (int i = 0; i < linesCount; i++)
+//                {
+//                    int numberLength = random.Next(1, maxNumberLength),
+//                        stringLength = random.Next(id.Length, maxStringLength),
+//                          lineLength = numberLength + stringLength + 3;
 
-                    random.NextBytes(buff);
-                    buff[0] = (byte) stringLength;
-                    buff[1] = (byte) numberLength;
-                    buff[2] = (byte) (random.Next(1, 9) + DigitsShift);
+//                    random.NextBytes(buff);
+//                    buff[0] = (byte) stringLength;
+//                    buff[1] = (byte) numberLength;
+//                    buff[2] = (byte) (random.Next(1, 9) + DigitsShift);
 
-                    int j = 3;
-                    for (; j < numberLength + 2; j++) 
-                        buff[j] = (byte) (buff[j] % 10 + DigitsShift);
+//                    int j = 3;
+//                    for (; j < numberLength + 2; j++) 
+//                        buff[j] = (byte) (buff[j] % 10 + DigitsShift);
 
-                    buff[j++] = Dot;
+//                    buff[j++] = Dot;
 
-                    for (int k = 0; k < id.Length; k++, j++)
-                        buff[j] = (byte) id[k];
+//                    for (int k = 0; k < id.Length; k++, j++)
+//                        buff[j] = (byte) id[k];
 
-                    for (; j < lineLength; j++)
-                        buff[j] = (byte) (buff[j] % 95 + 32);
+//                    for (; j < lineLength; j++)
+//                        buff[j] = (byte) (buff[j] % 95 + 32);
 
-                    stream.Write(buff, 0, lineLength);
-                }
+//                    stream.Write(buff, 0, lineLength);
+//                }
 
-            return new GroupInfo(id, linesCount, 
-                (int) new FileInfo(path).Length);
-        }
-    }
-}
+//            return new GroupInfo(id, linesCount, 
+//                (int) new FileInfo(path).Length);
+//        }
+//    }
+//}

@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Bigsort.Tests
 {
@@ -26,6 +23,5 @@ namespace Bigsort.Tests
         public static string[] SplitString(string str, string separator) =>
             str.Split(new[] { separator },
                 StringSplitOptions.RemoveEmptyEntries);
-
     }
 }

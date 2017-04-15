@@ -1,4 +1,5 @@
-﻿using Bigsort.Contracts;
+﻿using System;
+using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
@@ -25,12 +26,15 @@ namespace Bigsort.Implementation
 
             while (offset < n)
             {
+                if (group[i + 1] == 0)
+                    Console.WriteLine("!!!");
+
                 var line = lines[offset++] = new LineIndexes
                 {
                     start = i,
                     lettersCount = group[i],
                     digitsCount = group[i + 1],
-                    sortingOffset = 2,
+                    sortingOffset = Consts.GroupIdLettersCount
                  // sortByDigits = false;
                 };
 

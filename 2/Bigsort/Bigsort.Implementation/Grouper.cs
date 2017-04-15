@@ -11,34 +11,28 @@ namespace Bigsort.Implementation
     {
         private readonly IGroupsSummaryInfoMarger _summaryInfoMarger;
         private readonly IGrouperIOMaker _grouperIoMaker;
-        private readonly IGrouperTasksQueue _tasksQueue;
-        private readonly IIoService _ioService;
+        private readonly ITasksQueue _tasksQueue;
         private readonly IConfig _config;
 
         public Grouper(
             IGroupsSummaryInfoMarger summaryInfoMarger,
             IGrouperIOMaker grouperIoMaker,
-            IGrouperTasksQueue tasksQueue,
-            IIoService ioService,
+            ITasksQueue tasksQueue,
             IConfig config)
         {
             _summaryInfoMarger = summaryInfoMarger;
             _grouperIoMaker = grouperIoMaker;
             _tasksQueue = tasksQueue;
-            _ioService = ioService;
             _config = config;
         }
         
-        public IGroupsSummaryInfo SplitToGroups(string inputPath)
+        public IGroupsSummaryInfo SplitToGroups(
+            string inputPath, string groupsFile)
         {
-            var outputPath = _config.GroupsFilePath;
-            _ioService.CreateFile(outputPath, 
-                _ioService.SizeOfFile(inputPath));
-
-            var enginesCount = Environment.ProcessorCount;
+            var enginesCount = _config.MaxRunningTasksCount;
             var ios = enginesCount <= 1
-                ? new[] {_grouperIoMaker.Make(inputPath, outputPath)}
-                : _grouperIoMaker.MakeMany(inputPath, outputPath, enginesCount);
+                ? new[] {_grouperIoMaker.Make(inputPath, groupsFile) }
+                : _grouperIoMaker.MakeMany(inputPath, groupsFile, enginesCount);
 
             var engines = ios
                 .Select(io => new Engine(_tasksQueue, io, _config.BufferSize))
@@ -277,7 +271,7 @@ namespace Bigsort.Implementation
                             break;
 
                         case Stage.ReleaseLine:
-                            
+
                             var lineLength = digitsCount + lettersCount + 3;
                             var lineStart = i - lineLength;
                             

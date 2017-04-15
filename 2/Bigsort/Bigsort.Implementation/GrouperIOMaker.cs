@@ -8,13 +8,13 @@ namespace Bigsort.Implementation
     {
         private readonly IGrouperBuffersProviderMaker _grouperBuffersProviderMaker;
         private readonly IGroupsLinesWriterMaker _groupsLinesWriterMaker;
-        private readonly IoService _ioService;
+        private readonly IIoService _ioService;
         private readonly IConfig _config;
 
         public GrouperIOMaker(
             IGrouperBuffersProviderMaker grouperBuffersProviderMaker, 
             IGroupsLinesWriterMaker groupsLinesWriterMaker,
-            IoService ioService,
+            IIoService ioService,
             IConfig config)
         {
             _grouperBuffersProviderMaker = grouperBuffersProviderMaker;
