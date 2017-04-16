@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Bigsort.Tests
@@ -33,11 +34,11 @@ namespace Bigsort.Tests
                     && x.Id == y.Id
                     && x.BytesCount == y.BytesCount
                     && x.LinesCount == y.LinesCount
-                    && Enumerable.Zip(x.Lines.OrderBy(o => o.Position),
-                                      y.Lines.OrderBy(o => o.Position),
+                    && Enumerable.Zip(x.Lines.OrderBy(o => o.ContentAsString),
+                                      y.Lines.OrderBy(o => o.ContentAsString),
                                       (a, b) => a == b)
                                  .All(o => o));
-
+            
             public static bool operator !=(Group x, Group y) =>
                 !(x == y);
 
@@ -59,9 +60,16 @@ namespace Bigsort.Tests
                 {
                     Position = position;
                     Content = content;
+
+                    ContentAsString = new string(Content
+                        .Select(o => (char) o)
+                        .ToArray());
                 }
 
                 public byte[] Content { get; }
+
+                public string ContentAsString { get; }
+
                 public long Position { get; }
 
                 public override bool Equals(object obj) =>

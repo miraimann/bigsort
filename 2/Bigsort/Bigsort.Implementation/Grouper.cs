@@ -29,14 +29,16 @@ namespace Bigsort.Implementation
         public IGroupsSummaryInfo SplitToGroups(
             string inputPath, string groupsFile)
         {
-            var enginesCount = _config.MaxRunningTasksCount;
-            var ios = enginesCount <= 1
+            var enginesCount = _config.GrouperEnginesCount;
+            var ios = enginesCount == 1
                 ? new[] {_grouperIoMaker.Make(inputPath, groupsFile) }
                 : _grouperIoMaker.MakeMany(inputPath, groupsFile, enginesCount);
 
             var engines = ios
                 .Select(io => new Engine(_tasksQueue, io, _config.BufferSize))
                 .ToArray();
+
+            enginesCount = engines.Length;
 
             var doneEvents = Enumerable
                 .Range(0, enginesCount)

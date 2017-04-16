@@ -47,8 +47,8 @@ namespace Bigsort.Implementation
             private readonly Group[] _groupsStorage;
             private readonly int _bufferLength;
             private readonly string _path;
-            private long _writingPosition;
-
+            private long _writingPosition, _tasksCount = 0;
+            
             public LinesWriter(string path, long fileOffset,
                 IBuffersPool buffersPool, 
                 ITasksQueue tasksQueue, 
@@ -91,29 +91,19 @@ namespace Bigsort.Implementation
 
             public void FlushAndDispose(ManualResetEvent done)
             {
-                long counter = 0;
-                Action decrementCounter = () => Interlocked.Decrement(ref counter),
-                       incrementCounter = () => Interlocked.Increment(ref counter);
-
                 var acc = new Group(_buffersPool.GetBuffer());
-
                 for (int i = 0; i < Consts.MaxGroupsCount; i++)
                 {
                     var group = _groupsStorage[i];
                     if (group == null)
                         continue;
 
-                 // if buffer was send to write
-                    if (FinalSaveData(acc, group, decrementCounter))
-                    {
-                        incrementCounter();
-                        _writingPosition += _bufferLength;
-                    }
+                    FinalSaveData(acc, group);
                 }
 
                 if (acc.BufferOffset != 0)
                 {
-                    incrementCounter();
+                    IncrementTasksCount();
                     _tasksQueue.Enqueue(delegate
                     {
                         var writer = GetWriter();
@@ -121,7 +111,7 @@ namespace Bigsort.Implementation
                         writer.Write(acc.BufferHandle.Value,
                                      0, acc.BufferOffset);
 
-                        decrementCounter();
+                        DecrementTasksCount();
                         writer.Dispose();
                     });
                 }
@@ -129,29 +119,26 @@ namespace Bigsort.Implementation
                 Action disposeWriters = null;
                 _tasksQueue.Enqueue(disposeWriters = delegate
                 {
-                    if (Interlocked.Read(ref counter) != 0)
+                    if (HasNoTasks())
                     {
-                        _tasksQueue.Enqueue(disposeWriters);
-                        return;
-                    }
-
-                    foreach (var writer in _writers)
-                    {
-                        incrementCounter();
-                        _tasksQueue.Enqueue(delegate
+                        foreach (var writer in _writers)
                         {
-                            writer.Dispose();
-                            decrementCounter();
+                            IncrementTasksCount();
+                            _tasksQueue.Enqueue(delegate
+                            {
+                                writer.Dispose();
+                                DecrementTasksCount();
+                            });
+                        }
+
+                        Action checkDone = null;
+                        _tasksQueue.Enqueue(checkDone = delegate
+                        {
+                            if (HasNoTasks()) done.Set();
+                            else _tasksQueue.Enqueue(checkDone);
                         });
                     }
-
-                    Action checkDone = null;
-                    _tasksQueue.Enqueue(checkDone = delegate
-                    {
-                        if (Interlocked.Read(ref counter) != 0)
-                            _tasksQueue.Enqueue(checkDone);
-                        else done.Set();
-                    });
+                    else _tasksQueue.Enqueue(disposeWriters);
                 });
             }
 
@@ -167,9 +154,8 @@ namespace Bigsort.Implementation
                 return writer;
             }
 
-            private bool FinalSaveData(Group acc, Group group, Action bufferWritten)
+            private void FinalSaveData(Group acc, Group group)
             {
-                bool bufferWasEnqueuedToWrite = false;
                 group.BytesCount += group.BufferOffset;
                 group.MappingAccumulator.Add(
                     new LongRange(_writingPosition + acc.BufferOffset, 
@@ -190,9 +176,11 @@ namespace Bigsort.Implementation
                     Array.Copy(group.BufferHandle.Value, countToAccBuffEnd,
                                acc.BufferHandle.Value, 0,
                                newOffset);
-
-                    bufferWasEnqueuedToWrite = true;
+                    
                     var positionMomento = _writingPosition;
+                    _writingPosition += _bufferLength;
+
+                    IncrementTasksCount();
                     _tasksQueue.Enqueue(delegate
                     {
                         var writer = GetWriter();
@@ -201,7 +189,7 @@ namespace Bigsort.Implementation
 
                         _writers.Add(writer);
                         oldBuffHandle.Dispose();
-                        bufferWritten();
+                        DecrementTasksCount();
                     });
                 }
                 else
@@ -211,7 +199,6 @@ namespace Bigsort.Implementation
                 
                 group.BufferHandle.Dispose();
                 acc.BufferOffset = newOffset;
-                return bufferWasEnqueuedToWrite;
             }
 
             private void SaveData(Group group, 
@@ -229,7 +216,8 @@ namespace Bigsort.Implementation
                     group.BufferHandle = _buffersPool.GetBuffer();
                     group.BytesCount += _bufferLength;
 
-                    var positionMomento = _writingPosition += _bufferLength;
+                    var positionMomento = _writingPosition;
+                    _writingPosition += _bufferLength;
                     group.MappingAccumulator
                          .Add(new LongRange(positionMomento, _bufferLength));
 
@@ -238,6 +226,7 @@ namespace Bigsort.Implementation
                                group.BufferHandle.Value, 0,
                                newOffset);
 
+                    IncrementTasksCount();
                     _tasksQueue.Enqueue(delegate
                     {
                         var writer = GetWriter();
@@ -246,6 +235,7 @@ namespace Bigsort.Implementation
 
                         _writers.Add(writer);
                         oldBuffHandle.Dispose();
+                        DecrementTasksCount();
                     });
                 }
                 else
@@ -255,6 +245,15 @@ namespace Bigsort.Implementation
 
                 group.BufferOffset = newOffset;
             }
+
+            private void IncrementTasksCount() =>
+                Interlocked.Increment(ref _tasksCount);
+
+            private void DecrementTasksCount() =>
+                Interlocked.Decrement(ref _tasksCount);
+
+            private bool HasNoTasks() =>
+                Interlocked.Read(ref _tasksCount) == 0;
 
             private class Group
                 : IGroupInfo

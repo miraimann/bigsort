@@ -13,7 +13,7 @@ namespace Bigsort.Tests
     public partial class GrouperTests
     {
         [Test]
-        [Timeout(20000)]
+        [Timeout(10000)]
         public void Test(
             [ValueSource(nameof(Cases))] TestCase testCase,
             [ValueSource(nameof(BufferSizes))] BufferSize bufferSize,
@@ -110,9 +110,10 @@ namespace Bigsort.Tests
 
             int buffSize = new Dictionary<BufferSize, int>
             {
-                {BufferSize.Min,   maxLineLength + 1},
-                {BufferSize.Small, maxLineLength + 2},
-                {BufferSize.Large, groupsFileLength + 1}
+                {BufferSize.Min,    maxLineLength + 1},
+                {BufferSize.Small,  maxLineLength + 2},
+                {BufferSize.Medium, groupsFileLength + 1},
+                {BufferSize.Large,  groupsFileLength * 2}
             }[bufferSize];
 
             configMock
@@ -190,12 +191,11 @@ namespace Bigsort.Tests
                 summary.MaxGroupSize);
 
             var resultGroups = ExtractGroups(summary, groupsFileContent);
-            var expectedFroups = expectedGroups
-                .OrderBy(group => group.Id)
-                .ToArray();
 
             Assert.IsTrue(resultGroups.Select(Group.IsValid).All(o => o));
-            CollectionAssert.AreEqual(expectedFroups, resultGroups);
+            CollectionAssert.AreEqual(
+                expectedGroups, 
+                resultGroups);
         }
 
         public class TestCase
@@ -218,6 +218,7 @@ namespace Bigsort.Tests
             get
             {
                 yield return BufferSize.Large;
+                yield return BufferSize.Medium;
                 yield return BufferSize.Small;
                 yield return BufferSize.Min;
             }
@@ -225,15 +226,18 @@ namespace Bigsort.Tests
 
         public enum BufferSize
         {
-            Large = 0,
-            Small = 1,
-            Min = 2
+            Large,
+            Medium,
+            Small,
+            Min
         }
         
         private static Group[] ExtractGroups(
             IGroupsSummaryInfo groupsSummaryInfo,
             byte[] groupsContent)
         {
+            const int unknown = -1;
+
             var groups = groupsSummaryInfo.GroupsInfo;
             var result = new Group[groups.Count(o => o != null)];
             var resultPosition = 0;
@@ -251,22 +255,65 @@ namespace Bigsort.Tests
                             Lines = lines
                         };
 
+                    byte[] lineContent = null;
+                    int lineRemainder = 0;
+                    byte lettersCount = 0;
+
                     foreach (var blockRange in groups[i].Mapping)
                     {
                         var offset = (int) blockRange.Offset;
                         var overBlock = offset + (int) blockRange.Length;
-
+                        
                         while (offset != overBlock)
                         {
-                            var lettersCount = groupsContent[offset];
-                            var digitsCount = groupsContent[offset + 1];
-                            var lineLength = digitsCount + lettersCount + 3;
-                            var lineContent = new byte[lineLength];
+                            if (lineRemainder == 0)
+                            {
+                                lettersCount = groupsContent[offset];
 
-                            Array.Copy(groupsContent, offset, lineContent, 0, lineLength);
-                            lines.Add(new Group.Line(offset, lineContent));
+                                if (offset + 1 != overBlock)
+                                {
+                                    var digitsCount = groupsContent[offset + 1];
+                                    var lineLength = digitsCount + lettersCount + 3;
+                                    lineContent = new byte[lineLength];
 
-                            offset += lineLength;
+                                    var lengthToBlockEnd = overBlock - offset;
+                                    var lengthToCopy = Math.Min(lengthToBlockEnd, lineLength);
+
+                                    Array.Copy(groupsContent, offset, lineContent, 0, lengthToCopy);
+
+                                    if (lengthToCopy == lineLength)
+                                        lines.Add(new Group.Line(offset, lineContent));
+                                    else lineRemainder = lineLength - lengthToCopy;
+
+                                    offset += lengthToCopy;
+                                }
+                                else
+                                {
+                                    lineRemainder = unknown;
+                                    ++offset;
+                                }
+                            }
+                            else
+                            {
+                                if (lineRemainder == unknown)
+                                {
+                                    var digitsCount = groupsContent[offset];
+                                    var linelength = digitsCount + lettersCount + 3;
+                                    lineContent = new byte[linelength];
+                                    lineContent[0] = lettersCount;
+                                    lineRemainder = linelength - 1;
+                                }
+
+                                var offsetInLine = lineContent.Length - lineRemainder;
+                                Array.Copy(groupsContent, offset, 
+                                           lineContent, offsetInLine, 
+                                           lineRemainder);
+
+                                lines.Add(new Group.Line(offset - offsetInLine, lineContent));
+
+                                offset += lineRemainder;
+                                lineRemainder = 0;
+                            }
                         }
                     }
                 }
@@ -277,10 +324,10 @@ namespace Bigsort.Tests
 
 
         public static IEnumerable<int> MaxThreadsCount =>
-            Enumerable.Range(1, Environment.ProcessorCount - 1);
+            Enumerable.Range(1, Environment.ProcessorCount);
         
         public static IEnumerable<int> EnginesCount =>
-            Enumerable.Range(1, Environment.ProcessorCount - 1);
+            Enumerable.Range(1, Environment.ProcessorCount);
 
         public static IEnumerable<TestCase> Cases =>
             new[]

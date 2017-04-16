@@ -1,4 +1,6 @@
-﻿using Bigsort.Contracts;
+﻿using System;
+using System.Collections.Generic;
+using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
@@ -27,33 +29,32 @@ namespace Bigsort.Implementation
             new IO(_grouperBuffersProviderMaker.Make(input, _config.BufferSize - 1),
                    _groupsLinesWriterMaker.Make(output));
         
-        public IGrouperIO[] MakeMany(string input, string output, int count)
+        public IReadOnlyList<IGrouperIO> MakeMany(string input, string output, int count)
         {
-            var result = new IGrouperIO[count];
-            var length = _ioService.SizeOfFile(input);
-            var blockLength = length / count;
+            var result = new List<IGrouperIO>();
+            var inputFileLength = _ioService.SizeOfFile(input);
+            var blockLength = inputFileLength / count;
 
             long offset = 0;
             using (var inputStream = _ioService.OpenRead(input))
                 for (int i = 0; i < count; i++)
                 {
-                    long overBlock;
+                    inputStream.Position = Math.Min(
+                        offset + blockLength, 
+                        inputFileLength - 1);
 
-                    if (i == count - 1)
-                        overBlock = length;
-                    else
-                    {
-                        inputStream.Position = offset + blockLength;
-                        while (inputStream.ReadByte() != Consts.EndLineByte2) ;
-                        overBlock = inputStream.Position;
-                    }
+                    while (inputStream.ReadByte() != Consts.EndLineByte2);
                     
-                    var readingLength = overBlock - offset;
-                    result[i] = new IO(
-                        _grouperBuffersProviderMaker.Make(input, _config.BufferSize - 1, offset, readingLength),
-                        _groupsLinesWriterMaker.Make(output, offset));
+                    var readingLength = inputStream.Position - offset;
+                    var linesWriter = _groupsLinesWriterMaker.Make(output, offset);
+                    var buffersProvider = _grouperBuffersProviderMaker
+                        .Make(input, _config.BufferSize - 1, offset, readingLength);
+                    
+                    result.Add(new IO(buffersProvider, linesWriter));
+                    if (inputStream.Position == inputFileLength)
+                        break;
 
-                    offset = overBlock;
+                    offset = inputStream.Position;
                 }
 
             return result;

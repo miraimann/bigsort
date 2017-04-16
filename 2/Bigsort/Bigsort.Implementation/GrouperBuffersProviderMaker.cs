@@ -45,19 +45,17 @@ namespace Bigsort.Implementation
             : IGrouperBuffersProvider
         {
             private const int InitCapacity = 16; // TODO: move to config
-
-            private readonly string _path;
-            private readonly long _readingOut, _readingOffset;
-            private readonly int _bufferLength, _readerStep, _capacity;
-
-            private readonly IUsingHandleMaker _usingHandleMaker;
+            
+            private readonly long _readingOut;
+            private readonly int _bufferLength, _capacity;
+            
             private readonly IBuffersPool _buffersPool;
             private readonly ITasksQueue _tasksQueue;
-            private readonly IIoService _ioService;
 
             private readonly ConcurrentDictionary<int, Item> _readed;
             private readonly IEnumerator<int> _readingIndex;
             private readonly IUsingHandle<byte[]> _zeroHandle;
+            private readonly Action[] _readNext;
 
             public BuffersProvider(
                 string path,
@@ -70,18 +68,11 @@ namespace Bigsort.Implementation
                 IUsingHandleMaker usingHandleMaker,
                 IConfig config)
             {
-                _usingHandleMaker = usingHandleMaker;
                 _buffersPool = buffersPool;
                 _tasksQueue = tasksQueue;
-                _ioService = ioService;
-
-                _zeroHandle = _usingHandleMaker
-                    .Make<byte[]>(null, _ => { });
-
-                _path = path;
                 _bufferLength = buffLength;
 
-                _readingOffset = readingOffset;
+                _zeroHandle = usingHandleMaker.Make<byte[]>(null, _ => { });
                 _readingOut = readingOffset + readingLength;
                 _capacity = (int) Math.Min(
                     Math.Ceiling((double)readingLength / _bufferLength),
@@ -91,12 +82,47 @@ namespace Bigsort.Implementation
                     concurrencyLevel: config.MaxRunningTasksCount,
                             capacity: _capacity);
 
-                _readerStep = (_capacity - 1) * buffLength;
+                var readerStep = (_capacity - 1) * buffLength;
                 _readingIndex = ReadingIndexes.GetEnumerator();
                 _readingIndex.MoveNext();
-                
+
+                _readNext = new Action[_capacity];
                 for (int i = 0; i < _capacity; i++)
-                    AddItem(i);
+                {
+                    var reader = ioService.OpenRead(path, readingOffset + i*_bufferLength);
+
+                    int buffIndex = i;
+                    Action read = delegate
+                    {
+                        var pooledBuff = _buffersPool.GetBuffer();
+                        var length = (int) Math.Min(_readingOut - reader.Position, _bufferLength);
+
+                        length = reader.Read(pooledBuff.Value, 0, length);
+                        _readed.TryAdd(buffIndex, new Item(length, pooledBuff));
+                    };
+                
+                    _readNext[i] = delegate
+                    {
+                        read();
+                        _readNext[buffIndex] = delegate
+                        {
+                            var position = reader.Position + readerStep;
+                            if (position < _readingOut)
+                            {
+                                reader.Position = position;
+                                read();
+                            }
+                            else
+                            {
+                                _readed.TryAdd(buffIndex, new Item(0, _zeroHandle));
+                                reader.Dispose();
+                            }
+                        };
+                    };
+                }
+
+                foreach (Action x in _readNext)
+                    _tasksQueue.Enqueue(x);
             }
 
             public int TryGetNextBuffer(out IUsingHandle<byte[]> buffHandle)
@@ -104,8 +130,11 @@ namespace Bigsort.Implementation
                 Item x;
                 if (_readed.TryRemove(_readingIndex.Current, out x))
                 {
-                    buffHandle = x.Handle;
+                    if (x.Length != 0)
+                        _tasksQueue.Enqueue(_readNext[_readingIndex.Current]);
+
                     _readingIndex.MoveNext();
+                    buffHandle = x.Handle;
                     return x.Length;
                 }
 
@@ -124,38 +153,6 @@ namespace Bigsort.Implementation
                         for (int i = 0; i < _capacity; i++)
                             yield return i;
                 }
-            }
-
-            private void AddItem(int i)
-            {
-                var pooledBuff = _buffersPool.GetBuffer();
-                var reader = _ioService.OpenRead(_path, _readingOffset + i * _bufferLength);
-
-                IUsingHandle<byte[]> handle = null;
-                Action readNext = delegate
-                {
-                    var length = (int) Math.Min(_readingOut - reader.Position, _bufferLength);
-                    length = reader.Read(pooledBuff.Value, 0, length);
-                    _readed.TryAdd(i, new Item(length, handle));
-                };
-                
-                handle = _usingHandleMaker.Make(pooledBuff.Value, delegate
-                {
-                    var position = reader.Position + _readerStep;
-                    if (position < _readingOut)
-                    {
-                        reader.Position = position;
-                        _tasksQueue.Enqueue(readNext);
-                    }
-                    else
-                    {
-                        _readed.TryAdd(i, new Item(0, _zeroHandle));
-                        pooledBuff.Dispose();
-                        reader.Dispose();
-                    }
-                });
-
-                _tasksQueue.Enqueue(readNext);
             }
         }
 

@@ -10,7 +10,7 @@ namespace Bigsort.Tests
     {
         public class TrivialGrouper
         {
-            public IEnumerable<Group> SplitToGroups(string[] lines) =>
+            public Group[] SplitToGroups(string[] lines) =>
                 lines.Select((line, i) => new {line, i})
                      .Aggregate(new {position = 0, lines = Enumerable.Empty<Tuple<int, string>>()},
                          (acc, o) => new
@@ -40,7 +40,9 @@ namespace Bigsort.Tests
                          LinesCount = o.lines.Count(),
                          BytesCount = o.lines.Sum(x => x.Content.Length),
                          Lines = o.lines
-                     });
+                     })
+                     .OrderBy(o => o.Id)
+                     .ToArray();
 
             private static int Id(string key)
             {
