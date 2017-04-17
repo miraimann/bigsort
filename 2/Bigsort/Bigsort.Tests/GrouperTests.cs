@@ -176,8 +176,7 @@ namespace Bigsort.Tests
 
             var trivialGrouper = new TrivialGrouper();
             var expectedGroups = trivialGrouper
-                .SplitToGroups(testCase.Lines)
-                .ToArray();
+                .SplitToGroups(testCase.Lines);
             
             var summary = grouper
                 .SplitToGroups(inputPath, groupsPath);
@@ -335,5 +334,42 @@ namespace Bigsort.Tests
                     Cases_00_19
                 }
                 .Aggregate(Enumerable.Concat);
+
+        private static int ToId(string prefix)
+        {
+            var id = 0;
+            if (prefix.Length == 0)
+                return id;
+
+            id = (prefix[0] - Consts.AsciiPrintableCharsOffset)
+               * (Consts.AsciiPrintableCharsCount + 1)
+               + 1;
+
+            if (prefix.Length == 1)
+                return id;
+            
+            id ++;
+            id += prefix[1];
+            id -= Consts.AsciiPrintableCharsOffset;
+
+            return id;
+        }
+
+        private static string ToPrefix(int id)
+        {
+            if (id == 0)
+                return string.Empty;
+
+            int c1 = (id - 1) / (Consts.AsciiPrintableCharsCount + 1),
+                c2 = (id - 1) % (Consts.AsciiPrintableCharsCount + 1);
+
+            if (c2 == 0)
+                return ((char) (c1 + Consts.AsciiPrintableCharsOffset))
+                    .ToString();
+
+            return new string(new []{c1, c2 - 1}
+                .Select(c => (char) (c + Consts.AsciiPrintableCharsOffset))
+                .ToArray());
+        }
     }
 }

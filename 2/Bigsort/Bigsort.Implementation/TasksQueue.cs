@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Bigsort.Contracts;
@@ -25,7 +24,7 @@ namespace Bigsort.Implementation
             if (Interlocked.Read(ref _runningTasksCount) < _maxRunningTasksCount)
             {
                 Interlocked.Increment(ref _runningTasksCount);
-                Task.Run(() =>
+                Task.Factory.StartNew(() =>
                 {
                     action();
                     while (_tasksQueue.TryDequeue(out action)) action();

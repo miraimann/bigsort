@@ -43,8 +43,11 @@ namespace Bigsort.Implementation
         {
             var fileLength = _ioService.SizeOfFile(inputPath);
             var groupsFile = _ioService.CreateTempFile(fileLength);
+
+            var t = DateTime.Now;
             var groupsSummary = _grouper.SplitToGroups(inputPath, groupsFile);
-            
+            Console.WriteLine($"grouping time{DateTime.Now - t}");
+
             _ioService.CreateFile(outputPath, fileLength);
             _linesReservation.Load(groupsSummary.MaxGroupLinesCount *
                                    Environment.ProcessorCount);

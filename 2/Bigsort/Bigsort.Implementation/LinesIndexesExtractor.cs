@@ -26,9 +26,6 @@ namespace Bigsort.Implementation
 
             while (offset < n)
             {
-                if (group[i + 1] == 0)
-                    Console.WriteLine("!!!");
-
                 var line = lines[offset++] = new LineIndexes
                 {
                     start = i,

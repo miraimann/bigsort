@@ -97,6 +97,10 @@
       <Project>{750f8e81-6683-494e-99bf-40d7a82aea80}</Project>
       <Name>Bigsort.Implementation</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Bigsort.Tools.TestFileGenerator\Bigsort.Tools.TestFileGenerator.csproj">
+      <Project>{6e49f2b9-80f6-473a-bc92-12a9f9cfab11}</Project>
+      <Name>Bigsort.Tools.TestFileGenerator</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
