@@ -68,7 +68,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GroupBytesLoaderTests.Integration.cs" />
+    <Compile Include="GroupBytesMatrixServiceTests.cs" />
     <Compile Include="GrouperTests.Group.cs" />
     <Compile Include="GroupGenerator.cs" />
     <Compile Include="GroupInfo.cs" />

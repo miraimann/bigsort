@@ -61,29 +61,26 @@ namespace Bigsort.Implementation
                     
                     foreach (var blockRange in groupInfo.Mapping)
                     {
-                        var positionInBlock = blockRange.Offset;
-                        var blockOverPosition = positionInBlock + blockRange.Length;
-
-                        while (positionInBlock != blockOverPosition)
+                        groupsFileReader.Position = blockRange.Offset;
+                        var blockOverPosition = groupsFileReader.Position + blockRange.Length;
+                        
+                        while (groupsFileReader.Position != blockOverPosition)
                         {
-                            groupsFileReader.Position = positionInBlock;
-                            var readLength = Math.Min(RowLength - positionInRow,
-                                                     (int)(blockOverPosition - positionInBlock));
+                            var readLength = Math.Min(
+                                (int)(blockOverPosition - groupsFileReader.Position),
+                                RowLength - positionInRow);
                             
                             readLength = groupsFileReader
                                 .Read(loadingRow, positionInRow, readLength);
 
                             positionInRow += readLength;
-                            if (positionInRow == RowLength)
+                            if (positionInRow == RowLength && rowIndex.MoveNext())
                             {
                                 handle = buffersPool.GetBuffer();
                                 _dispose += handle.Dispose;
-                                rowIndex.MoveNext();
                                 loadingRow = Rows[rowIndex.Current] = handle.Value;
                                 positionInRow = 0;
                             }
-
-                            positionInBlock += readLength;
                         }
                     }
                 }
@@ -123,8 +120,7 @@ namespace Bigsort.Implementation
             public RowsInfo(int bytesCount, int rowLength)
             {
                 RowLength = rowLength;
-                RowsCount = (bytesCount/RowLength) +
-                            (bytesCount%RowLength == 0 ? 0 : 1);
+                RowsCount = (int) Math.Ceiling((double) bytesCount/RowLength);
             }
 
             public int RowsCount { get; }
