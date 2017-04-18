@@ -16,11 +16,8 @@ namespace Bigsort.Tests
     {
         public class Integration
         {
-            private const string UseExistanceFile = 
-                "Use existance file:";
-
+            private const string UseExistanceFile = "Use existance file:";
             private const int GroupBufferRowReadingEnsurance = 7;
-
 
             [TestCase("12_Kb [1-32].[0-128] E:\\12Kb", // inputFileSettings 
                       "E:\\12Kbgroups",               // groupsFile

@@ -20,7 +20,7 @@ namespace Bigsort.Implementation
 
             var rows = group.Rows;
             int rowLength = group.RowLength,
-                rowsCount = group.RowsCount,
+                bytesCount = group.BytesCount,
                 offset = linesRange.Offset,
                 n = offset + linesRange.Length;
             
@@ -34,34 +34,32 @@ namespace Bigsort.Implementation
                     rowLeftLength = rowLength - j;
 
                 bool isLastLineInGroup =
-                    line.start + lineLength == group.BytesCount;
+                    line.start + lineLength == bytesCount;
 
                 var row = rows[i];
                 if (rowLeftLength < lineLength)
                 {
-                    var nextlength = lineLength - rowLeftLength;
-                    if (!isLastLineInGroup || nextlength != 1)
+                    var nextLength = lineLength - rowLeftLength;
+                    if (isLastLineInGroup)
                     {
-                        output.Write(row, j, rowLeftLength);
+                        nextLength = nextLength - Consts.EndLineBytesCount;
+                        if (nextLength <= 0)
+                            output.Write(row, j, rowLeftLength + nextLength);
+                        else
+                        {
+                            output.Write(row, j, rowLeftLength);
+                            output.Write(rows[i + 1], 0, nextLength);
+                        }
 
-                        // var next = i + 1;
-                        // if (next < rowsCount)
-                        // {
-                            var nextRow = rows[i + 1];
-                            if (isLastLineInGroup)
-                            {
-                                output.Write(nextRow, 0, nextlength - Consts.EndLineBytesCount);
-                                output.Write(Consts.EndLineBytes, 0, Consts.EndLineBytesCount);
-                            }
-                            else
-                            {
-                                nextRow[nextlength - 1] = Consts.EndLineByte2;
-                                output.Write(nextRow, 0, nextlength);
-                            }
-
-                            continue;
-                        //}
+                        output.Write(Consts.EndLineBytes, 0, Consts.EndLineBytesCount);
+                        continue;
                     }
+                    
+                    var nextRow = rows[i + 1];
+                    output.Write(row, j, rowLeftLength);
+                    nextRow[nextLength - 1] = Consts.EndLineByte2;
+                    output.Write(nextRow, 0, nextLength);
+                    continue;
                 }
 
                 if (isLastLineInGroup)

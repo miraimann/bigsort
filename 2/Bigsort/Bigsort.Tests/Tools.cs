@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Bigsort.Tests
 {
-    public static class Tools
+    public static partial class Tools
     {
         public static byte[] BytesOfString_s(
                 string[] lines, bool addEndLines = false) =>
@@ -35,34 +35,18 @@ namespace Bigsort.Tests
                     yield return reader.ReadLine();
         }
 
-        public static HashedBytesArray Hash(byte[] array) =>
-            new HashedBytesArray(array);
-
-        public class HashedBytesArray
-            : IEquatable<HashedBytesArray>
+        public static void Mix<T>(T[] source, int mixesCount)
         {
-            public HashedBytesArray(byte[] value)
+            var random = new Random();
+            for (int i = 0; i < mixesCount; i++)
             {
-                Value = value;
+                var j = random.Next(0, source.Length);
+                var k = random.Next(0, source.Length);
+
+                var temp = source[k];
+                source[k] = source[j];
+                source[j] = temp;
             }
-
-            public byte[] Value { get; }
-
-            public bool Equals(HashedBytesArray other) =>
-                Value.Length == other.Value.Length
-                && Enumerable.Zip(Value, other.Value, (x, y) => x == y)
-                             .All(o => o);
-
-            public override bool Equals(object obj) =>
-                Equals((HashedBytesArray) obj);
-
-            public override int GetHashCode() =>
-                Value.Length >= sizeof(int)
-                    ? BitConverter.ToInt32(Value, 0)
-                    : Value.Reverse() // for little endian
-                           .Select((x, i) => x * (int)Math.Pow(byte.MaxValue, i))
-                           .Sum();
- 
         }
     }
 }
