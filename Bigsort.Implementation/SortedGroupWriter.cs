@@ -12,7 +12,7 @@ namespace Bigsort.Implementation
             _linesStorage = linesStorage;
         }
 
-        public void Write(IGroupBytesMatrix group, 
+        public void Write(IGroupMatrix group, 
                           Range linesRange, 
                           IFileWriter output)
         {

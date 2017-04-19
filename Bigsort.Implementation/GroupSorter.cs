@@ -25,14 +25,14 @@ namespace Bigsort.Implementation
             _lineSegmentsOut = segmentService.DigitsOut;
         }
 
-        public void Sort(IGroupBytesMatrix group, Range linesRange)
+        public void Sort(IGroupMatrix group, Range linesRange)
         {
             _linesIndexesExtractor.ExtractIndexes(group, linesRange);
             Sort(group, linesRange.Offset, linesRange.Length);
         }
 
         private void Sort(
-            IGroupBytesMatrix group, 
+            IGroupMatrix group, 
             int offset, 
             int length)
         {

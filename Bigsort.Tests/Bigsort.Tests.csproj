@@ -62,8 +62,9 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GroupBytesMatrixServiceTests.cs" />
+    <Compile Include="GroupMatrixServiceTests.cs" />
     <Compile Include="GrouperTests.Group.cs" />
+    <Compile Include="Tools.InfinityBuffersPool.cs" />
     <Compile Include="Tools.MemoryReader.cs" />
     <Compile Include="Tools.MemoryWriter.cs" />
     <Compile Include="Tools.GroupGenerator.cs" />

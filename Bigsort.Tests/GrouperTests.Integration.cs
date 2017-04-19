@@ -1,14 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using Bigsort.Contracts;
 using Bigsort.Implementation;
 using Bigsort.Tools.TestFileGenerator;
 using Moq;
 using NUnit.Framework;
 using static Bigsort.Tests.Tools;
+using Range = Bigsort.Contracts.Range;
 
 namespace Bigsort.Tests
 {
@@ -167,8 +166,8 @@ namespace Bigsort.Tests
                             ioService,
                             configMock.Object);
 
-                    IGroupBytesMatrixService groupBytesMatrixService =
-                        new GroupBytesMatrixService(
+                    IGroupMatrixService groupMatrixService =
+                        new GroupMatrixService(
                             buffersPool,
                             configMock.Object);
 
@@ -277,35 +276,29 @@ namespace Bigsort.Tests
                     int j = 0;
                     for (int i = 0; i < Consts.MaxGroupsCount; i++)
                     {
-                        if (summary.GroupsInfo[i] == null)
+                        var info = summary.GroupsInfo[i];
+                        if (info == null)
                             continue;
 
-                        Assert.AreEqual(
-                            expectedGroups[j].BytesCount,
-                            summary.GroupsInfo[i].BytesCount);
+                        var expectedInfo = expectedGroups[j];
+                        Assert.AreEqual(expectedInfo.BytesCount, info.BytesCount);
+                        Assert.AreEqual(expectedInfo.LinesCount, info.LinesCount);
 
-                        Assert.AreEqual(
-                            expectedGroups[j].LinesCount,
-                            summary.GroupsInfo[i].LinesCount);
+                        IGroupMatrix matrix;
+                        Assert.IsTrue(groupMatrixService.TryCreateMatrix(info, out matrix));
 
-                        var rowInfo = groupBytesMatrixService
-                            .CalculateRowsInfo(summary.GroupsInfo[i].BytesCount);
-
-                        IGroupBytesMatrix matrix;
                         using (var reader = ioService.OpenRead(groupsFile))
-                            matrix = groupBytesMatrixService
-                                .LoadMatrix(rowInfo, summary.GroupsInfo[i], reader);
+                            groupMatrixService.LoadGroupToMatrix(matrix, info, reader);
 
-                        var lineIndexes = new LineIndexes[summary.GroupsInfo[i].LinesCount];
+                        var lineIndexes = new LineIndexes[info.LinesCount];
 
                         linesIndexesStorageMock
                             .Setup(o => o.Indexes)
                             .Returns(lineIndexes);
 
-                        linesIndexesExtractor.ExtractIndexes(matrix,
-                            new Contracts.Range(0, summary.GroupsInfo[i].LinesCount));
+                        linesIndexesExtractor.ExtractIndexes(matrix, new Range(0, info.LinesCount));
 
-                        var expectedLines = expectedGroups[j].Lines
+                        var expectedLines = expectedInfo.Lines
                             .Select(o => o.Content)
                             .ToArray();
 
@@ -315,7 +308,7 @@ namespace Bigsort.Tests
                         var expectedLinesDictionary = new Dictionary<HashedBytesArray, int>(
                             summary.GroupsInfo[i].LinesCount);
 
-                        for (int k = 0; k < summary.GroupsInfo[i].LinesCount; k++)
+                        for (int k = 0; k < info.LinesCount; k++)
                         {
                             var hashedLine = Hash(expectedLines[k]);
                             if (expectedLinesDictionary.ContainsKey(hashedLine))
@@ -328,7 +321,7 @@ namespace Bigsort.Tests
 //                             .Values.Sum(o => o);
 // #endif
 #endregion
-                        for (int k = 0; k < summary.GroupsInfo[i].LinesCount; k++)
+                        for (int k = 0; k < info.LinesCount; k++)
                         {
                             var lineLength = lineIndexes[k].lettersCount
                                            + lineIndexes[k].digitsCount

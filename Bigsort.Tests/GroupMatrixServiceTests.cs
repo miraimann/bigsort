@@ -6,11 +6,12 @@ using Bigsort.Contracts;
 using Bigsort.Implementation;
 using Moq;
 using NUnit.Framework;
+using static Bigsort.Tests.Tools;
 
 namespace Bigsort.Tests
 {
     [TestFixture]
-    public class GroupBytesMatrixServiceTests
+    public class GroupMatrixServiceTests
     {
         [Test]
         [Timeout(10000)]
@@ -27,17 +28,10 @@ namespace Bigsort.Tests
                 .SetupGet(o => o.GroupBufferRowReadingEnsurance)
                 .Returns(readingEnsurance);
 
-            IUsingHandleMaker usingHandleMaker =
-                new UsingHandleMaker();
+            var buffersPool = new InfinityBuffersPool(bufferSize);
 
-            IPoolMaker poolMaker = 
-                new PoolMaker(usingHandleMaker);
-
-            IBuffersPool buffersPool = 
-                new BuffersPool(poolMaker, configMock.Object);
-
-            IGroupBytesMatrixService service = 
-                new GroupBytesMatrixService(buffersPool, configMock.Object);
+            IGroupMatrixService service = 
+                new GroupMatrixService(buffersPool, configMock.Object);
 
             var lastBlock = blocks.Value[blocks.Value.Length - 1];
             var inputSize = lastBlock.Offset + lastBlock.Length;
@@ -54,20 +48,7 @@ namespace Bigsort.Tests
             }
 
             var inputStream = new MemoryStream(input);
-            var fileReaderMock = new Mock<IFileReader>();
-            fileReaderMock
-                .SetupGet(o => o.Length)
-                .Returns(inputSize);
-            fileReaderMock
-                .SetupGet(o => o.Position)
-                .Returns(() => inputStream.Position);
-            fileReaderMock
-                .SetupSet(o => o.Position = It.IsAny<long>())
-                .Callback((long value) => inputStream.Position = value);
-            fileReaderMock
-                .Setup(o => o.Read(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>()))
-                .Returns((byte[] buff, int offset, int length) => 
-                                inputStream.Read(buff, offset, length));
+            var reader = new MemoryReader(inputStream);
 
             var linesCount = random.Next(0, int.MaxValue);
             var bytesCount = (int)blocks.Value.Sum(o => o.Length);
@@ -87,21 +68,23 @@ namespace Bigsort.Tests
             var expectedRowsCount = (bytesCount / expectedRowLength)
                                   + (bytesCount % expectedRowLength == 0 ? 0 : 1);
 
-            var rowInfo = service.CalculateRowsInfo(bytesCount);
-            
-            Assert.AreEqual(expectedRowLength, rowInfo.RowLength);
-            Assert.AreEqual(expectedRowsCount, rowInfo.RowsCount);
-            
-            var group = service.LoadMatrix(
-                rowInfo,
-                groupInfoMock.Object,
-                fileReaderMock.Object);
+            IGroupMatrix matrix;
 
-            Assert.AreEqual(expectedRowLength, group.RowLength);
-            Assert.AreEqual(expectedRowsCount, group.RowsCount);
-            Assert.AreEqual(expectedRowsCount, group.Rows.Length);
-            Assert.AreEqual(linesCount, group.LinesCount);
-            Assert.AreEqual(bytesCount, group.BytesCount);
+            Assert.IsTrue(service.TryCreateMatrix(groupInfoMock.Object, out matrix));
+
+            Assert.AreEqual(expectedRowLength, matrix.RowLength);
+            Assert.AreEqual(expectedRowsCount, matrix.RowsCount);
+            Assert.AreEqual(expectedRowsCount, matrix.Rows.Length);
+            Assert.AreEqual(linesCount, matrix.LinesCount);
+            Assert.AreEqual(bytesCount, matrix.BytesCount);
+
+            service.LoadGroupToMatrix(matrix, groupInfoMock.Object, reader);
+
+            Assert.AreEqual(expectedRowLength, matrix.RowLength);
+            Assert.AreEqual(expectedRowsCount, matrix.RowsCount);
+            Assert.AreEqual(expectedRowsCount, matrix.Rows.Length);
+            Assert.AreEqual(linesCount, matrix.LinesCount);
+            Assert.AreEqual(bytesCount, matrix.BytesCount);
             
             var expectedGroupBytes =
                 blocks.Value
@@ -110,15 +93,15 @@ namespace Bigsort.Tests
                       .Aggregate(Enumerable.Concat)
                       .ToArray();
 #region DEBUG
-#if DEBUG
-            var expectedGroupBytesInLine = 
-                string.Join(", ", expectedGroupBytes.Select(o => $"{o:000}"));
-            
-            var actualGroupBytesInLine =
-                string.Join(", ", group.Select(o => $"{o:000}"));
-#endif
+// #if DEBUG
+//             var expectedGroupBytesInLine = 
+//                 string.Join(", ", expectedGroupBytes.Select(o => $"{o:000}"));
+//             
+//             var actualGroupBytesInLine =
+//                 string.Join(", ", matrix.Select(o => $"{o:000}"));
+// #endif
 #endregion
-            CollectionAssert.AreEqual(expectedGroupBytes, group);
+            CollectionAssert.AreEqual(expectedGroupBytes, matrix);
         }
 
         public static int[] BufferSizes = Enumerable.Range(8, 16).ToArray();

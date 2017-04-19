@@ -57,7 +57,7 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GroupBytesMatrixService.cs" />
+    <Compile Include="GroupMatrixService.cs" />
     <Compile Include="Grouper.cs" />
     <Compile Include="BuffersPool.cs" />
     <Compile Include="GrouperBuffersProviderMaker.cs" />
@@ -70,6 +70,7 @@
     <Compile Include="GroupsSummaryInfoMarger.cs" />
     <Compile Include="PoolMaker.cs" />
     <Compile Include="SortedGroupWriter.cs" />
+    <Compile Include="Sorter1.cs" />
     <Compile Include="Sorter.cs" />
     <Compile Include="UsingHandleMaker.cs" />
     <Compile Include="GroupSorter.cs" />

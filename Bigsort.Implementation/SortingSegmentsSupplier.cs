@@ -25,10 +25,10 @@ namespace Bigsort.Implementation
             _segmentSize = _segment.SegmentSize;
         }
 
-        public void SupplyNext(IGroupBytesMatrix group, Range linesRange) =>
+        public void SupplyNext(IGroupMatrix group, Range linesRange) =>
             SupplyNext(group, linesRange.Offset, linesRange.Length);
 
-        public void SupplyNext(IGroupBytesMatrix group, int offset, int count)
+        public void SupplyNext(IGroupMatrix group, int offset, int count)
         {
             var lines = _linesStorage.Indexes;
             var segments = _linesStorage.Segments;
@@ -75,7 +75,7 @@ namespace Bigsort.Implementation
             }
         }
 
-        private TSegment Read(IGroupBytesMatrix group, int i)
+        private TSegment Read(IGroupMatrix group, int i)
         {
             int rowLength = group.RowLength,
                 cellIndex = i % rowLength,

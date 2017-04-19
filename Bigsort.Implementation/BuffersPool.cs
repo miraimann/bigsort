@@ -15,5 +15,13 @@ namespace Bigsort.Implementation
 
         public IUsingHandle<byte[]> GetBuffer() =>
             _implementation.Get();
+
+        public IUsingHandle<byte[][]> TryGetBuffers(int count)
+        {
+            IUsingHandle<byte[][]> buffersHandle;
+            if (_implementation.TryGetRange(count, out buffersHandle))
+                return buffersHandle;
+            return null;
+        }
     }
 }

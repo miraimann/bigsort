@@ -26,25 +26,60 @@ namespace Bigsort.Implementation
         private class Pool<T>
             : IPool<T>
         {
+            private readonly Func<T, IUsingHandle<T>> _handle;
+            private readonly Func<T[], IUsingHandle<T[]>> _handleRange;
+
             private readonly Func<T> _createProduct;
-            private readonly Action<T> _clearProduct;
             private readonly Action<T> _destructProduct;
             private bool _disposed = false;
-
-            private readonly IUsingHandleMaker _usingHandleMaker;
-            private readonly ConcurrentQueue<T> _storage =
-                new ConcurrentQueue<T>();
+            
+            private readonly ConcurrentStack<T> _storage = 
+                new ConcurrentStack<T>();
 
             public Pool(
-                IUsingHandleMaker usingHandleMaker, 
+                IUsingHandleMaker handleMaker, 
                 Func<T> productFactory, 
                 Action<T> productCleaner, 
                 Action<T> productDestructor)
             {
-                _usingHandleMaker = usingHandleMaker;
                 _createProduct = productFactory;
-                _clearProduct = productCleaner;
                 _destructProduct = productDestructor;
+
+                var clear = productCleaner;
+                var clearAndPush = clear + _storage.Push;
+                var clearAndPushRange = productCleaner == null
+                    ? new Action<T[]>(_storage.PushRange)
+                    : products =>
+                    {
+                        foreach (var x in products) clear(x);
+                        _storage.PushRange(products);
+                    };
+
+                if (productDestructor == null)
+                {
+                    _handle = product => handleMaker.Make(product, clearAndPush);
+                    _handleRange = products => handleMaker.Make(products, clearAndPushRange);
+                }
+                else
+                {
+                    _handle = product => handleMaker.Make(product, x =>
+                        (_disposed
+                                ? _destructProduct
+                                : clearAndPush)
+                            (x));
+
+                    Action<T[]> destructRange = products =>
+                    {
+                        foreach (var x in products)
+                            _destructProduct(x);
+                    };
+
+                    _handleRange = products => handleMaker.Make(products, x =>
+                        (_disposed
+                                ? destructRange
+                                : clearAndPushRange)
+                            (x));
+                }
             }
 
             public IUsingHandle<T> Get()
@@ -52,44 +87,61 @@ namespace Bigsort.Implementation
                 IUsingHandle<T> handle;
                 if (TryGet(out handle))
                     return handle;
-
-                _storage.Enqueue(_createProduct());
+                
+                _storage.Push(_createProduct());
                 return Get();
             }
 
             public bool TryGet(out IUsingHandle<T> productHandle)
             {
                 T product;
-                if (_storage.TryDequeue(out product))
-                {
-                    productHandle = _usingHandleMaker.Make(product, x =>
-                    {
-                        if (_disposed) _destructProduct?.Invoke(x);
-                        else
-                        {
-                            _clearProduct?.Invoke(x);
-                            _storage.Enqueue(x);
-                        }
-                    });
+                var success = _storage.TryPop(out product);
+                productHandle = success
+                    ? _handle(product)
+                    : null;
 
-                    return true;
-                }
-
-                productHandle = null;
-                return false;
+                return success;
             }
 
             public bool TryExtract(out T product)
             {
                 IUsingHandle<T> handle;
-                if (TryGet(out handle))
+                var success = TryGet(out handle);
+                product = success 
+                    ? handle.Value 
+                    : default(T);
+
+                return success;
+            }
+
+            public IUsingHandle<T[]> GetRange(int count)
+            {
+                throw new NotImplementedException();
+            }
+
+            public bool TryGetRange(int count, out IUsingHandle<T[]> productsHandle)
+            {
+                if (_storage.Count >= count)
                 {
-                    product = handle.Value;
-                    return true;
+                    T[] products = new T[count];
+                    var poppedCount = _storage.TryPopRange(products);
+                    if (poppedCount == count)
+                    {
+                        productsHandle = _handleRange(products);
+                        return true;
+                    }
+
+                    if (poppedCount != 0)
+                        _storage.PushRange(products, 0, poppedCount);
                 }
 
-                product = default(T);
+                productsHandle = null;
                 return false;
+            }
+
+            public bool TryExtractRange(int count, out T[] products)
+            {
+                throw new NotImplementedException();
             }
 
             public void Dispose()

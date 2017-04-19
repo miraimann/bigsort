@@ -45,16 +45,14 @@ namespace Bigsort.Tests
             {
                 public Mock<IConfig> ConfigMock;
 
-                public IUsingHandleMaker DisposableValueMaker;
+                public IBuffersPool BuffersPool;
+                public IUsingHandleMaker UsingHandleMaker;
                 public ILinesReservation<T> LinesReservation;
                 public ILinesIndexesExtractor LinesIndexesExtractor;
                 public ISegmentService<T> SegmentService;
                 public ISortingSegmentsSupplier SegmentsSupplier;
-                public IGroupBytesMatrixService GroupBytesMatrixService;
+                public IGroupMatrixService GroupMatrixService;
                 public IIoService IoService;
-                public IUsingHandleMaker UsingHandleMaker;
-                public IPoolMaker PoolMaker;
-                public IBuffersPool BuffersPool;
                 public ISortedGroupWriter SortedGroupWriter;
                 public IGroupSorter Sorter;
 
@@ -75,9 +73,9 @@ namespace Bigsort.Tests
                         .SetupGet(o => o.MaxMemoryForLines)
                         .Returns(MaxMemoryForLines);
 
-                    DisposableValueMaker = new UsingHandleMaker();
+                    UsingHandleMaker = new UsingHandleMaker();
                     LinesReservation = new LinesReservation<T>(
-                        DisposableValueMaker,
+                        UsingHandleMaker,
                         ConfigMock.Object);
 
                     LinesIndexesExtractor = new LinesIndexesExtractor(
@@ -93,12 +91,9 @@ namespace Bigsort.Tests
                         LinesReservation,
                         SegmentService);
 
-                    UsingHandleMaker = new UsingHandleMaker();
-                    PoolMaker = new PoolMaker(UsingHandleMaker);
-                    BuffersPool = new BuffersPool(PoolMaker, ConfigMock.Object);
-
+                    BuffersPool = new InfinityBuffersPool(BufferSize);
                     IoService = new IoService(BuffersPool);
-                    GroupBytesMatrixService = new GroupBytesMatrixService(
+                    GroupMatrixService = new GroupMatrixService(
                         BuffersPool,
                         ConfigMock.Object);
 
@@ -120,27 +115,27 @@ namespace Bigsort.Tests
                     new UInt64SegmentService());
             }
 
-            [TestCase(32, 128, 100, 32 * 1024,
+            [TestCase(32, 128, 100,
                 new [] { ForByte, ForUInt32, ForUInt64 }, true
                 , Ignore = "for hands run only"
             )]
 
-            [TestCase(128, 225, 10000, 32 * 1024,
+            [TestCase(128, 225, 10000,
                 new[] { ForUInt64 }, true
                 , Ignore = "for hands run only"
              )]
 
-            [TestCase(128, 225, 100000, 32 * 1024,
+            [TestCase(128, 225, 100000,
                 new[] { ForUInt64 }, true
                 , Ignore = "for hands run only"
              )]
 
-            [TestCase(128, 225, 1000000, 32 * 1024,
+            [TestCase(128, 225, 1000000,
                 new[] { ForUInt64 }, true
                 , Ignore = "for hands run only"
              )]
 
-            [TestCase(128, 225, 10000000, 32 * 1024, 
+            [TestCase(128, 225, 10000000, 
                 new [] { ForUInt64 }, true
                 , Ignore = "for hands run only"
              )]
@@ -149,7 +144,6 @@ namespace Bigsort.Tests
                 int maxNumberLength,
                 int maxStringLength,
                 int linesCount,
-                int buffSize,
                 int[] actualSorters,
                 bool clear = true)
             {
@@ -243,15 +237,13 @@ namespace Bigsort.Tests
             private Func<IGroupInfo, string, string, string, bool> RunnerFor<T>(Setup<T> setup)
                 where T : IEquatable<T>, IComparable<T> => (group, inputPath, outputPath, logPrefix) =>
             {
-                DateTime t = DateTime.Now;
-                
-                var rowsInfo = setup
-                    .GroupBytesMatrixService
-                    .CalculateRowsInfo(group.BytesCount);
+                var t = DateTime.Now;
+                IGroupMatrix matrix;
+                if (!setup.GroupMatrixService.TryCreateMatrix(group, out matrix))
+                    return false;
 
-                IGroupBytesMatrix groupBytes;
                 using (var reader = setup.IoService.OpenRead(inputPath))
-                    groupBytes = setup.GroupBytesMatrixService.LoadMatrix(rowsInfo, group, reader);
+                    setup.GroupMatrixService.LoadGroupToMatrix(matrix, group, reader);
 
                 Out?.WriteLine($"[{logPrefix}] group loading time: " +
                                $"{DateTime.Now - t}");
@@ -262,13 +254,13 @@ namespace Bigsort.Tests
                      .TryReserveRange(group.LinesCount, out linesRangeHandle);
  
                 t = DateTime.Now;
-                setup.Sorter.Sort(groupBytes, linesRangeHandle.Value);
+                setup.Sorter.Sort(matrix, linesRangeHandle.Value);
                 Out?.WriteLine($"[{logPrefix}] group sorting time: " +
                                $"{DateTime.Now - t}");
 
                 t = DateTime.Now;
                 using (var output = setup.IoService.OpenWrite(outputPath))
-                    setup.SortedGroupWriter.Write(groupBytes, linesRangeHandle.Value, output);
+                    setup.SortedGroupWriter.Write(matrix, linesRangeHandle.Value, output);
                 Out?.WriteLine($"[{logPrefix}] result writing time: " +
                                $"{DateTime.Now - t}");
 

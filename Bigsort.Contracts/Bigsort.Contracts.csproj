@@ -56,7 +56,6 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="IGroupBytesMatrixRowsInfo.cs" />
     <Compile Include="IGrouperIOMaker.cs" />
     <Compile Include="IGrouperBuffersProvider.cs" />
     <Compile Include="IGrouperBuffersProviderMaker.cs" />
@@ -78,11 +77,11 @@
     <Compile Include="Range.cs" />
     <Compile Include="IBuffersPool.cs" />
     <Compile Include="IFixedSizeList.cs" />
-    <Compile Include="IGroupBytesMatrix.cs" />
+    <Compile Include="IGroupMatrix.cs" />
     <Compile Include="IConfig.cs" />
     <Compile Include="IGrouper.cs" />
     <Compile Include="IGroupInfo.cs" />
-    <Compile Include="IGroupBytesMatrixService.cs" />
+    <Compile Include="IGroupMatrixService.cs" />
     <Compile Include="ISegmentService.cs" />
     <Compile Include="IGroupSorter.cs" />
     <Compile Include="IIoService.cs" />

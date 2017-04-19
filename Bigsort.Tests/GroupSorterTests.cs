@@ -30,17 +30,15 @@ namespace Bigsort.Tests
             public readonly LineIndexes[] StorageLineIndexes;
             public readonly T[] Segments;
             public readonly MemoryStream GroupsFileStream;
-            public readonly IPoolMaker PoolMaker;
-            public readonly IBuffersPool BuffersPool;
-            public readonly IUsingHandleMaker UsingHandleMaker;
             public readonly ISegmentService<T> SegmentService;
             public readonly ISortingSegmentsSupplier SortingSegmentsSupplier;
-
+            
             public readonly IGroupSorter GroupSorter;
 
+            public IBuffersPool BuffersPool;
             public LineIndexes[] LineIndexes;
-            public IGroupBytesMatrixService GroupBytesMatrixService;
-            public IGroupBytesMatrix Group;
+            public IGroupMatrixService GroupMatrixService;
+            public IGroupMatrix Group;
 
             public Setup(ISegmentService<T> segmentService)
             {
@@ -79,13 +77,7 @@ namespace Bigsort.Tests
                 MockOf.Config
                       .SetupGet(o => o.GroupBufferRowReadingEnsurance)
                       .Returns(GroupBufferRowReadingEnsurance);
-
-                UsingHandleMaker = new UsingHandleMaker();
-                PoolMaker = new PoolMaker(UsingHandleMaker);
-                BuffersPool = new BuffersPool(
-                    PoolMaker,
-                    MockOf.Config.Object);
-
+                
                 SegmentService = segmentService;
                 SortingSegmentsSupplier = new SortingSegmentsSupplier<T>(
                     MockOf.LinesStorage.Object,
@@ -114,7 +106,8 @@ namespace Bigsort.Tests
                       .SetupGet(o => o.BufferSize)
                       .Returns(buffSize);
 
-                GroupBytesMatrixService = new GroupBytesMatrixService(
+                BuffersPool = new InfinityBuffersPool(buffSize);
+                GroupMatrixService = new GroupMatrixService(
                        BuffersPool,
                        MockOf.Config.Object);
 
@@ -138,13 +131,12 @@ namespace Bigsort.Tests
                 GroupsFileStream.Position = 0;
 
                 LineIndexes = testCase.InputLines;
+                
+                Assert.IsTrue(GroupMatrixService.TryCreateMatrix(
+                    MockOf.GroupInfo.Object, out Group));
 
-                var rowsInfo = GroupBytesMatrixService
-                      .CalculateRowsInfo(bytesCount);
-
-                Group = GroupBytesMatrixService.LoadMatrix(
-                    rowsInfo, 
-                    MockOf.GroupInfo.Object, 
+                GroupMatrixService.LoadGroupToMatrix(Group, 
+                    MockOf.GroupInfo.Object,
                     new MemoryReader(GroupsFileStream));
             }
 

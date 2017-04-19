@@ -9,7 +9,7 @@ namespace Bigsort.Implementation
     {
         private readonly ILinesReservation<TSegment> _linesReservation;
         private readonly IPoolMaker _poolMaker;
-        private readonly IGroupBytesMatrixService _groupBytesMatrixService;
+        private readonly IGroupMatrixService _groupMatrixService;
         private readonly IGroupSorter _groupSorter;
         private readonly ISortedGroupWriter _sortedGroupWriter;
         private readonly IIoService _ioService;
@@ -17,7 +17,7 @@ namespace Bigsort.Implementation
 
         public Sorter(
             ILinesReservation<TSegment> linesReservation,
-            IGroupBytesMatrixService groupBytesMatrixService,
+            IGroupMatrixService groupMatrixService,
             IGroupSorter groupSorter,
             ISortedGroupWriter sortedGroupWriter,
             IIoService ioService,
@@ -25,7 +25,7 @@ namespace Bigsort.Implementation
             IPoolMaker poolMaker)
         {
             _linesReservation = linesReservation;
-            _groupBytesMatrixService = groupBytesMatrixService;
+            _groupMatrixService = groupMatrixService;
             _groupSorter = groupSorter;
             _sortedGroupWriter = sortedGroupWriter;
             _ioService = ioService;
@@ -60,10 +60,7 @@ namespace Bigsort.Implementation
                         groupsSorted.Signal();
                         continue;
                     }
-
-                    var rowsInfo = _groupBytesMatrixService
-                        .CalculateRowsInfo(groupInfo.BytesCount);
-
+                    
                     var groupPosition = possition;
                     Action sortGroup = null;
                     sortGroup = () =>
@@ -71,19 +68,26 @@ namespace Bigsort.Implementation
                         IUsingHandle<Range> rangeHandle;
                         if (_linesReservation.TryReserveRange(groupInfo.LinesCount, out rangeHandle))
                             using (rangeHandle)
-                            using (var groupsReaderHandle = groupsReadersPool.Get())
-                            using (var resultWriterHandle = resultWritersPool.Get())
-                            using (var group = _groupBytesMatrixService
-                                                    .LoadMatrix(rowsInfo, groupInfo, groupsReaderHandle.Value))
                             {
-                                var linesRange = rangeHandle.Value;
-                                _groupSorter.Sort(group, linesRange);
+                                IGroupMatrix matrix;
+                                if (_groupMatrixService.TryCreateMatrix(groupInfo, out matrix))
+                                    using (matrix)
+                                    using (var reader = groupsReadersPool.Get())
+                                    using (var writer = resultWritersPool.Get())
+                                    {
+                                        _groupMatrixService.LoadGroupToMatrix(matrix, groupInfo, reader.Value);
 
-                                resultWriterHandle.Value.Position = groupPosition;
-                                _sortedGroupWriter.Write(group, linesRange, resultWriterHandle.Value);
-                                groupsSorted.Signal();
+                                        var linesRange = rangeHandle.Value;
+                                        _groupSorter.Sort(matrix, linesRange);
+
+                                        writer.Value.Position = groupPosition;
+                                        _sortedGroupWriter.Write(matrix, linesRange, writer.Value);
+                                        groupsSorted.Signal();
+                                        return;
+                                    }
                             }
-                        else _tasksQueue.Enqueue(sortGroup);
+                        
+                        _tasksQueue.Enqueue(sortGroup);
                     };
 
                     _tasksQueue.Enqueue(sortGroup);

@@ -74,8 +74,8 @@ namespace Bigsort.Lib
                     tasksQueue,
                     config);
 
-            IGroupBytesMatrixService groupBytesMatrixService =
-                new GroupBytesMatrixService(
+            IGroupMatrixService groupBytesMatrixService =
+                new GroupMatrixService(
                     buffersPool,
                     config);
 

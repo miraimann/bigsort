@@ -40,13 +40,13 @@ namespace Bigsort.Tests
                         bufferSize - readingEnsurance);
             
             var linesIndexes = new LineIndexes[linesCount];
-            var linesSorageMock = new Mock<ILinesIndexesStorage>();
+            var linesStorageMock = new Mock<ILinesIndexesStorage>();
 
-            linesSorageMock
+            linesStorageMock
                 .SetupGet(o => o.Length)
                 .Returns(linesCount);
 
-            linesSorageMock
+            linesStorageMock
                 .Setup(o => o.Indexes)
                 .Returns(linesIndexes);
 
@@ -58,23 +58,17 @@ namespace Bigsort.Tests
                 .SetupGet(o => o.GroupBufferRowReadingEnsurance)
                 .Returns(readingEnsurance);
 
-            IUsingHandleMaker usingHandleMaker =
-                new UsingHandleMaker();
+            IBuffersPool buffersPool = 
+                new InfinityBuffersPool(bufferSize);
 
-            IPoolMaker poolMaker =
-                new PoolMaker(usingHandleMaker);
-
-            IBuffersPool buffersPool =
-                new BuffersPool(poolMaker, configMock.Object);
-
-            IGroupBytesMatrixService groupBytesMatrixService =
-                new GroupBytesMatrixService(buffersPool, configMock.Object);
+            IGroupMatrixService groupMatrixService =
+                new GroupMatrixService(buffersPool, configMock.Object);
 
             ISortedGroupWriter sortedGroupWriter = 
-                new SortedGroupWriter(linesSorageMock.Object);
+                new SortedGroupWriter(linesStorageMock.Object);
 
             ILinesIndexesExtractor linesIndexesExtractor = 
-                new LinesIndexesExtractor(linesSorageMock.Object);
+                new LinesIndexesExtractor(linesStorageMock.Object);
 
             var lines = GroupLinesGenerator
                 .Generate("ox", linesCount, maxNumberLength, maxStingLength)
@@ -97,15 +91,16 @@ namespace Bigsort.Tests
             groupInfoMock
                 .SetupGet(o => o.Mapping)
                 .Returns(new[] {new LongRange(0, groupStream.Length) });
-            
-            var rowInfo = groupBytesMatrixService
-                .CalculateRowsInfo((int) groupStream.Length);
 
-            var group = groupBytesMatrixService
-                .LoadMatrix(rowInfo, groupInfoMock.Object, groupReader);
+            IGroupMatrix matrix;
+            Assert.IsTrue(groupMatrixService
+                .TryCreateMatrix(groupInfoMock.Object, out matrix));
+
+            groupMatrixService
+                .LoadGroupToMatrix(matrix, groupInfoMock.Object, groupReader);
 
             linesIndexesExtractor
-                .ExtractIndexes(group, new Contracts.Range(0, linesCount));
+                .ExtractIndexes(matrix, new Contracts.Range(0, linesCount));
 
             var indexedLines = Enumerable
                 .Zip(lines, linesIndexes, 
@@ -133,14 +128,14 @@ namespace Bigsort.Tests
                 .Select(o => o.indexes)
                 .ToArray();
             
-            linesSorageMock
+            linesStorageMock
                 .Setup(o => o.Indexes)
                 .Returns(linesIndexes);
             
             var mixedGroupStream = new MemoryStream((int) groupStream.Length);
             var mixedGroupWriter = new MemoryWriter(mixedGroupStream);
 
-            sortedGroupWriter.Write(group, 
+            sortedGroupWriter.Write(matrix, 
                 new Contracts.Range(0, linesCount),
                 mixedGroupWriter);
 
