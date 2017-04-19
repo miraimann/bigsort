@@ -69,7 +69,7 @@
     <Compile Include="IMultiUsingHandle.cs" />
     <Compile Include="IPool.cs" />
     <Compile Include="IPoolMaker.cs" />
-    <Compile Include="IPriorityTasksQueue.cs" />
+    <Compile Include="ISorter.cs" />
     <Compile Include="IUsingHandleMaker.cs" />
     <Compile Include="ILinesIndexesStorage.cs" />
     <Compile Include="ILinesReservation.cs" />
@@ -87,7 +87,7 @@
     <Compile Include="IGroupSorter.cs" />
     <Compile Include="IIoService.cs" />
     <Compile Include="ILinesIndexesExtractor.cs" />
-    <Compile Include="ISorter.cs" />
+    <Compile Include="IBigSorter.cs" />
     <Compile Include="ISortedGroupWriter.cs" />
     <Compile Include="ISortingSegmentsSupplier.cs" />
     <Compile Include="IUsingHandle.cs" />

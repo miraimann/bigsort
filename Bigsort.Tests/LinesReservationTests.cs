@@ -7,6 +7,7 @@ using Moq;
 using NUnit.Framework;
 using static Bigsort.Tests.Tools;
 using Range = Bigsort.Contracts.Range;
+// ReSharper disable EmptyEmbeddedStatement
 
 namespace Bigsort.Tests
 {

@@ -6,7 +6,7 @@ namespace Bigsort.Lib
 {
     public class IoC
     {
-        internal ISorter BuildSorter<TSegment>(
+        internal IBigSorter BuildBigSorter<TSegment>(
             ISegmentService<TSegment> segmentService,
             IConfig config)
 
@@ -104,34 +104,38 @@ namespace Bigsort.Lib
             ISortedGroupWriter sortedGroupWriter =
                 new SortedGroupWriter(
                     linesIndexesStorage);
-
+            
             ISorter sorter =
                 new Sorter<TSegment>(
                     linesReservation,
-                    grouper,
                     groupBytesMatrixService,
                     groupSorter,
                     sortedGroupWriter,
                     ioService,
                     tasksQueue,
-                    poolMaker,
-                    config);
+                    poolMaker);
 
-            return sorter;
+            IBigSorter bigSorter =
+                new BigSorter(
+                    ioService,
+                    grouper,
+                    sorter);
+
+            return bigSorter;
         }
 
-        public ISorter BuildSorter()
+        public IBigSorter BuildBigSorter()
         {
             IConfig config = new Config();
 
             if (config.SortingSegment == "byte")
-                return BuildSorter(new ByteSegmentService(), config);
+                return BuildBigSorter(new ByteSegmentService(), config);
 
             if (config.SortingSegment == "uint")
-                return BuildSorter(new UInt32SegmentService(), config);
+                return BuildBigSorter(new UInt32SegmentService(), config);
 
             // if (config.SortingSegment == "ulong")
-            return BuildSorter(new UInt64SegmentService(), config);
+            return BuildBigSorter(new UInt64SegmentService(), config);
         }
     }
 }

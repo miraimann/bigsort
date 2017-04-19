@@ -70,11 +70,12 @@
     <Compile Include="GroupsSummaryInfoMarger.cs" />
     <Compile Include="PoolMaker.cs" />
     <Compile Include="SortedGroupWriter.cs" />
+    <Compile Include="Sorter.cs" />
     <Compile Include="UsingHandleMaker.cs" />
     <Compile Include="GroupSorter.cs" />
     <Compile Include="IoService.cs" />
     <Compile Include="LinesIndexesExtractor.cs" />
-    <Compile Include="Sorter.cs" />
+    <Compile Include="BigSorter.cs" />
     <Compile Include="LinesReservation.cs" />
     <Compile Include="SortingSegmentsSupplier.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
