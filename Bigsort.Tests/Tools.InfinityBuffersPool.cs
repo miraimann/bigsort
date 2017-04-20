@@ -14,6 +14,9 @@ namespace Bigsort.Tests
                 _bufferSize = bufferSize;
             }
 
+            public int Count =>
+                int.MaxValue;
+
             public IUsingHandle<byte[]> GetBuffer() =>
                 new ZeroHandle<byte[]>(new byte[_bufferSize]);
 
@@ -25,6 +28,8 @@ namespace Bigsort.Tests
 
                 return new ZeroHandle<byte[][]>(buffers);
             }
+
+            public void Free(int _) { }
 
             private class ZeroHandle<T>
                 : IUsingHandle<T>

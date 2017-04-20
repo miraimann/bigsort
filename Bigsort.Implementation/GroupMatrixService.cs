@@ -21,11 +21,12 @@ namespace Bigsort.Implementation
                        - config.GroupBufferRowReadingEnsurance;
         }
 
+        public int RowsCountFor(int bytesCount) =>
+            (int) Math.Ceiling((double) bytesCount / _rowLength);
+
         public bool TryCreateMatrix(IGroupInfo groupInfo, out IGroupMatrix matrix)
         {
-            var rowsCount = (int)Math.Ceiling(
-                (double)groupInfo.BytesCount / _rowLength);
-
+            var rowsCount = RowsCountFor(groupInfo.BytesCount);
             var rows = _buffersPool.TryGetBuffers(rowsCount);
             if (rows == null)
             {

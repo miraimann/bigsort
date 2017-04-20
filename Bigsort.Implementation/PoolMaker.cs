@@ -82,6 +82,9 @@ namespace Bigsort.Implementation
                 }
             }
 
+            public int Count =>
+                _storage.Count;
+
             public IUsingHandle<T> Get()
             {
                 IUsingHandle<T> handle;
@@ -121,7 +124,7 @@ namespace Bigsort.Implementation
 
             public bool TryGetRange(int count, out IUsingHandle<T[]> productsHandle)
             {
-                if (_storage.Count >= count)
+                if (Count >= count)
                 {
                     T[] products = new T[count];
                     var poppedCount = _storage.TryPopRange(products);
@@ -142,6 +145,15 @@ namespace Bigsort.Implementation
             public bool TryExtractRange(int count, out T[] products)
             {
                 throw new NotImplementedException();
+            }
+
+            public void Free(int count)
+            {
+                T[] linkOut = new T[count];
+                count = _storage.TryPopRange(linkOut);
+                if (_destructProduct != null)
+                    for (int i = 0; i < count; i++)
+                        _destructProduct(linkOut[i]);
             }
 
             public void Dispose()

@@ -65,7 +65,7 @@
     <Compile Include="IGroupsLinesWriterMaker.cs" />
     <Compile Include="IGroupsSummaryInfo.cs" />
     <Compile Include="IGroupsSummaryInfoMarger.cs" />
-    <Compile Include="IMultiUsingHandle.cs" />
+    <Compile Include="IMemoryOptimizer.cs" />
     <Compile Include="IPool.cs" />
     <Compile Include="IPoolMaker.cs" />
     <Compile Include="ISorter.cs" />

@@ -68,6 +68,7 @@
     <Compile Include="GroupInfoMonoid.cs" />
     <Compile Include="GroupsLinesWriterMaker.cs" />
     <Compile Include="GroupsSummaryInfoMarger.cs" />
+    <Compile Include="MemoryOptimizer.cs" />
     <Compile Include="PoolMaker.cs" />
     <Compile Include="SortedGroupWriter.cs" />
     <Compile Include="Sorter1.cs" />

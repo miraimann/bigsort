@@ -21,11 +21,16 @@ namespace Bigsort.Implementation
         {
             _disposableValueMaker = disposableValueMaker;
             _config = config;
+
+            LineSize = Marshal.SizeOf<LineIndexes>()
+                     + Marshal.SizeOf<TSegment>();
         }
 
         public int Length { get; private set; }
         public LineIndexes[] Indexes { get; private set; }
         public TSegment[] Segments { get; private set; }
+
+        public int LineSize { get; }
 
         public void Load(int capacity)
         {

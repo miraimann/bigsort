@@ -13,6 +13,9 @@ namespace Bigsort.Implementation
                 productFactory: () => new byte[config.BufferSize]);
         }
 
+        public int Count =>
+            _implementation.Count;
+
         public IUsingHandle<byte[]> GetBuffer() =>
             _implementation.Get();
 
@@ -23,5 +26,8 @@ namespace Bigsort.Implementation
                 return buffersHandle;
             return null;
         }
+
+        public void Free(int count) =>
+            _implementation.Free(count);
     }
 }
