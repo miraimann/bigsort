@@ -74,7 +74,7 @@ namespace Bigsort.Lib
                     tasksQueue,
                     config);
 
-            IGroupMatrixService groupBytesMatrixService =
+            IGroupMatrixService groupMatrixService =
                 new GroupMatrixService(
                     buffersPool,
                     config);
@@ -105,10 +105,29 @@ namespace Bigsort.Lib
                 new SortedGroupWriter(
                     linesIndexesStorage);
             
-            ISorter sorter =
-                new Sorter<TSegment>(
+            IMemoryOptimizer memoryOptimizer =
+                new MemoryOptimizer(
+                    groupMatrixService,
                     linesReservation,
-                    groupBytesMatrixService,
+                    buffersPool,
+                    config);
+
+            ISorter sorter1 = 
+                new Sorter1(
+                    linesReservation,
+                    groupMatrixService,
+                    groupSorter,
+                    memoryOptimizer,
+                    sortedGroupWriter,
+                    ioService,
+                    tasksQueue,
+                    poolMaker,
+                    config);
+
+            ISorter sorter =
+                new Sorter(
+                    linesReservation,
+                    groupMatrixService,
                     groupSorter,
                     sortedGroupWriter,
                     ioService,
@@ -119,7 +138,7 @@ namespace Bigsort.Lib
                 new BigSorter(
                     ioService,
                     grouper,
-                    sorter);
+                    sorter1);
 
             return bigSorter;
         }

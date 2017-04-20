@@ -27,6 +27,7 @@ namespace Bigsort.Implementation
 
             _ioService.CreateFile(outputPath, fileLength);
             _sorter.Sort(groupsFile, groupsSummary, outputPath);
+            _ioService.DeleteFile(groupsFile);
         }
     }
 }

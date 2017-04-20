@@ -1,13 +1,14 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Threading;
 using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    public class Sorter1<TSegment>
+    public class Sorter1
         : ISorter
     {
-        private readonly ILinesReservation<TSegment> _linesReservation;
+        private readonly ILinesReservation _linesReservation;
         private readonly IPoolMaker _poolMaker;
         private readonly IMemoryOptimizer _memoryOptimizer;
         private readonly IGroupMatrixService _groupMatrixService;
@@ -15,16 +16,18 @@ namespace Bigsort.Implementation
         private readonly ISortedGroupWriter _sortedGroupWriter;
         private readonly IIoService _ioService;
         private readonly ITasksQueue _tasksQueue;
+        private readonly IConfig _config;
 
         public Sorter1(
-            ILinesReservation<TSegment> linesReservation,
+            ILinesReservation linesReservation,
             IGroupMatrixService groupMatrixService,
             IGroupSorter groupSorter,
             IMemoryOptimizer memoryOptimizer,
             ISortedGroupWriter sortedGroupWriter,
             IIoService ioService,
             ITasksQueue tasksQueue,
-            IPoolMaker poolMaker)
+            IPoolMaker poolMaker, 
+            IConfig config)
         {
             _linesReservation = linesReservation;
             _groupMatrixService = groupMatrixService;
@@ -34,6 +37,7 @@ namespace Bigsort.Implementation
             _ioService = ioService;
             _tasksQueue = tasksQueue;
             _poolMaker = poolMaker;
+            _config = config;
         }
 
         public void Sort(
@@ -45,63 +49,129 @@ namespace Bigsort.Implementation
                 groupsSummary.MaxGroupSize,
                 groupsSummary.MaxGroupLinesCount);
 
+            var source = new ConcurrentBag<Group>();
+            var loaded = new ConcurrentBag<LoadedGroup>();
+            var sorted = new ConcurrentBag<LoadedGroup>();
+
+            var groupsInfo = groupsSummary.GroupsInfo;
+            
+            long position = 0;
+            for (int i = 0; i < Consts.MaxGroupsCount; i++)
+            {
+                var info = groupsInfo[i];
+                if (info != null)
+                {
+                    source.Add(new Group(info, position));
+                    position += info.BytesCount;
+                }
+            }
+            
             using (var groupsReadersPool = _poolMaker.Make(
-                productFactory: () => _ioService.OpenRead(groupsFilePath),
-                productDestructor: reader => reader.Dispose()))
+                                productFactory: () => _ioService.OpenRead(groupsFilePath),
+                                productDestructor: reader => reader.Dispose()))
 
             using (var resultWritersPool = _poolMaker.Make(
-                productFactory: () => _ioService.OpenWrite(outputPath, buffering: true),
-                productDestructor: writer => writer.Dispose()))
+                                productFactory: () => _ioService.OpenWrite(outputPath, buffering: true),
+                                productDestructor: writer => writer.Dispose()))
             {
-                var groupsSorted = new CountdownEvent(Consts.MaxGroupsCount);
-                var possition = 0L;
+                var done = new CountdownEvent(_config.MaxRunningTasksCount);
+                Action load = null, sort = null, write = null;
 
-                for (int i = 0; i < Consts.MaxGroupsCount; i++)
+                load = delegate
                 {
-                    var groupInfo = groupsSummary.GroupsInfo[i];
-                    if (groupInfo == null)
+                    Group x;
+                    if (source.TryTake(out x))
                     {
-                        groupsSorted.Signal();
-                        continue;
+                        using (var reader = groupsReadersPool.Get())
+                            do
+                            {
+                                IUsingHandle<Range> range;
+                                if (_linesReservation.TryReserveRange(x.Info.LinesCount, out range))
+                                {
+                                    IGroupMatrix matrix;
+                                    if (_groupMatrixService.TryCreateMatrix(x.Info, out matrix))
+                                    {
+                                        _groupMatrixService.LoadGroupToMatrix(matrix, x.Info, reader.Value);
+                                        loaded.Add(new LoadedGroup(matrix, range, x.PositionInOutput));
+                                        continue;
+                                    }
+
+                                    range.Dispose();
+                                }
+
+                                source.Add(x);
+                                break;
+
+                            } while (source.TryTake(out x));
+
+                        _tasksQueue.Enqueue(sort);
+                    }
+                    else done.Signal();
+                };
+
+                sort = delegate
+                {
+                    LoadedGroup x;
+                    while (loaded.TryTake(out x))
+                    {
+                        _groupSorter.Sort(x.Bytes, x.Lines.Value);
+                        sorted.Add(x);
                     }
 
-                    var groupPosition = possition;
-                    Action sortGroup = null;
-                    sortGroup = () =>
-                    {
-                        IUsingHandle<Range> rangeHandle;
-                        if (_linesReservation.TryReserveRange(groupInfo.LinesCount, out rangeHandle))
-                            using (rangeHandle)
+                    _tasksQueue.Enqueue(write);
+                };
+
+                write = delegate
+                {
+                    LoadedGroup x;
+                    using (var writer = resultWritersPool.Get())
+                        while (sorted.TryTake(out x))
+                            using (x.Lines)
+                            using (x.Bytes)
                             {
-                                IGroupMatrix matrix;
-                                if (_groupMatrixService.TryCreateMatrix(groupInfo, out matrix))
-                                    using (matrix)
-                                    using (var reader = groupsReadersPool.Get())
-                                    using (var writer = resultWritersPool.Get())
-                                    {
-                                        _groupMatrixService.LoadGroupToMatrix(matrix, groupInfo, reader.Value);
-
-                                        var linesRange = rangeHandle.Value;
-                                        _groupSorter.Sort(matrix, linesRange);
-
-                                        writer.Value.Position = groupPosition;
-                                        _sortedGroupWriter.Write(matrix, linesRange, writer.Value);
-                                        groupsSorted.Signal();
-                                        return;
-                                    }
+                                writer.Value.Position = x.PositionInOutput;
+                                _sortedGroupWriter.Write(x.Bytes, x.Lines.Value, writer.Value);
                             }
 
-                        _tasksQueue.Enqueue(sortGroup);
-                    };
+                    _tasksQueue.Enqueue(load);
+                };
 
-                    _tasksQueue.Enqueue(sortGroup);
-                    possition += groupInfo.BytesCount;
-                }
+               for (int i = 0; i < _config.MaxRunningTasksCount; i++)
+                    _tasksQueue.Enqueue(load);
 
-                groupsSorted.Wait();
+                done.Wait();
             }
+        }
 
-            _ioService.DeleteFile(groupsFilePath);
+        private struct Group
+        {
+            public readonly IGroupInfo Info;
+            public readonly long PositionInOutput;
+
+            public Group(
+                IGroupInfo info, 
+                long positionInOutput)
+            {
+                Info = info;
+                PositionInOutput = positionInOutput;
+            }
+        }
+
+        private struct LoadedGroup
+        {
+            public readonly IGroupMatrix Bytes;
+            public readonly IUsingHandle<Range> Lines;
+            public readonly long PositionInOutput;
+
+            public LoadedGroup(
+                IGroupMatrix bytes, 
+                IUsingHandle<Range> lines, 
+                long positionInOutput)
+            {
+                Bytes = bytes;
+                Lines = lines;
+                PositionInOutput = positionInOutput;
+            }
         }
     }
 }

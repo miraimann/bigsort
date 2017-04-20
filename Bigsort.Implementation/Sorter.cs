@@ -4,10 +4,10 @@ using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    public class Sorter<TSegment>
+    public class Sorter
         : ISorter
     {
-        private readonly ILinesReservation<TSegment> _linesReservation;
+        private readonly ILinesReservation _linesReservation;
         private readonly IPoolMaker _poolMaker;
         private readonly IGroupMatrixService _groupMatrixService;
         private readonly IGroupSorter _groupSorter;
@@ -16,7 +16,7 @@ namespace Bigsort.Implementation
         private readonly ITasksQueue _tasksQueue;
 
         public Sorter(
-            ILinesReservation<TSegment> linesReservation,
+            ILinesReservation linesReservation,
             IGroupMatrixService groupMatrixService,
             IGroupSorter groupSorter,
             ISortedGroupWriter sortedGroupWriter,
