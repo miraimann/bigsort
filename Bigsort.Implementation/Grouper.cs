@@ -1,13 +1,21 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Bigsort.Contracts;
+using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation
 {
     public class Grouper
         : IGrouper
     {
+        public const string
+            LogName = nameof(Grouper),
+            GroupingLogName = LogName + "." + nameof(SplitToGroups);
+
+        private readonly ITimeTracker _timeTracker;
+
         private readonly IGroupsSummaryInfoMarger _summaryInfoMarger;
         private readonly IGrouperIOMaker _grouperIoMaker;
         private readonly ITasksQueue _tasksQueue;
@@ -17,17 +25,22 @@ namespace Bigsort.Implementation
             IGroupsSummaryInfoMarger summaryInfoMarger,
             IGrouperIOMaker grouperIoMaker,
             ITasksQueue tasksQueue,
-            IConfig config)
+            IConfig config,
+            IDiagnosticTools diagnosticTool = null)
         {
             _summaryInfoMarger = summaryInfoMarger;
             _grouperIoMaker = grouperIoMaker;
             _tasksQueue = tasksQueue;
             _config = config;
+
+            _timeTracker = diagnosticTool?.TimeTracker;
         }
         
         public IGroupsSummaryInfo SplitToGroups(
             string inputPath, string groupsFile)
         {
+            var watch = Stopwatch.StartNew();
+
             var enginesCount = _config.GrouperEnginesCount;
             var ios = enginesCount == 1
                 ? new[] {_grouperIoMaker.Make(inputPath, groupsFile) }
@@ -53,8 +66,12 @@ namespace Bigsort.Implementation
 
             WaitHandle.WaitAll(doneEvents);
 
-            return _summaryInfoMarger.Marge( 
-                ios.Select(io => io.Output.SummaryGroupsInfo));
+            var summary = new GroupInfo[enginesCount][];
+            for (int i = 0; i < enginesCount; i++)
+                summary[i] = ios[i].Output.SelectSummaryGroupsInfo();
+
+            _timeTracker?.Add(GroupingLogName, watch.Elapsed);
+            return _summaryInfoMarger.Marge(summary);
         }
 
         private class Engine

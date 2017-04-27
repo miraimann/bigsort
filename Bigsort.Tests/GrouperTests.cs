@@ -13,6 +13,7 @@ namespace Bigsort.Tests
     public partial class GrouperTests
     {
         [Test]
+        [Parallelizable]
         [Timeout(10000)]
         public void Test(
             [ValueSource(nameof(Cases))] TestCase testCase,
@@ -127,12 +128,9 @@ namespace Bigsort.Tests
             configMock
                 .SetupGet(o => o.GrouperEnginesCount)
                 .Returns(enginesCount);
-
-            IGroupInfoMonoid groupInfoMonoid = 
-                new GroupInfoMonoid();
-
+            
             IGroupsSummaryInfoMarger groupsSummaryInfoMarger = 
-                new GroupsSummaryInfoMarger(groupInfoMonoid);
+                new GroupsSummaryInfoMarger();
 
             IUsingHandleMaker usingHandleMaker =
                 new UsingHandleMaker();
@@ -238,12 +236,12 @@ namespace Bigsort.Tests
             const int unknown = -1;
 
             var groups = groupsSummaryInfo.GroupsInfo;
-            var result = new Group[groups.Count(o => o != null)];
+            var result = new Group[groups.Count(o => !GroupInfo.IsZero(o))];
             var resultPosition = 0;
 
             for (int i = 0; i < Consts.MaxGroupsCount; i++)
             {
-                if (groups[i] != null)
+                if (!GroupInfo.IsZero(groups[i]))
                 {
                     var lines = new List<Group.Line>();
                     result[resultPosition++] =

@@ -2,7 +2,7 @@
 {
     public interface IGroupsSummaryInfo
     {
-        IGroupInfo[] GroupsInfo { get; }
+        GroupInfo[] GroupsInfo { get; }
         int MaxGroupLinesCount { get; }
         int MaxGroupSize { get; }
     }

@@ -37,8 +37,8 @@ namespace Bigsort.Tests
 
             public IBuffersPool BuffersPool;
             public LineIndexes[] LineIndexes;
-            public IGroupMatrixService GroupMatrixService;
-            public IGroupMatrix Group;
+            public IGroupsService GroupMatrixService;
+            public IGroup Group;
 
             public Setup(ISegmentService<T> segmentService)
             {
@@ -72,7 +72,6 @@ namespace Bigsort.Tests
                                      linesRange.Length));
 
                 GroupsFileStream = new MemoryStream();
-                MockOf.GroupInfo = new Mock<IGroupInfo>();
                 MockOf.Config = new Mock<IConfig>();
                 MockOf.Config
                       .SetupGet(o => o.GroupBufferRowReadingEnsurance)
@@ -107,36 +106,29 @@ namespace Bigsort.Tests
                       .Returns(buffSize);
 
                 BuffersPool = new InfinityBuffersPool(buffSize);
-                GroupMatrixService = new GroupMatrixService(
+                GroupMatrixService = new GroupsService(
                        BuffersPool,
                        MockOf.Config.Object);
 
                 var bytesCount = testCase.GroupBytes.Length;
                 var linesCount = testCase.InputLines.Length;
 
-                MockOf.GroupInfo
-                      .SetupGet(o => o.LinesCount)
-                      .Returns(linesCount);
-
-                MockOf.GroupInfo
-                      .SetupGet(o => o.BytesCount)
-                      .Returns(bytesCount);
-
-                MockOf.GroupInfo
-                      .SetupGet(o => o.Mapping)
-                      .Returns(new[] {new LongRange(0, bytesCount)});
+                var groupInfo = new GroupInfo
+                {
+                    LinesCount = linesCount,
+                    BytesCount = bytesCount,
+                    Mapping = new[] {new LongRange(0, bytesCount)}
+                };
 
                 GroupsFileStream.Write(testCase.GroupBytes, 0,
                                        testCase.GroupBytes.Length);
                 GroupsFileStream.Position = 0;
 
                 LineIndexes = testCase.InputLines;
-                
-                Assert.IsTrue(GroupMatrixService.TryCreateMatrix(
-                    MockOf.GroupInfo.Object, out Group));
 
-                GroupMatrixService.LoadGroupToMatrix(Group, 
-                    MockOf.GroupInfo.Object,
+                Group = GroupMatrixService.TryCreateGroup(groupInfo);
+                Assert.IsNotNull(Group);
+                GroupMatrixService.LoadGroup(Group, groupInfo, 
                     new MemoryReader(GroupsFileStream));
             }
 
@@ -144,7 +136,6 @@ namespace Bigsort.Tests
             {
                 public Mock<IConfig> Config;
                 public Mock<ILinesIndexesExtractor> LinesIndexesExtructor;
-                public Mock<IGroupInfo> GroupInfo;
                 public Mock<ILinesStorage<T>> LinesStorage;
             }
         }

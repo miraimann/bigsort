@@ -56,19 +56,27 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DevelopmentTools\IDiagnosticTools.cs" />
     <Compile Include="IGrouperIOMaker.cs" />
     <Compile Include="IGrouperBuffersProvider.cs" />
     <Compile Include="IGrouperBuffersProviderMaker.cs" />
     <Compile Include="IGrouperIO.cs" />
     <Compile Include="IGroupInfoMonoid.cs" />
+    <Compile Include="IGroupsLoader.cs" />
     <Compile Include="IGroupsLinesWriter.cs" />
     <Compile Include="IGroupsLinesWriterMaker.cs" />
+    <Compile Include="IGroupsLoaderMaker.cs" />
     <Compile Include="IGroupsSummaryInfo.cs" />
     <Compile Include="IGroupsSummaryInfoMarger.cs" />
+    <Compile Include="DevelopmentTools\ILog.cs" />
+    <Compile Include="DevelopmentTools\ILogger.cs" />
+    <Compile Include="DevelopmentTools\ILogRoot.cs" />
     <Compile Include="IMemoryOptimizer.cs" />
     <Compile Include="IPool.cs" />
     <Compile Include="IPoolMaker.cs" />
+    <Compile Include="ISortedGroupWriterMaker.cs" />
     <Compile Include="ISorter.cs" />
+    <Compile Include="DevelopmentTools\ITimeTracker.cs" />
     <Compile Include="IUsingHandleMaker.cs" />
     <Compile Include="ILinesIndexesStorage.cs" />
     <Compile Include="ILinesReservation.cs" />
@@ -77,11 +85,11 @@
     <Compile Include="Range.cs" />
     <Compile Include="IBuffersPool.cs" />
     <Compile Include="IFixedSizeList.cs" />
-    <Compile Include="IGroupMatrix.cs" />
+    <Compile Include="IGroup.cs" />
     <Compile Include="IConfig.cs" />
     <Compile Include="IGrouper.cs" />
-    <Compile Include="IGroupInfo.cs" />
-    <Compile Include="IGroupMatrixService.cs" />
+    <Compile Include="GroupInfo.cs" />
+    <Compile Include="IGroupsService.cs" />
     <Compile Include="ISegmentService.cs" />
     <Compile Include="IGroupSorter.cs" />
     <Compile Include="IIoService.cs" />

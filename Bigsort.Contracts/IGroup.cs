@@ -2,11 +2,14 @@
 
 namespace Bigsort.Contracts
 {
-    public interface IGroupMatrix
+    public interface IGroup
         : IFixedSizeList<byte>
         , IDisposable
     {
         byte[][] Rows { get; }
+
+        Range LinesRange { get; }
+
         int RowLength { get; }
         int RowsCount { get; }
         int LinesCount { get; }

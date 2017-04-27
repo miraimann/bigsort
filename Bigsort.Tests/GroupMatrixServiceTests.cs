@@ -30,8 +30,8 @@ namespace Bigsort.Tests
 
             var buffersPool = new InfinityBuffersPool(bufferSize);
 
-            IGroupMatrixService service = 
-                new GroupMatrixService(buffersPool, configMock.Object);
+            IGroupsService service = 
+                new GroupsService(buffersPool, configMock.Object);
 
             var lastBlock = blocks.Value[blocks.Value.Length - 1];
             var inputSize = lastBlock.Offset + lastBlock.Length;
@@ -53,24 +53,20 @@ namespace Bigsort.Tests
             var linesCount = random.Next(0, int.MaxValue);
             var bytesCount = (int)blocks.Value.Sum(o => o.Length);
 
-            var groupInfoMock = new Mock<IGroupInfo>();
-            groupInfoMock
-                .SetupGet(o => o.BytesCount)
-                .Returns(bytesCount);
-            groupInfoMock
-                .SetupGet(o => o.LinesCount)
-                .Returns(linesCount);
-            groupInfoMock
-                .SetupGet(o => o.Mapping)
-                .Returns(blocks.Value);
+            var groupInfo = new GroupInfo
+            {
+                BytesCount = bytesCount,
+                LinesCount = linesCount,
+                Mapping = blocks.Value
+            };
 
             var expectedRowLength = bufferSize - readingEnsurance;
             var expectedRowsCount = (bytesCount / expectedRowLength)
                                   + (bytesCount % expectedRowLength == 0 ? 0 : 1);
 
-            IGroupMatrix matrix;
+            IGroup matrix;
 
-            Assert.IsTrue(service.TryCreateMatrix(groupInfoMock.Object, out matrix));
+            Assert.IsTrue(service.TryCreateGroup(groupInfo, out matrix));
 
             Assert.AreEqual(expectedRowLength, matrix.RowLength);
             Assert.AreEqual(expectedRowsCount, matrix.RowsCount);
@@ -78,7 +74,7 @@ namespace Bigsort.Tests
             Assert.AreEqual(linesCount, matrix.LinesCount);
             Assert.AreEqual(bytesCount, matrix.BytesCount);
 
-            service.LoadGroupToMatrix(matrix, groupInfoMock.Object, reader);
+            service.LoadGroup(matrix, groupInfo, reader);
 
             Assert.AreEqual(expectedRowLength, matrix.RowLength);
             Assert.AreEqual(expectedRowsCount, matrix.RowsCount);

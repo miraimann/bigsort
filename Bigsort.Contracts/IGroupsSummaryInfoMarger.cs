@@ -4,7 +4,9 @@ namespace Bigsort.Contracts
 {
     public interface IGroupsSummaryInfoMarger
     {
-        IGroupsSummaryInfo Marge(
-            IEnumerable<IEnumerable<IGroupInfo>> summaryInfos);
+        /// <summary>
+        /// Marge summaryInfos. Corrupt argument value.
+        /// </summary>
+        IGroupsSummaryInfo Marge(GroupInfo[][] summaryInfos);
     }
 }

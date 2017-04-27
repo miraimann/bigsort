@@ -1,14 +1,25 @@
-﻿namespace Bigsort.Contracts
+﻿using System.Collections.Generic;
+
+namespace Bigsort.Contracts
 {
     public struct LongRange
     {
-        public LongRange(long offset, long count)
+        public long Offset;
+        public int Length;
+
+        public LongRange(long offset, int count)
         {
             Offset = offset;
             Length = count;
         }
 
-        public long Offset { get; }
-        public long Length { get; }
+        public static readonly IComparer<LongRange> ByOffsetComparer;
+
+        static LongRange()
+        {
+            var longComparer = Comparer<long>.Default;
+            ByOffsetComparer = Comparer<LongRange>.Create(
+                (a, b) => longComparer.Compare(a.Offset, b.Offset));
+        }
     }
 }

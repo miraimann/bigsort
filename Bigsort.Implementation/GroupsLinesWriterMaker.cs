@@ -68,8 +68,18 @@ namespace Bigsort.Implementation
                               .Select(_ => _ioService.OpenWrite(path)));
             }
 
-            public IReadOnlyList<IGroupInfo> SummaryGroupsInfo =>
-                _groupsStorage;
+            public GroupInfo[] SelectSummaryGroupsInfo()
+            {
+                var result = new GroupInfo[Consts.MaxGroupsCount];
+                for (int i = 0; i < Consts.MaxGroupsCount; i++)
+                {
+                    var group = _groupsStorage[i];
+                    if (group != null)
+                        result[i] = group.SelectGroupInfo();
+                }
+
+                return result;
+            }
 
             public void AddLine(ushort groupId,
                 byte[] buff, int offset, int length)
@@ -121,12 +131,14 @@ namespace Bigsort.Implementation
                 {
                     if (HasNoTasks())
                     {
-                        foreach (var writer in _writers)
+                        IFileWriter writer;
+                        while (_writers.TryTake(out writer))
                         {
+                            var closedWriter = writer;
                             IncrementTasksCount();
                             _tasksQueue.Enqueue(delegate
                             {
-                                writer.Dispose();
+                                closedWriter.Dispose();
                                 DecrementTasksCount();
                             });
                         }
@@ -157,7 +169,7 @@ namespace Bigsort.Implementation
             private void FinalSaveData(Group acc, Group group)
             {
                 group.BytesCount += group.BufferOffset;
-                group.MappingAccumulator.Add(
+                group.Mapping.Add(
                     new LongRange(_writingPosition + acc.BufferOffset, 
                                   group.BufferOffset));
 
@@ -218,8 +230,7 @@ namespace Bigsort.Implementation
 
                     var positionMomento = _writingPosition;
                     _writingPosition += _bufferLength;
-                    group.MappingAccumulator
-                         .Add(new LongRange(positionMomento, _bufferLength));
+                    group.Mapping.Add(new LongRange(positionMomento, _bufferLength));
 
                     newOffset = length - countToBuffEnd;
                     Array.Copy(buff, offset + countToBuffEnd,
@@ -256,25 +267,26 @@ namespace Bigsort.Implementation
                 Interlocked.Read(ref _tasksCount) == 0;
 
             private class Group
-                : IGroupInfo
             {
                 public Group(IUsingHandle<byte[]> bufferHandle)
                 {
                     BufferHandle = bufferHandle;
-                    MappingAccumulator = new List<LongRange>();
+                    Mapping = new List<LongRange>();
                 }
+
+                public int LinesCount, BytesCount, BufferOffset;
                 
-                public int BufferOffset { get; set; }
+                public IUsingHandle<byte[]> BufferHandle;
 
-                public IUsingHandle<byte[]> BufferHandle { get; set; }
+                public List<LongRange> Mapping { get; }
 
-                public List<LongRange> MappingAccumulator { get; }
-
-                public IEnumerable<LongRange> Mapping =>
-                    MappingAccumulator;
-
-                public int LinesCount { get; set; }
-                public int BytesCount { get; set; }
+                public GroupInfo SelectGroupInfo() =>
+                    new GroupInfo
+                    {
+                        LinesCount = LinesCount,
+                        BytesCount = BytesCount,
+                        Mapping = Mapping
+                    };
             }
         }
     }

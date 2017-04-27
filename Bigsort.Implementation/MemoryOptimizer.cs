@@ -1,22 +1,20 @@
-﻿using Bigsort.Contracts;
+﻿using System;
+using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
     public class MemoryOptimizer
         : IMemoryOptimizer
     {
-        private readonly IGroupMatrixService _groupMatrixService;
         private readonly ILinesReservation _linesReservation;
         private readonly IBuffersPool _buffersPool;
         private readonly IConfig _config;
 
         public MemoryOptimizer(
-            IGroupMatrixService groupMatrixService,
             ILinesReservation linesReservation,
             IBuffersPool buffersPool,
             IConfig config)
         {
-            _groupMatrixService = groupMatrixService;
             _linesReservation = linesReservation;
             _buffersPool = buffersPool;
             _config = config;
@@ -31,8 +29,8 @@ namespace Bigsort.Implementation
                 _config.BufferSize;
 
             var maxGroupRowsCount =
-                _groupMatrixService
-                    .RowsCountFor(maxGroupSize);
+                (int) Math.Ceiling((double) maxGroupSize /
+                                   _config.GroupRowLength);
 
             maxGroupSize =
                 maxGroupRowsCount *
@@ -55,8 +53,8 @@ namespace Bigsort.Implementation
                 _linesReservation.LineSize;
 
             var buffersCountForFree =
-                _groupMatrixService
-                    .RowsCountFor(memoryForLines);
+                (int) Math.Ceiling((double) memoryForLines /
+                                   _config.GroupRowLength);
 
             _buffersPool.Free(buffersCountForFree);
             _linesReservation.Load(linesCountForReserve);

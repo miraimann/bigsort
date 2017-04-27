@@ -9,7 +9,7 @@ namespace Bigsort.Implementation
         public IUsingHandle<T> Make<T>(T value, Action<T> dispose) =>
             new Using<T>(value, dispose);
 
-        private struct Using<T>
+        private class Using<T>
             : IUsingHandle<T>
         {
             private readonly Action<T> _dispose;

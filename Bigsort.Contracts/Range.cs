@@ -8,7 +8,10 @@
             Length = count;
         }
 
-        public int Offset { get; }
-        public int Length { get; }
+        public int Offset;
+        public int Length;
+
+        public static bool IsZero(Range x) =>
+            x.Length == 0;
     }
 }

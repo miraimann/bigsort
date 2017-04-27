@@ -1,9 +1,10 @@
-﻿namespace Bigsort.Contracts
+﻿using System;
+
+namespace Bigsort.Contracts
 {
     public interface ISortedGroupWriter
+        : IDisposable
     {
-        void Write(IGroupMatrix group, 
-                   Range linesRange, 
-                   IFileWriter output);
+        void Write(IGroup group, long position);
     }
 }

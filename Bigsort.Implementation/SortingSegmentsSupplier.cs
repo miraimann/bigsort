@@ -1,5 +1,6 @@
 ﻿using System;
 using Bigsort.Contracts;
+using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation
 {
@@ -9,6 +10,12 @@ namespace Bigsort.Implementation
         where TSegment : IEquatable<TSegment>
                        , IComparable<TSegment>
     {
+        public const string
+            LogName = nameof(SortingSegmentsSupplier<TSegment>),
+            SupplingLogName = nameof(SupplyNext) + "." + LogName;
+
+        private readonly ITimeTracker _timeTracker;
+
         private readonly TSegment _digitsOut, _lettersOut;
         private readonly byte _segmentSize;
         private readonly ISegmentService<TSegment> _segment;
@@ -16,19 +23,28 @@ namespace Bigsort.Implementation
 
         public SortingSegmentsSupplier(
             ILinesStorage<TSegment> linesStorage,
-            ISegmentService<TSegment> segmentService)
+            ISegmentService<TSegment> segmentService,
+            IDiagnosticTools diagnosticTools = null)
         {
             _linesStorage = linesStorage;
             _segment = segmentService;
             _digitsOut = _segment.DigitsOut;
             _lettersOut = _segment.LettersOut;
             _segmentSize = _segment.SegmentSize;
+
+            _timeTracker = diagnosticTools?.TimeTracker;
         }
 
-        public void SupplyNext(IGroupMatrix group, Range linesRange) =>
+        public void SupplyNext(IGroup group, Range linesRange)
+        {
+            var start = DateTime.Now;
+
             SupplyNext(group, linesRange.Offset, linesRange.Length);
 
-        public void SupplyNext(IGroupMatrix group, int offset, int count)
+            _timeTracker?.Add(SupplingLogName, DateTime.Now - start);
+        }
+
+        public void SupplyNext(IGroup group, int offset, int count)
         {
             var lines = _linesStorage.Indexes;
             var segments = _linesStorage.Segments;
@@ -75,7 +91,7 @@ namespace Bigsort.Implementation
             }
         }
 
-        private TSegment Read(IGroupMatrix group, int i)
+        private TSegment Read(IGroup group, int i)
         {
             int rowLength = group.RowLength,
                 cellIndex = i % rowLength,

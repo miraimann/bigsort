@@ -54,10 +54,14 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GroupMatrixService.cs" />
+    <Compile Include="Config.cs" />
+    <Compile Include="DevelopmentTools\DiagnosticTools.cs" />
+    <Compile Include="GroupsLoaderMaker.cs" />
+    <Compile Include="GroupsService.cs" />
     <Compile Include="Grouper.cs" />
     <Compile Include="BuffersPool.cs" />
     <Compile Include="GrouperBuffersProviderMaker.cs" />
@@ -65,14 +69,14 @@
     <Compile Include="Consts.cs" />
     <Compile Include="Dbg.cs" />
     <Compile Include="GrouperIOMaker.cs" />
-    <Compile Include="GroupInfoMonoid.cs" />
     <Compile Include="GroupsLinesWriterMaker.cs" />
     <Compile Include="GroupsSummaryInfoMarger.cs" />
     <Compile Include="MemoryOptimizer.cs" />
     <Compile Include="PoolMaker.cs" />
-    <Compile Include="SortedGroupWriter.cs" />
+    <Compile Include="SortedGroupWriterMaker.cs" />
     <Compile Include="Sorter1.cs" />
     <Compile Include="Sorter.cs" />
+    <Compile Include="DevelopmentTools\TimeTracker.cs" />
     <Compile Include="UsingHandleMaker.cs" />
     <Compile Include="GroupSorter.cs" />
     <Compile Include="IoService.cs" />

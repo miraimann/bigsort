@@ -1,32 +1,41 @@
 ﻿using System;
 using Bigsort.Contracts;
+using Bigsort.Contracts.DevelopmentTools;
 using Bigsort.Implementation;
+using Bigsort.Implementation.DevelopmentTools;
 
 namespace Bigsort.Lib
 {
     public class IoC
     {
         internal IBigSorter BuildBigSorter<TSegment>(
-            ISegmentService<TSegment> segmentService,
-            IConfig config)
+            ISegmentService<TSegment> segmentService)
 
             where TSegment : IEquatable<TSegment>
                            , IComparable<TSegment>
         {
+            IConfig config = 
+                new Config();
+
+            ITimeTracker timeTracker =
+                new TimeTracker();
+
+            IDiagnosticTools diagnosticTools =
+                new DiagnosticTools(
+                    timeTracker);
+
             IUsingHandleMaker usingHandleMaker =
                 new UsingHandleMaker();
 
             ILinesReservation<TSegment> linesReservation =
                 new LinesReservation<TSegment>(
                     usingHandleMaker, 
-                    config);
-
-            IGroupInfoMonoid groupInfoMonoid =
-                new GroupInfoMonoid();
-
+                    config,
+                    diagnosticTools);
+            
             IGroupsSummaryInfoMarger groupsSummaryInfoMarger = 
                 new GroupsSummaryInfoMarger(
-                    groupInfoMonoid);
+                    diagnosticTools);
             
             IPoolMaker poolMaker =
                 new PoolMaker(
@@ -37,7 +46,7 @@ namespace Bigsort.Lib
                     poolMaker,
                     config);
             
-            IoService ioService =
+            IIoService ioService =
                 new IoService(
                     buffersPool);
 
@@ -72,12 +81,25 @@ namespace Bigsort.Lib
                     groupsSummaryInfoMarger,
                     grouperIoMaker,
                     tasksQueue,
-                    config);
+                    config,
+                    diagnosticTools);
 
-            IGroupMatrixService groupMatrixService =
-                new GroupMatrixService(
+            IMemoryOptimizer memoryOptimizer =
+                new MemoryOptimizer(
+                    linesReservation,
                     buffersPool,
                     config);
+
+            IGroupsService groupsService =
+                new GroupsService(
+                    buffersPool,
+                    linesReservation,
+                    poolMaker,
+                    ioService,
+                    tasksQueue,
+                    memoryOptimizer,
+                    config,
+                    diagnosticTools);
 
             ILinesStorage<TSegment> linesStorage =
                 linesReservation;
@@ -85,51 +107,45 @@ namespace Bigsort.Lib
             ISortingSegmentsSupplier sortingSegmentsSupplier =
                 new SortingSegmentsSupplier<TSegment>(
                     linesStorage,
-                    segmentService);
+                    segmentService,
+                    diagnosticTools);
 
             ILinesIndexesExtractor linesIndexesExtractor =
                 new LinesIndexesExtractor(
-                    linesStorage);
+                    linesStorage,
+                    diagnosticTools);
 
             IGroupSorter groupSorter = 
                 new GroupSorter<TSegment>(
                     sortingSegmentsSupplier,
                     linesIndexesExtractor,
                     linesStorage,
-                    segmentService);
+                    segmentService,
+                    diagnosticTools);
 
             ILinesIndexesStorage linesIndexesStorage =
                 linesStorage;
 
-            ISortedGroupWriter sortedGroupWriter =
-                new SortedGroupWriter(
-                    linesIndexesStorage);
-            
-            IMemoryOptimizer memoryOptimizer =
-                new MemoryOptimizer(
-                    groupMatrixService,
-                    linesReservation,
-                    buffersPool,
-                    config);
+            ISortedGroupWriterMaker sortedGroupWriterMaker =
+                new SortedGroupWriterMaker(
+                    ioService,
+                    poolMaker,
+                    linesIndexesStorage,
+                    diagnosticTools);
 
             ISorter sorter1 = 
                 new Sorter1(
-                    linesReservation,
-                    groupMatrixService,
+                    groupsService,
                     groupSorter,
-                    memoryOptimizer,
-                    sortedGroupWriter,
-                    ioService,
-                    tasksQueue,
-                    poolMaker,
-                    config);
+                    sortedGroupWriterMaker,
+                    tasksQueue);
 
             ISorter sorter =
                 new Sorter(
                     linesReservation,
-                    groupMatrixService,
+                    groupsService,
                     groupSorter,
-                    sortedGroupWriter,
+                    sortedGroupWriterMaker,
                     ioService,
                     tasksQueue,
                     poolMaker);
@@ -138,7 +154,8 @@ namespace Bigsort.Lib
                 new BigSorter(
                     ioService,
                     grouper,
-                    sorter1);
+                    sorter,
+                    diagnosticTools);
 
             return bigSorter;
         }
@@ -148,13 +165,13 @@ namespace Bigsort.Lib
             IConfig config = new Config();
 
             if (config.SortingSegment == "byte")
-                return BuildBigSorter(new ByteSegmentService(), config);
+                return BuildBigSorter(new ByteSegmentService());
 
             if (config.SortingSegment == "uint")
-                return BuildBigSorter(new UInt32SegmentService(), config);
+                return BuildBigSorter(new UInt32SegmentService());
 
             // if (config.SortingSegment == "ulong")
-            return BuildBigSorter(new UInt64SegmentService(), config);
+            return BuildBigSorter(new UInt64SegmentService());
         }
     }
 }

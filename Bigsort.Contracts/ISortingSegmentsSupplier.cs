@@ -2,7 +2,7 @@
 {
     public interface ISortingSegmentsSupplier
     {
-        void SupplyNext(IGroupMatrix group, Range linesRange);
-        void SupplyNext(IGroupMatrix group, int offset, int count);
+        void SupplyNext(IGroup group, Range linesRange);
+        void SupplyNext(IGroup group, int offset, int count);
     }
 }

@@ -1,12 +1,9 @@
-﻿using System.Collections.Generic;
-using System.Threading;
+﻿using System.Threading;
 
 namespace Bigsort.Contracts
 {
     public interface IGroupsLinesWriter
     {
-        IReadOnlyList<IGroupInfo> SummaryGroupsInfo { get; }
-
         void AddLine(ushort groupId, 
             byte[] buff, int offset, int length);
 
@@ -15,5 +12,7 @@ namespace Bigsort.Contracts
             byte[] rightBuff, int rightOffset, int rightLength);
 
         void FlushAndDispose(ManualResetEvent done);
+        
+        GroupInfo[] SelectSummaryGroupsInfo();
     }
 }

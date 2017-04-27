@@ -3,7 +3,7 @@ using System.Configuration;
 using System.IO;
 using Bigsort.Contracts;
 
-namespace Bigsort.Lib
+namespace Bigsort.Implementation
 {
     public class Config
         : IConfig
@@ -21,16 +21,16 @@ namespace Bigsort.Lib
             raw = ConfigurationManager
                 .AppSettings["BigsortMaxRunningTasksCount"];
 
-            MaxRunningTasksCount = raw == null
-                ? Environment.ProcessorCount
-                : int.Parse(raw);
+            MaxRunningTasksCount = 3; //raw == null
+                // ? Environment.ProcessorCount - 1
+                // : int.Parse(raw);
 
             raw = ConfigurationManager
                 .AppSettings["BigsortGrouperEnginesCount"];
 
-            GrouperEnginesCount = Math.Min(3, raw == null
-                ? Environment.ProcessorCount / 2
-                : int.Parse(raw));
+            GrouperEnginesCount = 1; //Math.Min(3, raw == null
+                // ? Environment.ProcessorCount / 2
+                // : int.Parse(raw));
 
             GroupBufferRowReadingEnsurance =
                 ( SortingSegment == "ulong" ? sizeof(ulong)
@@ -44,7 +44,7 @@ namespace Bigsort.Lib
 
             BufferSize = raw != null
                 ? int.Parse(raw)
-                : 32 * 1024;
+                : 256 * 1024;
 
             raw = ConfigurationManager
                 .AppSettings["BigsortMaxMemoryForLines"];
@@ -52,6 +52,9 @@ namespace Bigsort.Lib
             MaxMemoryForLines = raw != null
                 ? long.Parse(raw)
                 : 320 * 1024 * 1024;
+
+            GroupRowLength = BufferSize;
+            // - GroupBufferRowReadingEnsurance;
         }
 
         public string GroupsFilePath { get; }
@@ -59,6 +62,7 @@ namespace Bigsort.Lib
         public int BufferSize { get; }
         public long MaxMemoryForLines { get; }
         public int MaxRunningTasksCount { get; }
+        public int GroupRowLength { get; }
         public int GrouperEnginesCount { get; }
         public int GroupBufferRowReadingEnsurance { get; }
     }

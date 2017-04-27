@@ -9,17 +9,17 @@ namespace Bigsort.Implementation
     {
         private readonly ILinesReservation _linesReservation;
         private readonly IPoolMaker _poolMaker;
-        private readonly IGroupMatrixService _groupMatrixService;
+        private readonly IGroupsService _groupMatrixService;
         private readonly IGroupSorter _groupSorter;
-        private readonly ISortedGroupWriter _sortedGroupWriter;
+        private readonly ISortedGroupWriterMaker _sortedGroupWriterMaker;
         private readonly IIoService _ioService;
         private readonly ITasksQueue _tasksQueue;
 
         public Sorter(
             ILinesReservation linesReservation,
-            IGroupMatrixService groupMatrixService,
+            IGroupsService groupMatrixService,
             IGroupSorter groupSorter,
-            ISortedGroupWriter sortedGroupWriter,
+            ISortedGroupWriterMaker sortedGroupWriterMaker,
             IIoService ioService,
             ITasksQueue tasksQueue,
             IPoolMaker poolMaker)
@@ -27,7 +27,7 @@ namespace Bigsort.Implementation
             _linesReservation = linesReservation;
             _groupMatrixService = groupMatrixService;
             _groupSorter = groupSorter;
-            _sortedGroupWriter = sortedGroupWriter;
+            _sortedGroupWriterMaker = sortedGroupWriterMaker;
             _ioService = ioService;
             _tasksQueue = tasksQueue;
             _poolMaker = poolMaker;
@@ -41,13 +41,10 @@ namespace Bigsort.Implementation
             _linesReservation.Load(groupsSummary.MaxGroupLinesCount *
                                    Environment.ProcessorCount);
 
+            using (var sortedGroupWriter = _sortedGroupWriterMaker.Make(outputPath))
             using (var groupsReadersPool = _poolMaker.Make(
                                productFactory: () => _ioService.OpenRead(groupsFilePath),
                             productDestructor: reader => reader.Dispose()))
-
-            using (var resultWritersPool = _poolMaker.Make(
-                               productFactory: () => _ioService.OpenWrite(outputPath, buffering: true),
-                            productDestructor: writer => writer.Dispose()))
             {
                 var groupsSorted = new CountdownEvent(Consts.MaxGroupsCount);
                 var possition = 0L;
@@ -55,7 +52,7 @@ namespace Bigsort.Implementation
                 for (int i = 0; i < Consts.MaxGroupsCount; i++)
                 {
                     var groupInfo = groupsSummary.GroupsInfo[i];
-                    if (groupInfo == null)
+                    if (GroupInfo.IsZero(groupInfo))
                     {
                         groupsSorted.Signal();
                         continue;
@@ -65,26 +62,17 @@ namespace Bigsort.Implementation
                     Action sortGroup = null;
                     sortGroup = () =>
                     {
-                        IUsingHandle<Range> rangeHandle;
-                        if (_linesReservation.TryReserveRange(groupInfo.LinesCount, out rangeHandle))
-                            using (rangeHandle)
+                        
+                        var group = _groupMatrixService.TryCreateGroup(groupInfo);
+                        if (group != null)
+                            using (group)
+                            using (var reader = groupsReadersPool.Get())
                             {
-                                IGroupMatrix matrix;
-                                if (_groupMatrixService.TryCreateMatrix(groupInfo, out matrix))
-                                    using (matrix)
-                                    using (var reader = groupsReadersPool.Get())
-                                    using (var writer = resultWritersPool.Get())
-                                    {
-                                        _groupMatrixService.LoadGroupToMatrix(matrix, groupInfo, reader.Value);
-
-                                        var linesRange = rangeHandle.Value;
-                                        _groupSorter.Sort(matrix, linesRange);
-
-                                        writer.Value.Position = groupPosition;
-                                        _sortedGroupWriter.Write(matrix, linesRange, writer.Value);
-                                        groupsSorted.Signal();
-                                        return;
-                                    }
+                                _groupMatrixService.LoadGroup(group, groupInfo, reader.Value);
+                                _groupSorter.Sort(group);
+                                sortedGroupWriter.Write(group, groupPosition);
+                                groupsSorted.Signal();
+                                return;
                             }
                         
                         _tasksQueue.Enqueue(sortGroup);

@@ -121,8 +121,8 @@ namespace Bigsort.Implementation
                     };
                 }
 
-                foreach (Action x in _readNext)
-                    _tasksQueue.Enqueue(x);
+                for (int i = 0; i < _readNext.Length; i++)
+                    _tasksQueue.Enqueue(_readNext[i]);
             }
 
             public int TryGetNextBuffer(out IUsingHandle<byte[]> buffHandle)

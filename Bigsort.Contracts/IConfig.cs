@@ -12,6 +12,8 @@
 
         int MaxRunningTasksCount { get; }
 
+        int GroupRowLength { get; }
+
         int GroupBufferRowReadingEnsurance { get; }
     }
 }

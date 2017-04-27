@@ -2,7 +2,7 @@
 {
     public interface IGroupInfoMonoid
     {
-        IGroupInfo Null { get; }
-        IGroupInfo Append(IGroupInfo a, IGroupInfo b);
+        GroupInfo Null { get; }
+        GroupInfo Append(GroupInfo a, GroupInfo b);
     }
 }

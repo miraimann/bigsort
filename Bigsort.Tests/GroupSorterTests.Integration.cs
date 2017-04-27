@@ -51,7 +51,7 @@ namespace Bigsort.Tests
                 public ILinesIndexesExtractor LinesIndexesExtractor;
                 public ISegmentService<T> SegmentService;
                 public ISortingSegmentsSupplier SegmentsSupplier;
-                public IGroupMatrixService GroupMatrixService;
+                public IGroupsService GroupMatrixService;
                 public IIoService IoService;
                 public ISortedGroupWriter SortedGroupWriter;
                 public IGroupSorter Sorter;
@@ -93,11 +93,11 @@ namespace Bigsort.Tests
 
                     BuffersPool = new InfinityBuffersPool(BufferSize);
                     IoService = new IoService(BuffersPool);
-                    GroupMatrixService = new GroupMatrixService(
+                    GroupMatrixService = new GroupsService(
                         BuffersPool,
                         ConfigMock.Object);
 
-                    SortedGroupWriter = new SortedGroupWriter(
+                    SortedGroupWriter = new SortedGroupWriterMaker(
                         LinesReservation);
                 }
             }
@@ -198,16 +198,12 @@ namespace Bigsort.Tests
                         File.Copy(inputPathes[0], inputPathes[i]);
 
                     var bytesCount = lines.Sum(line => line.Length);
-                    var groupsInfoMock = new Mock<IGroupInfo>();
-                    groupsInfoMock
-                        .Setup(o => o.LinesCount)
-                        .Returns(linesCount);
-                    groupsInfoMock
-                        .Setup(o => o.BytesCount)
-                        .Returns(bytesCount);
-                    groupsInfoMock
-                        .Setup(o => o.Mapping)
-                        .Returns(new[] {new LongRange(0, bytesCount)});
+                    var groupsInfo = new GroupInfo
+                    {
+                        LinesCount = linesCount,
+                        BytesCount = bytesCount,
+                        Mapping = new[] { new LongRange(0, bytesCount) }
+                    };
                     
                     Out?.WriteLine($"input size: {bytesCount}");
                     Out?.WriteLine();
@@ -215,7 +211,7 @@ namespace Bigsort.Tests
                     var testResult =
                         names.Zip(inputPathes, (logPrefix, input) => new { logPrefix, input })
                              .Zip(outputPathes, (o, output) => new { o.logPrefix, o.input, output })
-                             .Zip(runners, (o, runner) => runner(groupsInfoMock.Object, o.input, o.output, o.logPrefix))
+                             .Zip(runners, (o, runner) => runner(groupsInfo, o.input, o.output, o.logPrefix))
                              .Zip(names, (success, name) => new { success, name })
                              .ToArray();
 
@@ -234,16 +230,16 @@ namespace Bigsort.Tests
                 }
             }
 
-            private Func<IGroupInfo, string, string, string, bool> RunnerFor<T>(Setup<T> setup)
+            private Func<GroupInfo, string, string, string, bool> RunnerFor<T>(Setup<T> setup)
                 where T : IEquatable<T>, IComparable<T> => (group, inputPath, outputPath, logPrefix) =>
             {
                 var t = DateTime.Now;
-                IGroupMatrix matrix;
-                if (!setup.GroupMatrixService.TryCreateMatrix(group, out matrix))
+                IGroup matrix;
+                if (!setup.GroupMatrixService.TryCreateGroup(group, out matrix))
                     return false;
 
                 using (var reader = setup.IoService.OpenRead(inputPath))
-                    setup.GroupMatrixService.LoadGroupToMatrix(matrix, group, reader);
+                    setup.GroupMatrixService.LoadGroup(matrix, group, reader);
 
                 Out?.WriteLine($"[{logPrefix}] group loading time: " +
                                $"{DateTime.Now - t}");

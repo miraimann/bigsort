@@ -121,24 +121,18 @@ namespace Bigsort.Tests
                     configMock
                         .SetupGet(o => o.GroupBufferRowReadingEnsurance)
                         .Returns(GroupBufferRowReadingEnsurance);
-
-                    IGroupInfoMonoid groupInfoMonoid =
-                        new GroupInfoMonoid();
-
+                    
                     IGroupsSummaryInfoMarger groupsSummaryInfoMarger =
-                        new GroupsSummaryInfoMarger(groupInfoMonoid);
+                        new GroupsSummaryInfoMarger();
 
                     IUsingHandleMaker usingHandleMaker =
                         new UsingHandleMaker();
-
-                    IPoolMaker poolMaker =
-                        new PoolMaker(usingHandleMaker);
 
                     ITasksQueue tasksQueue =
                         new TasksQueue(configMock.Object);
 
                     IBuffersPool buffersPool =
-                        new BuffersPool(poolMaker, configMock.Object);
+                        new InfinityBuffersPool(bufferSize);
 
                     IIoService ioService =
                         new IoService(
@@ -166,17 +160,32 @@ namespace Bigsort.Tests
                             ioService,
                             configMock.Object);
 
-                    IGroupMatrixService groupMatrixService =
-                        new GroupMatrixService(
+                    IPoolMaker poolMaker = 
+                        new PoolMaker(
+                            usingHandleMaker);
+
+                    var linesReservationMock = new Mock<ILinesReservation>();
+
+                    IMemoryOptimizer memoryOptimizer = 
+                        new MemoryOptimizer(
+                            linesReservationMock.Object,
                             buffersPool,
                             configMock.Object);
 
-                    var linesIndexesStorageMock = new Mock<ILinesIndexesStorage>();
-
                     ILinesIndexesExtractor linesIndexesExtractor =
                         new LinesIndexesExtractor(
-                            linesIndexesStorageMock.Object);
-
+                            linesReservationMock.Object);
+                    
+                    IGroupsService groupsService =
+                        new GroupsService(
+                            buffersPool,
+                            linesReservationMock.Object,
+                            poolMaker,
+                            ioService,
+                            tasksQueue,
+                            memoryOptimizer,
+                            configMock.Object);
+                    
                     var grouper = new Grouper(
                         groupsSummaryInfoMarger,
                         grouperIoMaker,
@@ -196,7 +205,7 @@ namespace Bigsort.Tests
 
                     var actualGroupIds = summary.GroupsInfo
                         .Select((group, id) => new {group, id})
-                        .Where(o => o.group != null)
+                        .Where(o => !GroupInfo.IsZero(o.group))
                         .Select(o => o.id)
                         .ToArray();
 #region DEBUG
@@ -277,18 +286,18 @@ namespace Bigsort.Tests
                     for (int i = 0; i < Consts.MaxGroupsCount; i++)
                     {
                         var info = summary.GroupsInfo[i];
-                        if (info == null)
+                        if (GroupInfo.IsZero(info))
                             continue;
 
                         var expectedInfo = expectedGroups[j];
                         Assert.AreEqual(expectedInfo.BytesCount, info.BytesCount);
                         Assert.AreEqual(expectedInfo.LinesCount, info.LinesCount);
 
-                        IGroupMatrix matrix;
-                        Assert.IsTrue(groupMatrixService.TryCreateMatrix(info, out matrix));
+                        IGroup matrix;
+                        Assert.IsTrue(groupMatrixService.TryCreateGroup(info, out matrix));
 
                         using (var reader = ioService.OpenRead(groupsFile))
-                            groupMatrixService.LoadGroupToMatrix(matrix, info, reader);
+                            groupMatrixService.LoadGroup(matrix, info, reader);
 
                         var lineIndexes = new LineIndexes[info.LinesCount];
 

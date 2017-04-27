@@ -2,24 +2,35 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Bigsort.Contracts;
+using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation
 {
     public class LinesReservation<TSegment>
         : ILinesReservation<TSegment>
     {
+        public const string
+            LogName = nameof(LinesReservation<TSegment>),
+            RangeReservingLogName = LogName + "." + nameof(TryReserveRange),
+            RangeDisposingLogName = LogName + ".DisposeRange";
+
+        private readonly ITimeTracker _timeTracker;
+
         private readonly object o = new object();
         private readonly LinkedList<Range> _free = 
             new LinkedList<Range>();
-
-        private readonly IUsingHandleMaker _disposableValueMaker; 
+        
+        private readonly IUsingHandleMaker _uingHandleMaker; 
         private readonly IConfig _config;
 
         public LinesReservation(
-            IUsingHandleMaker disposableValueMaker,
-            IConfig config)
+            IUsingHandleMaker uingHandleMaker,
+            IConfig config,
+            IDiagnosticTools diagnosticTools = null)
         {
-            _disposableValueMaker = disposableValueMaker;
+            _timeTracker = diagnosticTools?.TimeTracker;
+
+            _uingHandleMaker = uingHandleMaker;
             _config = config;
 
             LineSize = Marshal.SizeOf<LineIndexes>()
@@ -46,9 +57,10 @@ namespace Bigsort.Implementation
             _free.AddFirst(new Range(0, Length));
         }
 
-        public bool TryReserveRange(int length,
-                out IUsingHandle<Range> rangeHandle)
+        public IUsingHandle<Range> TryReserveRange(int length)
         {
+            var start = DateTime.Now;
+
             const int notFound = -1;
             int offset = notFound;
             lock (o)
@@ -73,160 +85,74 @@ namespace Bigsort.Implementation
                 }
             }
 
-            if (offset == notFound)
-            {
-                rangeHandle = null;
-                return false;
-            }
+            _timeTracker?.Add(RangeReservingLogName,
+                DateTime.Now - start);
 
-            rangeHandle = _disposableValueMaker.Make(
-                new Range(offset, length),
-                _ =>
-                {
-                    lock (o)
+            return offset == notFound
+                ? null
+                : _uingHandleMaker.Make(
+                    new Range(offset, length),
+                    delegate 
                     {
-                        LinkedListNode<Range>
-                            link = _free.First,
-                            prev = null;
+                        var rangeDisposingStart = DateTime.Now;
 
-                        while (link != null)
+                        lock (o)
                         {
-                            if (link.Value.Offset > offset)
+                            LinkedListNode<Range>
+                                link = _free.First,
+                                prev = null;
+
+                            while (link != null)
                             {
-                                if (offset + length == link.Value.Offset)
+                                if (link.Value.Offset > offset)
                                 {
-                                    if (prev != null &&
-                                        prev.Value.Offset +
-                                        prev.Value.Length == offset)
+                                    if (offset + length == link.Value.Offset)
                                     {
-                                        var newLength = prev.Value.Length
-                                                        + link.Value.Length
-                                                        + length;
+                                        if (prev != null &&
+                                            prev.Value.Offset +
+                                            prev.Value.Length == offset)
+                                        {
+                                            var newLength = prev.Value.Length
+                                                            + link.Value.Length
+                                                            + length;
 
-                                        prev.Value = new Range(
-                                            prev.Value.Offset,
-                                            newLength);
+                                            prev.Value = new Range(
+                                                prev.Value.Offset,
+                                                newLength);
 
-                                        _free.Remove(link);
+                                            _free.Remove(link);
+                                        }
+                                        else
+                                            link.Value = new Range(
+                                                link.Value.Offset - length,
+                                                link.Value.Length + length);
                                     }
                                     else
-                                        link.Value = new Range(
-                                            link.Value.Offset - length,
-                                            link.Value.Length + length);
-                                }
-                                else
-                                {
-                                    if (prev != null &&
-                                        prev.Value.Offset +
-                                        prev.Value.Length == offset)
-                                        prev.Value = new Range(
-                                            prev.Value.Offset,
-                                            prev.Value.Length + length);
-                                    else
-                                        _free.AddBefore(link,
-                                            new Range(offset, length));
-                                }
-
-                                return;
-                            }
-
-                            prev = link;
-                            link = link.Next;
-                        }
-
-                        _free.AddLast(new Range(offset, length));
-                    }
-                });
-
-            return true;
-        }
-
-        public IUsingHandle<Range> TryReserveRange(int length)
-        {
-            const int notFound = -1;
-            int offset = notFound;
-            lock(o)
-            {
-                var link = _free.First;
-                while (link != null)
-                {
-                    if (link.Value.Length >= length)
-                    {
-                        offset = link.Value.Offset;
-                        var cutedLength = link.Value.Length - length;
-                        if (cutedLength == 0)
-                            _free.Remove(link);
-                        else
-                            link.Value = new Range(
-                                link.Value.Offset + length,
-                                cutedLength);
-                        break;
-                    }
-
-                    link = link.Next;
-                }
-            }
-
-            if (offset == notFound)
-                return null;
-
-            return _disposableValueMaker.Make(
-                new Range(offset, length),
-                _ =>
-                {
-                    lock (o)
-                    {
-                        LinkedListNode<Range> 
-                            link = _free.First, 
-                            prev = null;
-
-                        while (link != null)
-                        {
-                            if (link.Value.Offset > offset)
-                            {
-                                if (offset + length == link.Value.Offset)
-                                {
-                                    if (prev != null &&
-                                        prev.Value.Offset +
-                                        prev.Value.Length == offset)
                                     {
-                                        var newLength = prev.Value.Length 
-                                                      + link.Value.Length
-                                                      + length;
-
-                                        prev.Value = new Range(
-                                            prev.Value.Offset,
-                                            newLength);
-                                            
-                                        _free.Remove(link);
+                                        if (prev != null &&
+                                            prev.Value.Offset +
+                                            prev.Value.Length == offset)
+                                            prev.Value = new Range(
+                                                prev.Value.Offset,
+                                                prev.Value.Length + length);
+                                        else
+                                            _free.AddBefore(link,
+                                                new Range(offset, length));
                                     }
-                                    else link.Value = new Range(
-                                            link.Value.Offset - length,
-                                            link.Value.Length + length);
-                                }
-                                else
-                                {
-                                    if (prev != null &&
-                                        prev.Value.Offset +
-                                        prev.Value.Length == offset)
-                                        prev.Value = new Range(
-                                            prev.Value.Offset,
-                                            prev.Value.Length + length);
-                                    else
-                                        _free.AddBefore(link, 
-                                            new Range(offset, length));
+
+                                    return;
                                 }
 
-                                return;
+                                prev = link;
+                                link = link.Next;
                             }
 
-                            prev = link;
-                            link = link.Next;
-                        }
+                            _free.AddLast(new Range(offset, length));
 
-                        _free.AddLast(new Range(offset, length));
-                    }
-                });
+                            _timeTracker?.Add(RangeDisposingLogName,
+                                DateTime.Now - rangeDisposingStart);
+                        }
+                    });
         }
     }
 }

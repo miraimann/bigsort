@@ -5,8 +5,11 @@
     {
         void Load(int capacity);
 
-        bool TryReserveRange(int length,
-            out IUsingHandle<Range> rangeHandle);
+        /// <summary>
+        /// Tries to reserve and return IUsingHandle of range of lines (offset, length) 
+        /// in lines reservation. Returns null if reservation out.
+        /// </summary>
+        IUsingHandle<Range> TryReserveRange(int length);
     }
 
     public interface ILinesReservation<out TSegment>
