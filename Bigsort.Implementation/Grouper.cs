@@ -47,7 +47,7 @@ namespace Bigsort.Implementation
                 : _grouperIoMaker.MakeMany(inputPath, groupsFile, enginesCount);
 
             var engines = ios
-                .Select(io => new Engine(_tasksQueue, io, _config.BufferSize))
+                .Select(io => new Engine(_tasksQueue, io, _config.PhysicalBufferLength))
                 .ToArray();
 
             enginesCount = engines.Length;

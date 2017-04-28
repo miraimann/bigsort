@@ -118,7 +118,7 @@ namespace Bigsort.Tests
             }[bufferSize];
 
             configMock
-                .SetupGet(o => o.BufferSize)
+                .SetupGet(o => o.PhysicalBufferLength)
                 .Returns(buffSize);
 
             configMock

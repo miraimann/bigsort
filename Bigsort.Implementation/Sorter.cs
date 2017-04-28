@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading;
+﻿using System.Threading;
 using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
@@ -7,85 +6,89 @@ namespace Bigsort.Implementation
     public class Sorter
         : ISorter
     {
-        private readonly ILinesReservation _linesReservation;
-        private readonly IPoolMaker _poolMaker;
-        private readonly IGroupsService _groupMatrixService;
+        private readonly IGroupsLoaderMaker _groupsLoaderMaker;
         private readonly IGroupSorter _groupSorter;
-        private readonly ISortedGroupWriterMaker _sortedGroupWriterMaker;
-        private readonly IIoService _ioService;
+        private readonly ISortedGroupWriterMaker _groupWriterMaker;
         private readonly ITasksQueue _tasksQueue;
-
+        
         public Sorter(
-            ILinesReservation linesReservation,
-            IGroupsService groupMatrixService,
+            IGroupsLoaderMaker groupsLoaderMaker,
             IGroupSorter groupSorter,
             ISortedGroupWriterMaker sortedGroupWriterMaker,
-            IIoService ioService,
-            ITasksQueue tasksQueue,
-            IPoolMaker poolMaker)
+            ITasksQueue tasksQueue)
         {
-            _linesReservation = linesReservation;
-            _groupMatrixService = groupMatrixService;
+            _groupsLoaderMaker = groupsLoaderMaker;
             _groupSorter = groupSorter;
-            _sortedGroupWriterMaker = sortedGroupWriterMaker;
-            _ioService = ioService;
+            _groupWriterMaker = sortedGroupWriterMaker;
             _tasksQueue = tasksQueue;
-            _poolMaker = poolMaker;
         }
 
         public void Sort(
-            string groupsFilePath, 
-            IGroupsSummaryInfo groupsSummary, 
+            string groupsFilePath,
+            IGroupsSummaryInfo groupsSummary,
             string outputPath)
         {
-            _linesReservation.Load(groupsSummary.MaxGroupLinesCount *
-                                   Environment.ProcessorCount);
+            var groups = new IGroup[Consts.MaxGroupsCount];
 
-            using (var sortedGroupWriter = _sortedGroupWriterMaker.Make(outputPath))
-            using (var groupsReadersPool = _poolMaker.Make(
-                               productFactory: () => _ioService.OpenRead(groupsFilePath),
-                            productDestructor: reader => reader.Dispose()))
+            using (var groupsWriter = _groupWriterMaker.Make(outputPath))
+            using (var groupsLoader = _groupsLoaderMaker.Make(groupsFilePath, groupsSummary, groups))
             {
-                var groupsSorted = new CountdownEvent(Consts.MaxGroupsCount);
-                var possition = 0L;
-
-                for (int i = 0; i < Consts.MaxGroupsCount; i++)
+                var loadedGroupsRange = groupsLoader.LoadNextGroups();
+                while (!Range.IsZero(loadedGroupsRange))
                 {
-                    var groupInfo = groupsSummary.GroupsInfo[i];
-                    if (GroupInfo.IsZero(groupInfo))
-                    {
-                        groupsSorted.Signal();
-                        continue;
-                    }
+                    var groupsBlockDone = new CountdownEvent(loadedGroupsRange.Length);
+                    int i = loadedGroupsRange.Offset,
+                        n = i + loadedGroupsRange.Length;
                     
-                    var groupPosition = possition;
-                    Action sortGroup = null;
-                    sortGroup = () =>
+                    while (i != n)
                     {
+                        var j = i++;
+                        var group = groups[j];
+                        if (group == null)
+                        {
+                            groupsBlockDone.Signal();
+                            continue;
+                        }
+
+                        _tasksQueue.Enqueue(delegate
+                        {
+                            _groupSorter.Sort(group);
+                            groupsBlockDone.Signal();
+                        });
+                    }
+
+                    groupsBlockDone.Wait();
+                    groupsBlockDone.Reset();
+
+                    var possition = 0L;
+                    i = loadedGroupsRange.Offset;
+                    while (i != n)
+                    {
+                        var j = i++;
+                        var p = possition;
+                        var group = groups[j];
+                        if (group == null)
+                        {
+                            groupsBlockDone.Signal();
+                            continue;
+                        }
                         
-                        var group = _groupMatrixService.TryCreateGroup(groupInfo);
-                        if (group != null)
+                        possition += group.BytesCount;
+                        _tasksQueue.Enqueue(delegate
+                        {
                             using (group)
-                            using (var reader = groupsReadersPool.Get())
                             {
-                                _groupMatrixService.LoadGroup(group, groupInfo, reader.Value);
-                                _groupSorter.Sort(group);
-                                sortedGroupWriter.Write(group, groupPosition);
-                                groupsSorted.Signal();
-                                return;
+                                groupsWriter.Write(group, p);
+                                groups[j] = null;
+                                groupsBlockDone.Signal();
                             }
-                        
-                        _tasksQueue.Enqueue(sortGroup);
-                    };
+                        });
+                    }
 
-                    _tasksQueue.Enqueue(sortGroup);
-                    possition += groupInfo.BytesCount;
+                    groupsBlockDone.Wait();
+                    loadedGroupsRange = groupsLoader.LoadNextGroups();
                 }
-
-                groupsSorted.Wait();
             }
-
-            _ioService.DeleteFile(groupsFilePath);
         }
     }
 }

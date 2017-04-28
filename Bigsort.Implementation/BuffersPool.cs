@@ -10,7 +10,7 @@ namespace Bigsort.Implementation
         public BuffersPool(IPoolMaker poolMaker, IConfig config)
         {
             _implementation = poolMaker.Make(
-                productFactory: () => new byte[config.BufferSize + config.GroupBufferRowReadingEnsurance]);
+                productFactory: () => new byte[config.PhysicalBufferLength + config.BufferReadingEnsurance]);
         }
 
         public int Count =>

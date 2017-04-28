@@ -6,13 +6,14 @@ namespace Bigsort.Contracts
         : IFixedSizeList<byte>
         , IDisposable
     {
-        byte[][] Rows { get; }
+        byte[][] Buffers { get; }
 
         Range LinesRange { get; }
+        
+        int BuffersCount { get; }
 
-        int RowLength { get; }
-        int RowsCount { get; }
         int LinesCount { get; }
+
         int BytesCount { get; }
     }
 }

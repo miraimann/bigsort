@@ -12,58 +12,37 @@ namespace Bigsort.Implementation
         {
             string raw;
 
-            GroupsFilePath = Path.GetTempFileName();
-
-            SortingSegment = ConfigurationManager
-                .AppSettings["BigsortSortingSegment"]
-                ?? "ulong"; // "byte", "uint"
+            GroupsFileDirectoryPath = Path.GetTempPath();
 
             raw = ConfigurationManager
                 .AppSettings["BigsortMaxRunningTasksCount"];
 
-            MaxRunningTasksCount = 3; //raw == null
-                // ? Environment.ProcessorCount - 1
-                // : int.Parse(raw);
+            MaxRunningTasksCount = raw == null
+                ? Math.Max(1, Environment.ProcessorCount - 1)
+                : int.Parse(raw);
 
             raw = ConfigurationManager
                 .AppSettings["BigsortGrouperEnginesCount"];
 
-            GrouperEnginesCount = 1; //Math.Min(3, raw == null
-                // ? Environment.ProcessorCount / 2
-                // : int.Parse(raw));
-
-            GroupBufferRowReadingEnsurance =
-                ( SortingSegment == "ulong" ? sizeof(ulong)
-                : SortingSegment == "uint"  ? sizeof(uint)
-                : SortingSegment == "uint"  ? sizeof(byte)
-                : 0 /* invalid value */) 
-                - 1;
+            GrouperEnginesCount = raw == null ? 1 : int.Parse(raw);
+            BufferReadingEnsurance = sizeof(ulong) - 1;
 
             raw = ConfigurationManager
-                .AppSettings["BigsortBufferSize"];
+                .AppSettings["BigsortPhysicalBufferLength"];
 
-            BufferSize = raw != null
+            PhysicalBufferLength = raw != null
                 ? int.Parse(raw)
                 : 256 * 1024;
 
-            raw = ConfigurationManager
-                .AppSettings["BigsortMaxMemoryForLines"];
-            
-            MaxMemoryForLines = raw != null
-                ? long.Parse(raw)
-                : 320 * 1024 * 1024;
-
-            GroupRowLength = BufferSize;
-            // - GroupBufferRowReadingEnsurance;
+            UsingBufferLength = PhysicalBufferLength 
+                              - BufferReadingEnsurance;
         }
 
-        public string GroupsFilePath { get; }
-        public string SortingSegment { get; }
-        public int BufferSize { get; }
-        public long MaxMemoryForLines { get; }
+        public string GroupsFileDirectoryPath { get; }
+        public int PhysicalBufferLength { get; }
+        public int UsingBufferLength { get; }
         public int MaxRunningTasksCount { get; }
-        public int GroupRowLength { get; }
         public int GrouperEnginesCount { get; }
-        public int GroupBufferRowReadingEnsurance { get; }
+        public int BufferReadingEnsurance { get; }
     }
 }

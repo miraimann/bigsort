@@ -62,7 +62,7 @@ namespace Bigsort.Implementation
 
                 var lines = _linesStorage.Indexes;
 
-                var rows = group.Rows;
+                var rows = group.Buffers;
                 int rowLength = group.RowLength,
                     bytesCount = group.BytesCount,
                     offset = group.LinesRange.Offset,

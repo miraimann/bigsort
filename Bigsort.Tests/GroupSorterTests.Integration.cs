@@ -62,11 +62,11 @@ namespace Bigsort.Tests
 
                     ConfigMock = new Mock<IConfig>();
                     ConfigMock
-                        .SetupGet(o => o.GroupBufferRowReadingEnsurance)
+                        .SetupGet(o => o.BufferReadingEnsurance)
                         .Returns(GroupBufferRowReadingEnsurance);
 
                     ConfigMock
-                        .SetupGet(o => o.BufferSize)
+                        .SetupGet(o => o.PhysicalBufferLength)
                         .Returns(BufferSize);
 
                     ConfigMock

@@ -97,7 +97,7 @@ namespace Bigsort.Implementation
                 cellIndex = i % rowLength,
                  rowIndex = i / rowLength;
 
-            var result = _segment.Read(group.Rows[rowIndex], cellIndex);            // var dbg1 = Dbg.View(result);
+            var result = _segment.Read(group.Buffers[rowIndex], cellIndex);            // var dbg1 = Dbg.View(result);
             var rowLeftLength = rowLength - cellIndex;
             if (rowLeftLength >= _segmentSize) // is not broken to two rows
                 return result;
@@ -106,9 +106,9 @@ namespace Bigsort.Implementation
             result = _segment.ShiftRight(result, offset);                           // var dbg2 = Dbg.View(result);
             result = _segment.ShiftLeft(result, offset);                            // var dbg3 = Dbg.View(result);
 
-            if (++rowIndex < group.RowsCount)
+            if (++rowIndex < group.BuffersCount)
             {
-                TSegment additionBytes = _segment.Read(group.Rows[rowIndex], 0);    // var dbg4 = Dbg.View(additionBytes);
+                TSegment additionBytes = _segment.Read(group.Buffers[rowIndex], 0);    // var dbg4 = Dbg.View(additionBytes);
                 additionBytes = _segment.ShiftRight(additionBytes, rowLeftLength);  // var dbg5 = Dbg.View(additionBytes);
                 result = _segment.Merge(result, additionBytes);                     // var dbg6 = Dbg.View(result);
             }

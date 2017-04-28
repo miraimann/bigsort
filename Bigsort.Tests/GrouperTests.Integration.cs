@@ -107,7 +107,7 @@ namespace Bigsort.Tests
                     var configMock = new Mock<IConfig>();
 
                     configMock
-                        .SetupGet(o => o.BufferSize)
+                        .SetupGet(o => o.PhysicalBufferLength)
                         .Returns(bufferSize);
 
                     configMock
@@ -119,7 +119,7 @@ namespace Bigsort.Tests
                         .Returns(enginesCount);
 
                     configMock
-                        .SetupGet(o => o.GroupBufferRowReadingEnsurance)
+                        .SetupGet(o => o.BufferReadingEnsurance)
                         .Returns(GroupBufferRowReadingEnsurance);
                     
                     IGroupsSummaryInfoMarger groupsSummaryInfoMarger =

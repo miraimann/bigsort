@@ -22,10 +22,10 @@ namespace Bigsort.Tests
         {
             var configMock = new Mock<IConfig>();
             configMock
-                .SetupGet(o => o.BufferSize)
+                .SetupGet(o => o.PhysicalBufferLength)
                 .Returns(bufferSize);
             configMock
-                .SetupGet(o => o.GroupBufferRowReadingEnsurance)
+                .SetupGet(o => o.BufferReadingEnsurance)
                 .Returns(readingEnsurance);
 
             var buffersPool = new InfinityBuffersPool(bufferSize);
@@ -69,16 +69,16 @@ namespace Bigsort.Tests
             Assert.IsTrue(service.TryCreateGroup(groupInfo, out matrix));
 
             Assert.AreEqual(expectedRowLength, matrix.RowLength);
-            Assert.AreEqual(expectedRowsCount, matrix.RowsCount);
-            Assert.AreEqual(expectedRowsCount, matrix.Rows.Length);
+            Assert.AreEqual(expectedRowsCount, matrix.BuffersCount);
+            Assert.AreEqual(expectedRowsCount, matrix.Buffers.Length);
             Assert.AreEqual(linesCount, matrix.LinesCount);
             Assert.AreEqual(bytesCount, matrix.BytesCount);
 
             service.LoadGroup(matrix, groupInfo, reader);
 
             Assert.AreEqual(expectedRowLength, matrix.RowLength);
-            Assert.AreEqual(expectedRowsCount, matrix.RowsCount);
-            Assert.AreEqual(expectedRowsCount, matrix.Rows.Length);
+            Assert.AreEqual(expectedRowsCount, matrix.BuffersCount);
+            Assert.AreEqual(expectedRowsCount, matrix.Buffers.Length);
             Assert.AreEqual(linesCount, matrix.LinesCount);
             Assert.AreEqual(bytesCount, matrix.BytesCount);
             

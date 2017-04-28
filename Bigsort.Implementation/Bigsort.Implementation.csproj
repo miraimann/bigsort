@@ -61,7 +61,6 @@
     <Compile Include="Config.cs" />
     <Compile Include="DevelopmentTools\DiagnosticTools.cs" />
     <Compile Include="GroupsLoaderMaker.cs" />
-    <Compile Include="GroupsService.cs" />
     <Compile Include="Grouper.cs" />
     <Compile Include="BuffersPool.cs" />
     <Compile Include="GrouperBuffersProviderMaker.cs" />
@@ -74,7 +73,6 @@
     <Compile Include="MemoryOptimizer.cs" />
     <Compile Include="PoolMaker.cs" />
     <Compile Include="SortedGroupWriterMaker.cs" />
-    <Compile Include="Sorter1.cs" />
     <Compile Include="Sorter.cs" />
     <Compile Include="DevelopmentTools\TimeTracker.cs" />
     <Compile Include="UsingHandleMaker.cs" />

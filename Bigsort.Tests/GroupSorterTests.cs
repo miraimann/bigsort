@@ -74,7 +74,7 @@ namespace Bigsort.Tests
                 GroupsFileStream = new MemoryStream();
                 MockOf.Config = new Mock<IConfig>();
                 MockOf.Config
-                      .SetupGet(o => o.GroupBufferRowReadingEnsurance)
+                      .SetupGet(o => o.BufferReadingEnsurance)
                       .Returns(GroupBufferRowReadingEnsurance);
                 
                 SegmentService = segmentService;
@@ -102,7 +102,7 @@ namespace Bigsort.Tests
                 }
 
                 MockOf.Config
-                      .SetupGet(o => o.BufferSize)
+                      .SetupGet(o => o.PhysicalBufferLength)
                       .Returns(buffSize);
 
                 BuffersPool = new InfinityBuffersPool(buffSize);

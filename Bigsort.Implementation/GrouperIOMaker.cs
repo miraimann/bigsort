@@ -26,7 +26,7 @@ namespace Bigsort.Implementation
         }
 
         public IGrouperIO Make(string input, string output) =>
-            new IO(_grouperBuffersProviderMaker.Make(input, _config.BufferSize - 1),
+            new IO(_grouperBuffersProviderMaker.Make(input, _config.PhysicalBufferLength - 1),
                    _groupsLinesWriterMaker.Make(output));
         
         public IReadOnlyList<IGrouperIO> MakeMany(string input, string output, int count)
@@ -48,7 +48,7 @@ namespace Bigsort.Implementation
                     var readingLength = inputStream.Position - offset;
                     var linesWriter = _groupsLinesWriterMaker.Make(output, offset);
                     var buffersProvider = _grouperBuffersProviderMaker
-                        .Make(input, _config.BufferSize - 1, offset, readingLength);
+                        .Make(input, _config.PhysicalBufferLength - 1, offset, readingLength);
                     
                     result.Add(new IO(buffersProvider, linesWriter));
                     if (inputStream.Position == inputFileLength)

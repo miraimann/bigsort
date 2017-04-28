@@ -45,11 +45,7 @@ namespace Bigsort.Implementation
 
         public void Load(int capacity)
         {
-            var lineSize = Marshal.SizeOf<LineIndexes>() 
-                         + Marshal.SizeOf<TSegment>();
-
-            Length = Math.Min(capacity,
-                (int) (_config.MaxMemoryForLines/lineSize));
+            Length = capacity;
             
             Indexes = new LineIndexes[Length];
             Segments = new TSegment[Length];

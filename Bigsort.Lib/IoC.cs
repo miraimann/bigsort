@@ -134,7 +134,7 @@ namespace Bigsort.Lib
                     diagnosticTools);
 
             ISorter sorter1 = 
-                new Sorter1(
+                new Sorter(
                     groupsService,
                     groupSorter,
                     sortedGroupWriterMaker,

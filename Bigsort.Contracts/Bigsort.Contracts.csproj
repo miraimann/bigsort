@@ -57,6 +57,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DevelopmentTools\IDiagnosticTools.cs" />
+    <Compile Include="IDisposablePool.cs" />
     <Compile Include="IGrouperIOMaker.cs" />
     <Compile Include="IGrouperBuffersProvider.cs" />
     <Compile Include="IGrouperBuffersProviderMaker.cs" />
@@ -74,6 +75,8 @@
     <Compile Include="IMemoryOptimizer.cs" />
     <Compile Include="IPool.cs" />
     <Compile Include="IPoolMaker.cs" />
+    <Compile Include="IRangablePool.cs" />
+    <Compile Include="IRangesPool.cs" />
     <Compile Include="ISortedGroupWriterMaker.cs" />
     <Compile Include="ISorter.cs" />
     <Compile Include="DevelopmentTools\ITimeTracker.cs" />
@@ -89,7 +92,6 @@
     <Compile Include="IConfig.cs" />
     <Compile Include="IGrouper.cs" />
     <Compile Include="GroupInfo.cs" />
-    <Compile Include="IGroupsService.cs" />
     <Compile Include="ISegmentService.cs" />
     <Compile Include="IGroupSorter.cs" />
     <Compile Include="IIoService.cs" />

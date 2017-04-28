@@ -53,10 +53,10 @@ namespace Bigsort.Tests
 
             var configMock = new Mock<IConfig>();
             configMock
-                .SetupGet(o => o.BufferSize)
+                .SetupGet(o => o.PhysicalBufferLength)
                 .Returns(bufferSize);
             configMock
-                .SetupGet(o => o.GroupBufferRowReadingEnsurance)
+                .SetupGet(o => o.BufferReadingEnsurance)
                 .Returns(readingEnsurance);
 
             IBuffersPool buffersPool =

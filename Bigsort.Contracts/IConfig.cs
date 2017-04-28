@@ -2,18 +2,16 @@
 {
     public interface IConfig
     {
-        string SortingSegment { get; }
+        string GroupsFileDirectoryPath { get; }
 
-        int BufferSize { get; }
+        int PhysicalBufferLength { get; }
 
-        long MaxMemoryForLines { get; }
+        int UsingBufferLength { get; }
 
         int GrouperEnginesCount { get; }
 
         int MaxRunningTasksCount { get; }
 
-        int GroupRowLength { get; }
-
-        int GroupBufferRowReadingEnsurance { get; }
+        int BufferReadingEnsurance { get; }
     }
 }

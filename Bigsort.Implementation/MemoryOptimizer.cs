@@ -26,15 +26,15 @@ namespace Bigsort.Implementation
         {
             var memoryUsedForBuffers = (long)
                 _buffersPool.Count *
-                _config.BufferSize;
+                _config.PhysicalBufferLength;
 
             var maxGroupRowsCount =
                 (int) Math.Ceiling((double) maxGroupSize /
-                                   _config.GroupRowLength);
+                                   _config.PhysicalBufferLength);
 
             maxGroupSize =
                 maxGroupRowsCount *
-                _config.BufferSize;
+                _config.PhysicalBufferLength;
 
             var maxSizeForGroupLines =
                 _linesReservation.LineSize *
@@ -54,7 +54,7 @@ namespace Bigsort.Implementation
 
             var buffersCountForFree =
                 (int) Math.Ceiling((double) memoryForLines /
-                                   _config.GroupRowLength);
+                                   _config.PhysicalBufferLength);
 
             _buffersPool.Free(buffersCountForFree);
             _linesReservation.Load(linesCountForReserve);

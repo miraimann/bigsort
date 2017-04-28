@@ -60,7 +60,7 @@ namespace Bigsort.Implementation
                 _tasksQueue = tasksQueue;
                 _ioService = ioService;
                 _writingPosition = fileOffset;
-                _bufferLength = config.BufferSize;
+                _bufferLength = config.PhysicalBufferLength;
 
                 _groupsStorage = new Group[Consts.MaxGroupsCount];
                 _writers = new ConcurrentBag<IFileWriter>(
