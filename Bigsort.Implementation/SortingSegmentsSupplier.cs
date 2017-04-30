@@ -1,119 +1,120 @@
 ﻿using System;
+using System.Diagnostics;
 using Bigsort.Contracts;
 using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation
 {
-    public class SortingSegmentsSupplier<TSegment>
+    public class SortingSegmentsSupplier
         : ISortingSegmentsSupplier
-        
-        where TSegment : IEquatable<TSegment>
-                       , IComparable<TSegment>
     {
         public const string
-            LogName = nameof(SortingSegmentsSupplier<TSegment>),
+            LogName = nameof(SortingSegmentsSupplier),
             SupplingLogName = nameof(SupplyNext) + "." + LogName;
-
+        
+        private const int 
+            SegmentSize = sizeof(ulong),
+            BitsInByteCount = 8;
+        
         private readonly ITimeTracker _timeTracker;
-
-        private readonly TSegment _digitsOut, _lettersOut;
-        private readonly byte _segmentSize;
-        private readonly ISegmentService<TSegment> _segment;
-        private readonly ILinesStorage<TSegment> _linesStorage;
+        private readonly Func<byte[], int, ulong> _read;
+        private readonly int _usingBufferLength;
 
         public SortingSegmentsSupplier(
-            ILinesStorage<TSegment> linesStorage,
-            ISegmentService<TSegment> segmentService,
+            IConfig config,
             IDiagnosticTools diagnosticTools = null)
         {
-            _linesStorage = linesStorage;
-            _segment = segmentService;
-            _digitsOut = _segment.DigitsOut;
-            _lettersOut = _segment.LettersOut;
-            _segmentSize = _segment.SegmentSize;
-
+            _usingBufferLength = config.UsingBufferLength;
             _timeTracker = diagnosticTools?.TimeTracker;
+
+            if (BitConverter.IsLittleEndian)
+                 _read = ReverseRead;
+            else _read = DirectRead;
         }
 
-        public void SupplyNext(IGroup group, Range linesRange)
+        public void SupplyNext(IGroup group)
         {
-            var start = DateTime.Now;
+            var watch = Stopwatch.StartNew();
 
-            SupplyNext(group, linesRange.Offset, linesRange.Length);
+            var lines = group.Lines.Array;
+            var segments = group.SortingSegments.Array;
 
-            _timeTracker?.Add(SupplingLogName, DateTime.Now - start);
-        }
+            int offset = group.Lines.Offset,
+                count = group.Lines.Count,
+                n = offset + count;
 
-        public void SupplyNext(IGroup group, int offset, int count)
-        {
-            var lines = _linesStorage.Indexes;
-            var segments = _linesStorage.Segments;
-
-            var n = offset + count;
             for (; offset < n; ++offset)
             {
                 var line = lines[offset];
-                TSegment x;
+                ulong segment;
 
                 int maxLength = (line.sortByDigits
                                     ? line.digitsCount + 1
                                     : line.lettersCount) -
                                  line.sortingOffset;
+
                 if (maxLength <= 0)
                 {
                     line.sortingOffset = 0;
                     if (line.sortByDigits)
-                        x = _digitsOut;
+                        segment = Consts.SegmentDigitsOut;
                     else
                     {
-                        x = _lettersOut;
+                        segment = Consts.SegmentLettersOut;
                         line.sortByDigits = true;
                     }
                 }
                 else
                 {
-                    var lineReadingOffset = line.start 
-                        +  line.sortingOffset
-                        + (line.sortByDigits ? 1 : line.digitsCount + 3);
+                    var lineReadingOffset = line.start
+                                          + line.sortingOffset
+                                          + (line.sortByDigits ? 1 : line.digitsCount + 3);
+                    
+                    int cellIndex = lineReadingOffset % _usingBufferLength,
+                        bufferIndex = lineReadingOffset / _usingBufferLength;
 
-                    x = Read(group, lineReadingOffset);                             // var dbg1 = Dbg.View(x);
-                    if (maxLength < _segmentSize)                                   
-                    {                                                               
-                        x = _segment.ShiftRight(x, _segmentSize - maxLength);       // var dbg2 = Dbg.View(x);
-                        x = _segment.ShiftLeft(x, _segmentSize - maxLength);        // var dbg3 = Dbg.View(x);
-                    }                                                               
-                                                                                    
-                    line.sortingOffset += _segmentSize;                             
-                }                                                                   
-                                                                                    
-                lines[offset] = line;                                              
-                segments[offset] = x;                                               // var dbg4 = Dbg.View(x);
+                    segment = _read(group.Buffers[bufferIndex], cellIndex);
+                    var bufferLeftLength = _usingBufferLength - cellIndex;
+                    if (bufferLeftLength < SegmentSize) // is broken to two buffers
+                    {
+                        var bitsOffset = (SegmentSize - bufferLeftLength) * BitsInByteCount;
+                        segment = (segment >> bitsOffset) << bitsOffset;
+
+                        if (++bufferIndex < group.Buffers.Length)
+                            segment |= _read(group.Buffers[bufferIndex], 0)
+                                    << (bufferLeftLength * BitsInByteCount);
+                    }
+
+                    if (maxLength < SegmentSize)
+                    {
+                        var bitsOffset = (SegmentSize - maxLength) * BitsInByteCount;
+                        segment = (segment >> bitsOffset) << bitsOffset;
+                    }                                                          
+                                                                               
+                    line.sortingOffset += SegmentSize;                        
+                }                                                              
+                                                                               
+                lines[offset] = line;                                          
+                segments[offset] = segment;                                           
             }
+            
+            _timeTracker?.Add(SupplingLogName, watch.Elapsed);
         }
+        
+        private static ulong DirectRead(byte[] buff, int offset) =>
+            BitConverter.ToUInt64(buff, offset);
 
-        private TSegment Read(IGroup group, int i)
-        {
-            int rowLength = group.RowLength,
-                cellIndex = i % rowLength,
-                 rowIndex = i / rowLength;
+        private static ulong ReverseRead(byte[] buff, int offset) =>
+            Reverse(DirectRead(buff, offset));
 
-            var result = _segment.Read(group.Buffers[rowIndex], cellIndex);            // var dbg1 = Dbg.View(result);
-            var rowLeftLength = rowLength - cellIndex;
-            if (rowLeftLength >= _segmentSize) // is not broken to two rows
-                return result;
-
-            var offset = _segmentSize - rowLeftLength;
-            result = _segment.ShiftRight(result, offset);                           // var dbg2 = Dbg.View(result);
-            result = _segment.ShiftLeft(result, offset);                            // var dbg3 = Dbg.View(result);
-
-            if (++rowIndex < group.BuffersCount)
-            {
-                TSegment additionBytes = _segment.Read(group.Buffers[rowIndex], 0);    // var dbg4 = Dbg.View(additionBytes);
-                additionBytes = _segment.ShiftRight(additionBytes, rowLeftLength);  // var dbg5 = Dbg.View(additionBytes);
-                result = _segment.Merge(result, additionBytes);                     // var dbg6 = Dbg.View(result);
-            }
-
-            return result;
-        }
+        private static ulong Reverse(ulong x) =>
+             ((x & 0xFF00000000000000) >> 56)
+           | ((x & 0x00FF000000000000) >> 40)
+           | ((x & 0x0000FF0000000000) >> 24)
+           | ((x & 0x000000FF00000000) >> 8)
+           | ((x & 0x00000000FF000000) << 8)
+           | ((x & 0x0000000000FF0000) << 24)
+           | ((x & 0x000000000000FF00) << 40)
+           | ((x & 0x00000000000000FF) << 56);
     }
 }

@@ -144,8 +144,8 @@ namespace Bigsort.Tests
             IBuffersPool buffersPool = 
                 new BuffersPool(poolMaker, configMock.Object);
             
-            IGrouperBuffersProviderMaker grouperBuffersProviderMaker =
-                new GrouperBuffersProviderMaker(
+            IInputReaderMaker grouperBuffersProviderMaker =
+                new InputReaderMaker(
                     buffersPool,
                     ioServiceMock.Object,
                     usingHandleMaker,

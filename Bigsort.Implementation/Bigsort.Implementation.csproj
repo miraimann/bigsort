@@ -62,30 +62,23 @@
     <Compile Include="DevelopmentTools\DiagnosticTools.cs" />
     <Compile Include="GroupsLoaderMaker.cs" />
     <Compile Include="Grouper.cs" />
-    <Compile Include="BuffersPool.cs" />
-    <Compile Include="GrouperBuffersProviderMaker.cs" />
-    <Compile Include="ByteSegmentService.cs" />
+    <Compile Include="InputReaderMaker.cs" />
     <Compile Include="Consts.cs" />
-    <Compile Include="Dbg.cs" />
     <Compile Include="GrouperIOMaker.cs" />
     <Compile Include="GroupsLinesWriterMaker.cs" />
     <Compile Include="GroupsSummaryInfoMarger.cs" />
-    <Compile Include="MemoryOptimizer.cs" />
     <Compile Include="PoolMaker.cs" />
     <Compile Include="SortedGroupWriterMaker.cs" />
     <Compile Include="Sorter.cs" />
     <Compile Include="DevelopmentTools\TimeTracker.cs" />
     <Compile Include="UsingHandleMaker.cs" />
     <Compile Include="GroupSorter.cs" />
-    <Compile Include="IoService.cs" />
+    <Compile Include="IoServiceMaker.cs" />
     <Compile Include="LinesIndexesExtractor.cs" />
     <Compile Include="BigSorter.cs" />
-    <Compile Include="LinesReservation.cs" />
     <Compile Include="SortingSegmentsSupplier.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TasksQueue.cs" />
-    <Compile Include="UInt32SegmentService.cs" />
-    <Compile Include="UInt64SegmentService.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Bigsort.Contracts\Bigsort.Contracts.csproj">

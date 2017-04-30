@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using Bigsort.Contracts;
 
@@ -10,47 +8,53 @@ namespace Bigsort.Implementation
     public class GroupsLinesWriterMaker
         : IGroupsLinesWriterMaker
     {
-        private readonly IIoService _ioService;
-        private readonly IBuffersPool _buffersPool;
+        private readonly IIoServiceMaker _ioServiceMaker;
         private readonly ITasksQueue _tasksQueue;
+        private readonly IPoolMaker _poolMaker;
         private readonly IConfig _config;
 
         public GroupsLinesWriterMaker(
-            IIoService ioService, 
-            IBuffersPool buffersPool, 
-            ITasksQueue tasksQueue, 
+            IIoServiceMaker ioServiceMaker,
+            ITasksQueue tasksQueue,
+            IPoolMaker poolMaker,
             IConfig config)
         {
-            _ioService = ioService;
-            _buffersPool = buffersPool;
-            _config = config;
+            _ioServiceMaker = ioServiceMaker;
             _tasksQueue = tasksQueue;
+            _poolMaker = poolMaker;
+            _config = config;
         }
 
-        public IGroupsLinesWriter Make(string path, long fileOffset = 0) =>
-            new LinesWriter(path, fileOffset,
-                _buffersPool,
+        public IGroupsLinesWriter Make(
+            string groupsFilePath, 
+            IPool<byte[]> buffersPool, 
+            long fileOffset = 0) =>
+
+            new LinesWriter(
+                groupsFilePath, 
+                fileOffset,
+                buffersPool,
+                _poolMaker,
                 _tasksQueue,
-                _ioService,
+                _ioServiceMaker.Make(buffersPool),
                 _config);
 
         private class LinesWriter
             : IGroupsLinesWriter
         {
-            private const int InitWritersCount = 16; // TODO: Move to config
-
             private readonly IIoService _ioService;
-            private readonly IBuffersPool _buffersPool;
+            private readonly IPool<byte[]> _buffersPool;
+            private readonly IDisposablePool<IFileWriter> _writers;
             private readonly ITasksQueue _tasksQueue;
 
-            private readonly ConcurrentBag<IFileWriter> _writers;
             private readonly Group[] _groupsStorage;
             private readonly int _bufferLength;
             private readonly string _path;
             private long _writingPosition, _tasksCount = 0;
             
             public LinesWriter(string path, long fileOffset,
-                IBuffersPool buffersPool, 
+                IPool<byte[]> buffersPool, 
+                IPoolMaker poolMaker,
                 ITasksQueue tasksQueue, 
                 IIoService ioService,
                 IConfig config)
@@ -63,9 +67,9 @@ namespace Bigsort.Implementation
                 _bufferLength = config.PhysicalBufferLength;
 
                 _groupsStorage = new Group[Consts.MaxGroupsCount];
-                _writers = new ConcurrentBag<IFileWriter>(
-                    Enumerable.Range(0, InitWritersCount)
-                              .Select(_ => _ioService.OpenWrite(path)));
+                _writers = poolMaker.MakeDisposablePool(
+                    () => _ioService.OpenWrite(path),
+                    writer => writer.Dispose());
             }
 
             public GroupInfo[] SelectSummaryGroupsInfo()
@@ -101,7 +105,7 @@ namespace Bigsort.Implementation
 
             public void FlushAndDispose(ManualResetEvent done)
             {
-                var acc = new Group(_buffersPool.GetBuffer());
+                var acc = new Group(_buffersPool.Get());
                 for (int i = 0; i < Consts.MaxGroupsCount; i++)
                 {
                     var group = _groupsStorage[i];
@@ -116,55 +120,32 @@ namespace Bigsort.Implementation
                     IncrementTasksCount();
                     _tasksQueue.Enqueue(delegate
                     {
-                        var writer = GetWriter();
-                        writer.Position = _writingPosition;
-                        writer.Write(acc.BufferHandle.Value,
-                                     0, acc.BufferOffset);
-
-                        DecrementTasksCount();
-                        writer.Dispose();
+                        using (var writerHandle = _writers.Get())
+                        {
+                            var writer = writerHandle.Value;
+                            writer.Position = _writingPosition;
+                            writer.Write(acc.BufferHandle.Value, 0, acc.BufferOffset);
+                            DecrementTasksCount();
+                        }
                     });
                 }
 
                 Action disposeWriters = null;
                 _tasksQueue.Enqueue(disposeWriters = delegate
                 {
-                    if (HasNoTasks())
+                    if (HasTasks())
+                        _tasksQueue.Enqueue(disposeWriters);
+                    else
                     {
-                        IFileWriter writer;
-                        while (_writers.TryTake(out writer))
-                        {
-                            var closedWriter = writer;
-                            IncrementTasksCount();
-                            _tasksQueue.Enqueue(delegate
-                            {
-                                closedWriter.Dispose();
-                                DecrementTasksCount();
-                            });
-                        }
-
-                        Action checkDone = null;
-                        _tasksQueue.Enqueue(checkDone = delegate
-                        {
-                            if (HasNoTasks()) done.Set();
-                            else _tasksQueue.Enqueue(checkDone);
-                        });
+                        _writers.Dispose();
+                        done.Set();
                     }
-                    else _tasksQueue.Enqueue(disposeWriters);
                 });
             }
 
             private Group GetGroup(ushort groupId) =>
                 _groupsStorage[groupId] ?? 
-               (_groupsStorage[groupId] = new Group(_buffersPool.GetBuffer()));
-
-            private IFileWriter GetWriter()
-            {
-                IFileWriter writer;
-                if (!_writers.TryTake(out writer))
-                    writer = _ioService.OpenWrite(_path);
-                return writer;
-            }
+               (_groupsStorage[groupId] = new Group(_buffersPool.Get()));
 
             private void FinalSaveData(Group acc, Group group)
             {
@@ -182,7 +163,7 @@ namespace Bigsort.Implementation
                                countToAccBuffEnd);
                     
                     var oldBuffHandle = acc.BufferHandle;
-                    acc.BufferHandle = _buffersPool.GetBuffer();
+                    acc.BufferHandle = _buffersPool.Get();
 
                     newOffset = group.BufferOffset - countToAccBuffEnd;
                     Array.Copy(group.BufferHandle.Value, countToAccBuffEnd,
@@ -195,13 +176,15 @@ namespace Bigsort.Implementation
                     IncrementTasksCount();
                     _tasksQueue.Enqueue(delegate
                     {
-                        var writer = GetWriter();
-                        writer.Position = positionMomento;
-                        writer.Write(oldBuffHandle.Value, 0, _bufferLength);
-
-                        _writers.Add(writer);
-                        oldBuffHandle.Dispose();
-                        DecrementTasksCount();
+                        using (var writerHandle = _writers.Get())
+                        {
+                            var writer = writerHandle.Value;
+                            writer.Position = positionMomento;
+                            writer.Write(oldBuffHandle.Value, 0, _bufferLength);
+                            
+                            oldBuffHandle.Dispose();
+                            DecrementTasksCount();
+                        }
                     });
                 }
                 else
@@ -225,7 +208,7 @@ namespace Bigsort.Implementation
                                countToBuffEnd);
 
                     var oldBuffHandle = group.BufferHandle;
-                    group.BufferHandle = _buffersPool.GetBuffer();
+                    group.BufferHandle = _buffersPool.Get();
                     group.BytesCount += _bufferLength;
 
                     var positionMomento = _writingPosition;
@@ -240,13 +223,15 @@ namespace Bigsort.Implementation
                     IncrementTasksCount();
                     _tasksQueue.Enqueue(delegate
                     {
-                        var writer = GetWriter();
-                        writer.Position = positionMomento;
-                        writer.Write(oldBuffHandle.Value, 0, _bufferLength);
+                        using (var writersHandle = _writers.Get())
+                        {
+                            var writer = writersHandle.Value;
+                            writer.Position = positionMomento;
+                            writer.Write(oldBuffHandle.Value, 0, _bufferLength);
 
-                        _writers.Add(writer);
-                        oldBuffHandle.Dispose();
-                        DecrementTasksCount();
+                            oldBuffHandle.Dispose();
+                            DecrementTasksCount();
+                        }
                     });
                 }
                 else
@@ -263,7 +248,7 @@ namespace Bigsort.Implementation
             private void DecrementTasksCount() =>
                 Interlocked.Decrement(ref _tasksCount);
 
-            private bool HasNoTasks() =>
+            private bool HasTasks() =>
                 Interlocked.Read(ref _tasksCount) == 0;
 
             private class Group

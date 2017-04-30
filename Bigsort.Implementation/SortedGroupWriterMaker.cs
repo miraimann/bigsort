@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using Bigsort.Contracts;
 using Bigsort.Contracts.DevelopmentTools;
 
@@ -9,29 +10,34 @@ namespace Bigsort.Implementation
     {
         private readonly IDiagnosticTools _diagnosticsTool;
 
-        private readonly IIoService _ioService;
+        private readonly IIoServiceMaker _ioServiceMaker;
         private readonly IPoolMaker _poolMaker;
-        private readonly ILinesIndexesStorage _linesIndexesStorage; 
+        private readonly IConfig _config;
 
         public SortedGroupWriterMaker(
-            IIoService ioService, 
+            IIoServiceMaker ioServiceMaker, 
             IPoolMaker poolMaker, 
-            ILinesIndexesStorage linesIndexesStorage, 
+            IConfig config,
             IDiagnosticTools diagnosticsTool = null)
         {
-            _ioService = ioService;
+            _ioServiceMaker = ioServiceMaker;
             _poolMaker = poolMaker;
-            _linesIndexesStorage = linesIndexesStorage;
+            _config = config;
             _diagnosticsTool = diagnosticsTool;
         }
 
-        public ISortedGroupWriter Make(string outputFilepath)
+        public ISortedGroupWriter Make(
+            string outputFilepath,
+            IPool<byte[]> buffersPool)
         {
-            var writersPool = _poolMaker.Make(
-                       productFactory: () => _ioService.OpenWrite(outputFilepath, buffering: true),
-                    productDestructor: writer => writer.Dispose());
+            var ioService = _ioServiceMaker.Make(buffersPool);
+            var writersPool = _poolMaker.MakeDisposablePool(
+                         () => ioService.OpenWrite(outputFilepath, buffering: true));
 
-            return new Writer(_linesIndexesStorage, writersPool, _diagnosticsTool);
+            return new Writer( 
+                writersPool,
+                _config,
+                _diagnosticsTool);
         }
 
         public class Writer
@@ -43,30 +49,30 @@ namespace Bigsort.Implementation
 
             private readonly ITimeTracker _timeTracker;
             
-            private readonly IPool<IFileWriter> _writersPool;
-            private readonly ILinesIndexesStorage _linesStorage;
-
+            private readonly IDisposablePool<IFileWriter> _writersPool;
+            private readonly IConfig _config;
+            
             public Writer(
-                ILinesIndexesStorage linesStorage, 
-                IPool<IFileWriter> writersPool, 
+                IDisposablePool<IFileWriter> writersPool,
+                IConfig config, 
                 IDiagnosticTools diagnosticTools)
             {
-                _linesStorage = linesStorage;
                 _writersPool = writersPool;
+                _config = config;
                 _timeTracker = diagnosticTools?.TimeTracker;
             }
 
             public void Write(IGroup group, long position)
             {
-                var t = DateTime.Now;
+                var watch = Stopwatch.StartNew();
 
-                var lines = _linesStorage.Indexes;
+                var lines = group.Lines.Array;
 
-                var rows = group.Buffers;
-                int rowLength = group.RowLength,
+                var buffers = group.Buffers;
+                int bufferLength = _config.UsingBufferLength,
                     bytesCount = group.BytesCount,
-                    offset = group.LinesRange.Offset,
-                    n = offset + group.LinesRange.Length;
+                    offset = group.Lines.Offset,
+                    n = offset + group.Lines.Count;
 
                 using (var outputHandle = _writersPool.Get())
                 {
@@ -78,55 +84,55 @@ namespace Bigsort.Implementation
                         var line = lines[offset++];
                         int lineLength = line.digitsCount + line.lettersCount + 3,
                             start = line.start + 2,
-                            i = start/rowLength,
-                            j = start%rowLength,
-                            rowLeftLength = rowLength - j;
+                            i = start / bufferLength,
+                            j = start % bufferLength,
+                            buffLeftLength = bufferLength - j;
 
                         bool isLastLineInGroup =
                             line.start + lineLength == bytesCount;
 
-                        var row = rows[i];
-                        if (rowLeftLength < lineLength)
+                        var buff = buffers[i];
+                        if (buffLeftLength < lineLength)
                         {
-                            var nextLength = lineLength - rowLeftLength;
+                            var nextLength = lineLength - buffLeftLength;
                             if (isLastLineInGroup)
                             {
                                 nextLength = nextLength - Consts.EndLineBytesCount;
                                 if (nextLength <= 0)
-                                    output.Write(row, j, rowLeftLength + nextLength);
+                                    output.Write(buff, j, buffLeftLength + nextLength);
                                 else
                                 {
-                                    output.Write(row, j, rowLeftLength);
-                                    output.Write(rows[i + 1], 0, nextLength);
+                                    output.Write(buff, j, buffLeftLength);
+                                    output.Write(buffers[i + 1], 0, nextLength);
                                 }
 
                                 output.Write(Consts.EndLineBytes, 0, Consts.EndLineBytesCount);
                                 continue;
                             }
 
-                            var nextRow = rows[i + 1];
-                            output.Write(row, j, rowLeftLength);
-                            nextRow[nextLength - 1] = Consts.EndLineByte2;
-                            output.Write(nextRow, 0, nextLength);
+                            var nextBuff = buffers[i + 1];
+                            output.Write(buff, j, buffLeftLength);
+                            nextBuff[nextLength - 1] = Consts.EndLineByte2;
+                            output.Write(nextBuff, 0, nextLength);
                             continue;
                         }
 
                         if (isLastLineInGroup)
                         {
-                            output.Write(row, j, lineLength - Consts.EndLineBytesCount);
+                            output.Write(buff, j, lineLength - Consts.EndLineBytesCount);
                             output.Write(Consts.EndLineBytes, 0, Consts.EndLineBytesCount);
                         }
                         else
                         {
-                            row[j + lineLength - 1] = Consts.EndLineByte2;
-                            output.Write(row, j, lineLength);
+                            buff[j + lineLength - 1] = Consts.EndLineByte2;
+                            output.Write(buff, j, lineLength);
                         }
                     }
 
                     output.Flush();
                 }
 
-                _timeTracker?.Add(WriteLogName, DateTime.Now - t);
+                _timeTracker?.Add(WriteLogName, watch.Elapsed);
             }
 
             public void Dispose() =>

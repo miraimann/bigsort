@@ -2,6 +2,9 @@
 {
     public interface IGroupsLinesWriterMaker
     {
-        IGroupsLinesWriter Make(string path, long fileOffset = 0);
+        IGroupsLinesWriter Make(
+            string groupsFilePath, 
+            IPool<byte[]> buffersPool, 
+            long fileOffset = 0);
     }
 }

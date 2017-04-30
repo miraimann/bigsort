@@ -8,11 +8,11 @@ namespace Bigsort.Contracts
         IPool<T> MakePool<T>(
             Func<T> productFactory,
             Action<T> productCleaner = null);
-        
+
         IDisposablePool<T> MakeDisposablePool<T>(
             Func<T> productFactory,
-            Action<T> productDestructor,
-            Action<T> productCleaner = null);
+            Action<T> productCleaner = null)
+            where T : IDisposable;
 
         IRangesPool MakRangesPool(int length);
 

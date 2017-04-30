@@ -135,11 +135,11 @@ namespace Bigsort.Tests
                         new InfinityBuffersPool(bufferSize);
 
                     IIoService ioService =
-                        new IoService(
+                        new IoServiceMaker(
                             buffersPool);
 
-                    IGrouperBuffersProviderMaker grouperBuffersProviderMaker =
-                        new GrouperBuffersProviderMaker(
+                    IInputReaderMaker grouperBuffersProviderMaker =
+                        new InputReaderMaker(
                             buffersPool,
                             ioService,
                             usingHandleMaker,

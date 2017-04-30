@@ -47,15 +47,15 @@ namespace Bigsort.Lib
                     config);
             
             IIoService ioService =
-                new IoService(
+                new IoServiceMaker(
                     buffersPool);
 
             ITasksQueue tasksQueue =
                 new TasksQueue(
                     config);
             
-            IGrouperBuffersProviderMaker grouperBuffersProviderMaker =
-                new GrouperBuffersProviderMaker(
+            IInputReaderMaker grouperBuffersProviderMaker =
+                new InputReaderMaker(
                     buffersPool,
                     ioService,
                     usingHandleMaker,

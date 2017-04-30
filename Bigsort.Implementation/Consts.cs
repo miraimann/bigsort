@@ -15,6 +15,10 @@ namespace Bigsort.Implementation
             TemporaryMissingResult = -1,
             EndLineBytesCount = 2;
 
+        public const ulong
+            SegmentDigitsOut = ulong.MinValue,
+            SegmentLettersOut = ulong.MaxValue;
+
         public const byte
             Dot = (byte) '.',
             EndLineByte1 = (byte) '\r',

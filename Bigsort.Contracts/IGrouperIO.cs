@@ -3,7 +3,7 @@
     // ReSharper disable once InconsistentNaming
     public interface IGrouperIO
     {
-        IGrouperBuffersProvider Input { get; }
+        IInputReader Input { get; }
         
         IGroupsLinesWriter Output { get; }
     }

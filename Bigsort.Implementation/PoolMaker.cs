@@ -2,9 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using Bigsort.Contracts;
-using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation
 {
@@ -28,13 +26,12 @@ namespace Bigsort.Implementation
                 _usingHandleMaker);
 
         public IDisposablePool<T> MakeDisposablePool<T>(
-                Func<T> productFactory,
-                Action<T> productDestructor,
-                Action<T> productCleaner = null) =>
+            Func<T> productFactory,
+            Action<T> productCleaner = null)
+            where T : IDisposable =>
 
             new DisposablePool<T>(
                 productFactory,
-                productDestructor,
                 productCleaner,
                 _usingHandleMaker);
 
@@ -61,26 +58,31 @@ namespace Bigsort.Implementation
                 productCleaner,
                 _usingHandleMaker);
         
-        private abstract class BasePool<T>
-            : IPool<T>
+        private class BasePool<TCollection, T> : IPool<T>
+            where TCollection : IProducerConsumerCollection<T>, new()
         {
-            private readonly IUsingHandleMaker _handleMaker;
-            private readonly Func<T> _createProduct;
-            protected ConcurrentBag<T> Storage =
-                new ConcurrentBag<T>();
+            private readonly Action<T> _returnProduct;
+            protected readonly IUsingHandleMaker HandleMaker;
+            protected readonly Func<T> CreateProduct;
+            protected TCollection Storage;
 
-            protected BasePool(Func<T> createProduct, 
+            protected BasePool(
+                TCollection storage,
+                Func<T> createProduct,
+                Action<T> returnProduct,
                 IUsingHandleMaker handleMaker)
             {
-                _createProduct = createProduct;
-                _handleMaker = handleMaker;
+                _returnProduct = returnProduct;
+                CreateProduct = createProduct;
+                HandleMaker = handleMaker;
+                Storage = storage;
             }
 
             public int Count =>
                 Storage.Count;
 
             public IUsingHandle<T> Get() =>
-                TryGet() ?? Handle(_createProduct());
+                TryGet() ?? Handle(CreateProduct());
 
             public IUsingHandle<T> TryGet()
             {
@@ -100,60 +102,135 @@ namespace Bigsort.Implementation
 
             public T[] ExtractAll()
             {
-                var all = Storage.ToArray();
-                Storage = new ConcurrentBag<T>();
-                return all;
+                var oldStorage = Storage;
+                Storage = new TCollection();
+                return oldStorage.ToArray();
             }
 
-            protected abstract void Return(T product);
+            protected virtual void ReturnProduct(T x) =>
+                _returnProduct(x);
 
             private IUsingHandle<T> Handle(T product) =>
-                _handleMaker.Make(product, Return);
+                HandleMaker.Make(product, _returnProduct);
         }
 
         private class Pool<T>
-            : BasePool<T>
+            : BasePool<ConcurrentBag<T>,  T>
         {
-            protected readonly Action<T> ReturnProduct;
-
             public Pool(Func<T> createProduct,
                         Action<T> clearProduct,
-                        IUsingHandleMaker handleMaker) 
-                : base(createProduct, handleMaker)
+                        IUsingHandleMaker handleMaker)
+                
+                : this(new ConcurrentBag<T>(),
+                       createProduct,
+                       clearProduct,
+                       handleMaker)
             {
-                ReturnProduct = clearProduct + Storage.Add;
             }
 
-            protected override void Return(T x) =>
-                ReturnProduct(x);
+            private Pool(ConcurrentBag<T> storage,
+                         Func<T> createProduct,
+                         Action<T> clearProduct,
+                         IUsingHandleMaker handleMaker)
+
+                : base(storage,
+                       createProduct,
+                       clearProduct + storage.Add,
+                       handleMaker)
+            {
+            }
         }
 
         private class DisposablePool<T>
             : Pool<T>
             , IDisposablePool<T>
+            where T : IDisposable
         {
             private volatile Action<T> _returnProduct;
-            private readonly Action<T> _disposeProduct;
 
-            public DisposablePool(
-                Func<T> createProduct, 
-                Action<T> clearProduct,
-                Action<T> disposeProduct,
-                IUsingHandleMaker handleMaker) 
-                : base(createProduct, clearProduct, handleMaker)
+            public DisposablePool(Func<T> createProduct, 
+                                  Action<T> clearProduct,
+                                  IUsingHandleMaker handleMaker) 
+                : base(createProduct,
+                       clearProduct,
+                       handleMaker)
             {
-                _disposeProduct = disposeProduct;
-                _returnProduct = ReturnProduct;
+                _returnProduct = base.ReturnProduct;
             }
-
-            protected override void Return(T x) =>
-                _returnProduct(x);
 
             public void Dispose()
             {
-                _returnProduct = _disposeProduct;
+                _returnProduct = product => product.Dispose();
                 foreach (var x in Storage)
-                    _disposeProduct(x);
+                    x.Dispose();
+            }
+
+            protected override void ReturnProduct(T x) =>
+                _returnProduct(x);
+        }
+
+
+        private class RangablePool<T>
+            : BasePool<ConcurrentStack<T>, T>
+            , IRangablePool<T>
+        {
+            private readonly Action<T[]> _returnProducts;
+            
+            public RangablePool(IEnumerable<T> init,
+                                Func<T> createProduct,
+                                Action<T> clearProduct,
+                                IUsingHandleMaker handleMaker)
+
+                : base(new ConcurrentStack<T>(init),
+                       createProduct,
+                       clearProduct,
+                       handleMaker)
+            {
+                var clearProducts = clearProduct != null
+                    ? new Action<T[]>(products => Array.ForEach(products, clearProduct))
+                    : null;
+                
+                _returnProducts = clearProducts + Storage.PushRange;
+            }
+            
+            public IUsingHandle<T[]> TryGet(int count)
+            {
+                if (Count >= count)
+                {
+                    T[] products = new T[count];
+                    var poppedCount = Storage.TryPopRange(products);
+                    if (poppedCount == count)
+                        return HandleMaker.Make(products, _returnProducts);
+
+                    if (poppedCount != 0)
+                        Storage.PushRange(products, 0, poppedCount);
+                }
+
+                return null;
+            }
+
+            public IUsingHandle<T[]> Get(int count)
+            {
+                T[] products = new T[count];
+                var poppedCount = Storage.TryPopRange(products);
+                while (poppedCount != count)
+                    products[poppedCount++] = CreateProduct();
+
+                return HandleMaker.Make(products, _returnProducts);
+            }
+
+            public T[] TryExtract(int count)
+            {
+                if (Count >= count)
+                {
+                    T[] products = new T[count];
+                    var poppedCount = Storage.TryPopRange(products);
+                    if (poppedCount != count)
+                        Storage.PushRange(products, 0, poppedCount);
+                    else return products;
+                }
+
+                return null;
             }
         }
 
@@ -173,7 +250,6 @@ namespace Bigsort.Implementation
             }
 
             public int Length { get; }
-
 
             public IUsingHandle<Range> TryGet(int length)
             {
@@ -261,79 +337,6 @@ namespace Bigsort.Implementation
                                 _free.AddLast(new Range(offset, length));
                             }
                         });
-            }
-        }
-
-        private class RangablePool<T>
-            : IRangablePool<T>
-        {
-            private readonly IUsingHandleMaker _usingHandleMaker;
-            private readonly Func<T> _createProduct;
-            private readonly Action<T[]> _returnProducts;
-            private readonly ConcurrentStack<T> _storage;
-
-            public RangablePool(
-                IEnumerable<T> init,
-                Func<T> productFactory,
-                Action<T> productCleaner,
-                IUsingHandleMaker handleMaker)
-            {
-                _storage = new ConcurrentStack<T>(init);
-                _usingHandleMaker = handleMaker;
-                _createProduct = productFactory;
-
-                var clear = productCleaner != null
-                    ? new Action<T[]>(products =>
-                    {
-                        for (int i = 0; i < products.Length; i++)
-                            productCleaner(products[i]);
-                    })
-                    : null;
-                
-               _returnProducts = clear + _storage.PushRange;
-            }
-
-            public int Count =>
-                _storage.Count;
-
-            public IUsingHandle<T[]> TryGet(int count)
-            {
-                if (Count >= count)
-                {
-                    T[] products = new T[count];
-                    var poppedCount = _storage.TryPopRange(products);
-                    if (poppedCount == count)
-                        return _usingHandleMaker.Make(products, _returnProducts);
-
-                    if (poppedCount != 0)
-                        _storage.PushRange(products, 0, poppedCount);
-                }
-                
-                return null;
-            }
-
-            public IUsingHandle<T[]> Get(int count)
-            {
-                T[] products = new T[count];
-                var poppedCount = _storage.TryPopRange(products);
-                while (poppedCount != count)
-                    products[poppedCount++] = _createProduct();
-                
-                return _usingHandleMaker.Make(products, _returnProducts);
-            }
-
-            public T[] TryExtract(int count)
-            {
-                if (Count >= count)
-                {
-                    T[] products = new T[count];
-                    var poppedCount = _storage.TryPopRange(products);
-                    if (poppedCount != count)
-                        _storage.PushRange(products, 0, poppedCount);
-                    else return products;
-                }
-
-                return null;
             }
         }
     }

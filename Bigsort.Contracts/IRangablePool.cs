@@ -1,9 +1,8 @@
 ﻿namespace Bigsort.Contracts
 {
     public interface IRangablePool<out T>
+        : IPool<T>
     {
-        int Count { get; }
-
         IUsingHandle<T[]> TryGet(int count);
 
         IUsingHandle<T[]> Get(int count);

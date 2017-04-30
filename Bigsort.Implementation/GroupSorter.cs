@@ -5,34 +5,24 @@ using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation
 {
-    public class GroupSorter<TSegment>
+    public class GroupSorter
         : IGroupSorter
-        where TSegment : IEquatable<TSegment>
-        , IComparable<TSegment>
     {
         public const string
-            LogName = nameof(GroupSorter<TSegment>),
+            LogName = nameof(GroupSorter),
             SortingLogName = LogName + "." + nameof(Sort);
 
         private readonly ITimeTracker _timeTracker;
-
         private readonly ISortingSegmentsSupplier _segmentsSupplier;
         private readonly ILinesIndexesExtractor _linesIndexesExtractor;
-        private readonly ILinesStorage<TSegment> _linesStorage;
-        private readonly TSegment _lineSegmentsOut;
-
+        
         public GroupSorter(
             ISortingSegmentsSupplier segmentsSupplier,
             ILinesIndexesExtractor linesIndexesExtractor,
-            ILinesStorage<TSegment> linesStorage,
-            ISegmentService<TSegment> segmentService,
             IDiagnosticTools diagnosticTools = null)
         {
             _segmentsSupplier = segmentsSupplier;
             _linesIndexesExtractor = linesIndexesExtractor;
-            _linesStorage = linesStorage;
-            _lineSegmentsOut = segmentService.DigitsOut;
-
             _timeTracker = diagnosticTools?.TimeTracker;
         }
 
@@ -41,26 +31,26 @@ namespace Bigsort.Implementation
             var watch = Stopwatch.StartNew();
 
             _linesIndexesExtractor.ExtractIndexes(group);
-            Sort(group, group.LinesRange.Offset, group.LinesRange.Length);
+            Sort(group, group.Lines.Offset, group.Lines.Count);
 
             _timeTracker?.Add(SortingLogName, watch.Elapsed);
         }
 
         private void Sort(IGroup group, int offset, int length)
         {
-            var lines = _linesStorage.Indexes;
-            var segments = _linesStorage.Segments;
+            var lines = group.Lines.Array;
+            var segments = group.SortingSegments.Array;
 
-            _segmentsSupplier.SupplyNext(group, offset, length);
+            _segmentsSupplier.SupplyNext(group);
             Array.Sort(segments, lines, offset, length);
 
             int n = offset + length;
             while (offset < n)
             {
                 int i = offset;
-                TSegment current = segments[i], next = segments[++i];
+                ulong current = segments[i], next = segments[++i];
                 while (i < n && current.Equals(next) &&
-                       !next.Equals(_lineSegmentsOut))
+                       !next.Equals(Consts.SegmentDigitsOut))
                     next = segments[++i];
 
                 i -= offset;

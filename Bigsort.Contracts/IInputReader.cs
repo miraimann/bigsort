@@ -2,7 +2,7 @@
 
 namespace Bigsort.Contracts
 {
-    public interface IGrouperBuffersProvider
+    public interface IInputReader
         : IDisposable
     {
         int TryGetNextBuffer(out IUsingHandle<byte[]> buffHandle);

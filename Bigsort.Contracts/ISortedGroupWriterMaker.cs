@@ -2,6 +2,8 @@
 {
     public interface ISortedGroupWriterMaker
     {
-        ISortedGroupWriter Make(string outputFilepath);
+        ISortedGroupWriter Make(
+            string outputFilepath,
+            IPool<byte[]> buffersPool);
     }
 }

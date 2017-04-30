@@ -92,7 +92,7 @@ namespace Bigsort.Tests
                         SegmentService);
 
                     BuffersPool = new InfinityBuffersPool(BufferSize);
-                    IoService = new IoService(BuffersPool);
+                    IoService = new IoServiceMaker(BuffersPool);
                     GroupMatrixService = new GroupsService(
                         BuffersPool,
                         ConfigMock.Object);

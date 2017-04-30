@@ -1,4 +1,4 @@
-﻿using System;
+﻿using System.Diagnostics;
 using Bigsort.Contracts;
 using Bigsort.Contracts.DevelopmentTools;
 
@@ -12,24 +12,19 @@ namespace Bigsort.Implementation
             IndexesExtractingLogName = LogName + "." + nameof(IndexesExtractingLogName);
 
         private readonly ITimeTracker _timeTracker;
-
-        private readonly ILinesIndexesStorage _linesStorage;
         
-        public LinesIndexesExtractor(
-            ILinesIndexesStorage linesStorage, 
-            IDiagnosticTools diagnosticTools = null)
+        public LinesIndexesExtractor(IDiagnosticTools diagnosticTools = null)
         {
-            _linesStorage = linesStorage;
             _timeTracker = diagnosticTools?.TimeTracker;
         }
 
         public void ExtractIndexes(IGroup group)
         {
-            var start = DateTime.Now;
+            var watch = Stopwatch.StartNew();
 
-            var lines = _linesStorage.Indexes;
-            int offset = group.LinesRange.Offset,
-                length = group.LinesRange.Length,
+            var lines = group.Lines.Array;
+            int offset = group.Lines.Offset,
+                length = group.Lines.Count,
                 n = offset + length, 
                 i = 0;
 
@@ -54,8 +49,7 @@ namespace Bigsort.Implementation
                 i += 3;
             }
 
-            _timeTracker?.Add(IndexesExtractingLogName,
-                DateTime.Now - start);
+            _timeTracker?.Add(IndexesExtractingLogName, watch.Elapsed);
         }
     }
 }

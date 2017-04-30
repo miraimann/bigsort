@@ -5,51 +5,58 @@ using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    public class GrouperBuffersProviderMaker
-        : IGrouperBuffersProviderMaker
+    public class InputReaderMaker
+        : IInputReaderMaker
     {
-        private readonly IBuffersPool _buffersPool;
-        private readonly IIoService _ioService;
+        private readonly IIoServiceMaker _ioServiceMaker;
         private readonly IUsingHandleMaker _usingHandleMaker;
         private readonly ITasksQueue _tasksQueue;
         private readonly IConfig _config;
 
-        public GrouperBuffersProviderMaker(
-            IBuffersPool buffersPool,
-            IIoService ioService,
+        public InputReaderMaker(
+            IIoServiceMaker ioServiceMaker,
             IUsingHandleMaker usingHandleMaker, 
             ITasksQueue tasksQueue, 
             IConfig config)
         {
-            _buffersPool = buffersPool;
-            _ioService = ioService;
+            _ioServiceMaker = ioServiceMaker;
             _usingHandleMaker = usingHandleMaker;
             _tasksQueue = tasksQueue;
             _config = config;
         }
-        
-        public IGrouperBuffersProvider Make(string path, int buffLength) =>
-            Make(path, buffLength, 0, _ioService.SizeOfFile(path));
 
-        public IGrouperBuffersProvider Make(string path, int buffLength,
-                long fileOffset, long readingLength) =>
+        public IInputReader Make(
+                string inputPath,
+                long fileLength,
+                IPool<byte[]> buffersPool) =>
 
-            new BuffersProvider(path, buffLength, fileOffset, readingLength,
-                _buffersPool,
+            Make(inputPath, 0, fileLength, buffersPool);
+
+        public IInputReader Make(
+                string inputPath, 
+                long fileOffset, 
+                long readingLength, 
+                IPool<byte[]> buffersPool) =>
+
+            new BuffersProvider(
+                inputPath, 
+                fileOffset, 
+                readingLength, 
+                buffersPool,
                 _tasksQueue,
-                _ioService,
+                _ioServiceMaker.Make(buffersPool),
                 _usingHandleMaker,
                 _config);
         
         private class BuffersProvider
-            : IGrouperBuffersProvider
+            : IInputReader
         {
-            private const int InitCapacity = 16; // TODO: move to config
-            
+            private const int InitCapacity = 16;
+
             private readonly long _readingOut;
-            private readonly int _bufferLength, _capacity;
+            private readonly int _capacity;
             
-            private readonly IBuffersPool _buffersPool;
+            private readonly IPool<byte[]> _buffersPool;
             private readonly ITasksQueue _tasksQueue;
 
             private readonly ConcurrentDictionary<int, Item> _readed;
@@ -59,10 +66,9 @@ namespace Bigsort.Implementation
 
             public BuffersProvider(
                 string path,
-                int buffLength,
                 long readingOffset,
                 long readingLength,
-                IBuffersPool buffersPool,
+                IPool<byte[]> buffersPool,
                 ITasksQueue tasksQueue,
                 IIoService ioService,
                 IUsingHandleMaker usingHandleMaker,
@@ -70,32 +76,35 @@ namespace Bigsort.Implementation
             {
                 _buffersPool = buffersPool;
                 _tasksQueue = tasksQueue;
-                _bufferLength = buffLength;
 
                 _zeroHandle = usingHandleMaker.Make<byte[]>(null, _ => { });
                 _readingOut = readingOffset + readingLength;
+
+                // -1 - for set "Buffer End" Symbol to last cell of buffer without data lose 
+                var readingBufferLength = config.UsingBufferLength - 1;
+
                 _capacity = (int) Math.Min(
-                    Math.Ceiling((double)readingLength / _bufferLength),
+                    Math.Ceiling((double) readingLength / readingBufferLength),
                     InitCapacity);
 
                 _readed = new ConcurrentDictionary<int, Item>(
                     concurrencyLevel: config.MaxRunningTasksCount,
                             capacity: _capacity);
 
-                var readerStep = (_capacity - 1) * buffLength;
+                var readerStep = (_capacity - 1) * readingBufferLength;
                 _readingIndex = ReadingIndexes.GetEnumerator();
                 _readingIndex.MoveNext();
 
                 _readNext = new Action[_capacity];
                 for (int i = 0; i < _capacity; i++)
                 {
-                    var reader = ioService.OpenRead(path, readingOffset + i*_bufferLength);
+                    var reader = ioService.OpenRead(path, readingOffset + i * readingBufferLength);
 
                     int buffIndex = i;
                     Action read = delegate
                     {
-                        var pooledBuff = _buffersPool.GetBuffer();
-                        var length = (int) Math.Min(_readingOut - reader.Position, _bufferLength);
+                        var pooledBuff = _buffersPool.Get();
+                        var length = (int) Math.Min(_readingOut - reader.Position, readingBufferLength);
 
                         length = reader.Read(pooledBuff.Value, 0, length);
                         _readed.TryAdd(buffIndex, new Item(length, pooledBuff));

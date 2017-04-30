@@ -7,13 +7,11 @@ namespace Bigsort.Contracts
         , IDisposable
     {
         byte[][] Buffers { get; }
-
-        Range LinesRange { get; }
         
-        int BuffersCount { get; }
+        ArraySegment<LineIndexes> Lines { get; }
 
-        int LinesCount { get; }
-
+        ArraySegment<ulong> SortingSegments { get; }
+        
         int BytesCount { get; }
     }
 }
