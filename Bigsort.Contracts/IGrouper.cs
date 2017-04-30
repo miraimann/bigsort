@@ -2,6 +2,6 @@
 {
     public interface IGrouper
     {
-        IGroupsSummaryInfo SplitToGroups(string inputFile, string groupsFile);
+        IGroupsSummaryInfo SplitToGroups();
     }
 }

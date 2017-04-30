@@ -12,9 +12,13 @@ namespace Bigsort.Implementation
             IndexesExtractingLogName = LogName + "." + nameof(IndexesExtractingLogName);
 
         private readonly ITimeTracker _timeTracker;
+        private readonly int _usingBufferLength;
         
-        public LinesIndexesExtractor(IDiagnosticTools diagnosticTools = null)
+        public LinesIndexesExtractor(
+            IConfig config,
+            IDiagnosticTools diagnosticTools = null)
         {
+            _usingBufferLength = config.UsingBufferLength;
             _timeTracker = diagnosticTools?.TimeTracker;
         }
 
@@ -22,27 +26,31 @@ namespace Bigsort.Implementation
         {
             var watch = Stopwatch.StartNew();
 
+            var buffers = group.Buffers.Array;
             var lines = group.Lines.Array;
-            int offset = group.Lines.Offset,
-                length = group.Lines.Count,
-                n = offset + length, 
+
+            int bufferLength = _usingBufferLength,
+                buffersOffset = group.Buffers.Offset,
+                linesOffset = group.Lines.Offset,
+                n = linesOffset + group.Lines.Count, 
                 i = 0;
 
-            while (offset < n)
+            while (linesOffset < n)
             {
-                var line = lines[offset++] = new LineIndexes
+                int d = i / bufferLength + buffersOffset, 
+                    b = i % bufferLength, 
+                    q = (i + 1) / bufferLength + buffersOffset,
+                    p = (i + 1) % bufferLength; 
+                 
+                var line = lines[linesOffset++] = new LineIndexes
                 {
                     start = i,
-                    lettersCount = group[i],
-                    digitsCount = group[i + 1],
+                    lettersCount = buffers[d][b],
+                    digitsCount  = buffers[q][p],
                     sortingOffset = Consts.GroupIdLettersCount
-                 // sortByDigits = false;
                 };
 
-                group[i] = Consts.EndLineByte1;
-                // it is nessesary for sort
-                // it will be written in SortedGroupWriter 
-                // group[i + 1] = Consts.EndLineByte2;
+                buffers[d][b] = Consts.EndLineByte1;
                 
                 i += line.digitsCount;
                 i += line.lettersCount;

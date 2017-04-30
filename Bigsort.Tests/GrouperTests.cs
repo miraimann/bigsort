@@ -152,15 +152,15 @@ namespace Bigsort.Tests
                     tasksQueue,
                     configMock.Object);
 
-            IGroupsLinesWriterMaker linesWriterMaker =
-                new GroupsLinesWriterMaker(
+            IGroupsLinesWriterFactory linesWriterMaker =
+                new GroupsLinesWriterFactory(
                     ioServiceMock.Object,
                     buffersPool,
                     tasksQueue,
                     configMock.Object);
 
-            IGrouperIOMaker grouperIoMaker = 
-                new GrouperIOMaker(
+            IGrouperIOs grouperIoMaker = 
+                new GrouperIOs(
                     grouperBuffersProviderMaker,
                     linesWriterMaker,
                     ioServiceMock.Object,

@@ -2,9 +2,6 @@
 {
     public interface ISorter
     {
-        void Sort(
-            string groupsFilePath,
-            IGroupsSummaryInfo groupsSummary,
-            string outputPath);
+        void Sort(IGroupsSummaryInfo groupsSummary);
     }
 }

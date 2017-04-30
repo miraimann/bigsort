@@ -57,11 +57,11 @@ namespace Bigsort.Implementation
                 productFactory,
                 productCleaner,
                 _usingHandleMaker);
-        
+
         private class BasePool<TCollection, T> : IPool<T>
             where TCollection : IProducerConsumerCollection<T>, new()
         {
-            private readonly Action<T> _returnProduct;
+            private readonly Action<TCollection, T> _returnProduct;
             protected readonly IUsingHandleMaker HandleMaker;
             protected readonly Func<T> CreateProduct;
             protected TCollection Storage;
@@ -69,7 +69,7 @@ namespace Bigsort.Implementation
             protected BasePool(
                 TCollection storage,
                 Func<T> createProduct,
-                Action<T> returnProduct,
+                Action<TCollection, T> returnProduct,
                 IUsingHandleMaker handleMaker)
             {
                 _returnProduct = returnProduct;
@@ -108,10 +108,10 @@ namespace Bigsort.Implementation
             }
 
             protected virtual void ReturnProduct(T x) =>
-                _returnProduct(x);
+                _returnProduct(Storage, x);
 
             private IUsingHandle<T> Handle(T product) =>
-                HandleMaker.Make(product, _returnProduct);
+                HandleMaker.Make(product, ReturnProduct);
         }
 
         private class Pool<T>
@@ -135,7 +135,14 @@ namespace Bigsort.Implementation
 
                 : base(storage,
                        createProduct,
-                       clearProduct + storage.Add,
+                       clearProduct == null
+                            ? new Action<ConcurrentBag<T>, T>(
+                              (s, x) => s.Add(x))
+                            : (s, x) =>
+                            {
+                                clearProduct(x);
+                                s.Add(x);
+                            },
                        handleMaker)
             {
             }
@@ -168,29 +175,38 @@ namespace Bigsort.Implementation
             protected override void ReturnProduct(T x) =>
                 _returnProduct(x);
         }
-
-
+        
         private class RangablePool<T>
             : BasePool<ConcurrentStack<T>, T>
             , IRangablePool<T>
         {
-            private readonly Action<T[]> _returnProducts;
+            private readonly Action<ConcurrentStack<T>, T[]> _returnProducts;
             
             public RangablePool(IEnumerable<T> init,
                                 Func<T> createProduct,
                                 Action<T> clearProduct,
                                 IUsingHandleMaker handleMaker)
-
+                
                 : base(new ConcurrentStack<T>(init),
                        createProduct,
-                       clearProduct,
+                       clearProduct == null
+                            ? new Action<ConcurrentStack<T>, T>(
+                              (storage, x) => storage.Push(x))
+                            : (storage, x) =>
+                            {
+                                clearProduct(x);
+                                storage.Push(x);
+                            },
                        handleMaker)
             {
-                var clearProducts = clearProduct != null
-                    ? new Action<T[]>(products => Array.ForEach(products, clearProduct))
-                    : null;
-                
-                _returnProducts = clearProducts + Storage.PushRange;
+                _returnProducts = clearProduct == null
+                    ? new Action<ConcurrentStack<T>, T[]>(
+                      (storage, products) => storage.PushRange(products))
+                    : (storage, products) =>
+                    {
+                        Array.ForEach(products, clearProduct);
+                        Storage.PushRange(products);
+                    };
             }
             
             public IUsingHandle<T[]> TryGet(int count)
@@ -200,7 +216,7 @@ namespace Bigsort.Implementation
                     T[] products = new T[count];
                     var poppedCount = Storage.TryPopRange(products);
                     if (poppedCount == count)
-                        return HandleMaker.Make(products, _returnProducts);
+                        return HandleMaker.Make(products, Return);
 
                     if (poppedCount != 0)
                         Storage.PushRange(products, 0, poppedCount);
@@ -216,7 +232,7 @@ namespace Bigsort.Implementation
                 while (poppedCount != count)
                     products[poppedCount++] = CreateProduct();
 
-                return HandleMaker.Make(products, _returnProducts);
+                return HandleMaker.Make(products, Return);
             }
 
             public T[] TryExtract(int count)
@@ -232,9 +248,52 @@ namespace Bigsort.Implementation
 
                 return null;
             }
+
+            private void Return(T[] products) =>
+                _returnProducts(Storage, products);
         }
 
-        public class RangesPool
+        private class LazyRangablePool<T>
+            : IRangablePool<T>
+        {
+            public int Count { get; }
+            public IUsingHandle<T> Get()
+            {
+                throw new NotImplementedException();
+            }
+
+            public IUsingHandle<T> TryGet()
+            {
+                throw new NotImplementedException();
+            }
+
+            public T TryExtract()
+            {
+                throw new NotImplementedException();
+            }
+
+            public T[] ExtractAll()
+            {
+                throw new NotImplementedException();
+            }
+
+            public IUsingHandle<T[]> TryGet(int count)
+            {
+                throw new NotImplementedException();
+            }
+
+            public IUsingHandle<T[]> Get(int count)
+            {
+                throw new NotImplementedException();
+            }
+
+            public T[] TryExtract(int count)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        private class RangesPool
             : IRangesPool
         {
             private readonly IUsingHandleMaker _usingHandleMaker;

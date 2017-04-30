@@ -8,32 +8,39 @@ namespace Bigsort.Implementation
     public class BigSorter
         : IBigSorter
     {
+        private readonly string _inputFilePath, _outputFilePath, _groupsFilePath;
         private readonly IDiagnosticTools _diagnosticTools;
         private readonly IIoService _ioService;
         private readonly IGrouper _grouper;
         private readonly ISorter _sorter;
 
         public BigSorter(
+            string inputFilePath, 
+            string outputFilePath,
+            string groupsFilePath,
             IIoService ioService,
             IGrouper grouper,
-            ISorter sorter, 
+            ISorter sorter,
             IDiagnosticTools diagnosticTools = null)
         {
             _ioService = ioService;
             _grouper = grouper;
             _sorter = sorter;
+            _groupsFilePath = groupsFilePath;
+            _inputFilePath = inputFilePath;
+            _outputFilePath = outputFilePath;
             _diagnosticTools = diagnosticTools;
         }
 
-        public void Sort(string inputPath, string outputPath)
+        public void Sort()
         {
-            var fileLength = _ioService.SizeOfFile(inputPath);
-            var groupsFile = _ioService.CreateTempFile(fileLength);
-            var groupsSummary = _grouper.SplitToGroups(inputPath, groupsFile);
+            var fileLength = _ioService.SizeOfFile(_inputFilePath);
+            _ioService.CreateFile(_groupsFilePath, fileLength);
+            var groupsSummary = _grouper.SplitToGroups();
 
-            _ioService.CreateFile(outputPath, fileLength);
-            _sorter.Sort(groupsFile, groupsSummary, outputPath);
-            _ioService.DeleteFile(groupsFile);
+            _ioService.CreateFile(_outputFilePath, fileLength);
+            _sorter.Sort(groupsSummary);
+            _ioService.DeleteFile(_groupsFilePath);
 
             using (var bigSortLogStream = File.OpenWrite("E:\\bslog.txt"))
             using (var logWriter = new StreamWriter(bigSortLogStream))

@@ -2,12 +2,6 @@
 {
     public interface IGroupsLoaderMaker
     {
-        IGroupsLoader Make(
-            string groupFilePath,
-            IGroupsSummaryInfo groupsSummary,
-            IGroup[] output,
-            LineIndexes[] lines,
-            ulong[] sortingSegments,
-            IRangablePool<byte[]> buffersPool);
+        IGroupsLoader Make(IGroupsSummaryInfo groupsSummary, IGroup[] output);
     }
 }

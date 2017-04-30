@@ -58,22 +58,23 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BuffersPool.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="DevelopmentTools\DiagnosticTools.cs" />
     <Compile Include="GroupsLoaderMaker.cs" />
     <Compile Include="Grouper.cs" />
     <Compile Include="InputReaderMaker.cs" />
     <Compile Include="Consts.cs" />
-    <Compile Include="GrouperIOMaker.cs" />
-    <Compile Include="GroupsLinesWriterMaker.cs" />
+    <Compile Include="GrouperIOs.cs" />
+    <Compile Include="GroupsLinesWriterFactory.cs" />
     <Compile Include="GroupsSummaryInfoMarger.cs" />
     <Compile Include="PoolMaker.cs" />
-    <Compile Include="SortedGroupWriterMaker.cs" />
+    <Compile Include="SortedGroupWriterFactory.cs" />
     <Compile Include="Sorter.cs" />
     <Compile Include="DevelopmentTools\TimeTracker.cs" />
     <Compile Include="UsingHandleMaker.cs" />
     <Compile Include="GroupSorter.cs" />
-    <Compile Include="IoServiceMaker.cs" />
+    <Compile Include="IoService.cs" />
     <Compile Include="LinesIndexesExtractor.cs" />
     <Compile Include="BigSorter.cs" />
     <Compile Include="SortingSegmentsSupplier.cs" />

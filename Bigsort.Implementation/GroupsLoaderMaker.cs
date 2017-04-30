@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Bigsort.Contracts;
 using Bigsort.Contracts.DevelopmentTools;
@@ -13,39 +13,37 @@ namespace Bigsort.Implementation
         : IGroupsLoaderMaker
     {
         private readonly ITimeTracker _timeTracker;
-        private readonly IIoServiceMaker _ioServiceMaker;
+        private readonly string _groupsFilePath;
+        private readonly IIoService _ioService;
         private readonly ITasksQueue _tasksQueue;
+        private readonly IBuffersPool _buffersPool;
         private readonly IConfig _config;
 
         public GroupsLoaderMaker(
-            IIoServiceMaker ioServiceMaker,
+            string groupsFilePath,
+            IBuffersPool buffersPool,
+            IIoService ioService,
             ITasksQueue tasksQueue,
             IConfig config,
             IDiagnosticTools diagnosticsTools = null)
         {
-            _ioServiceMaker = ioServiceMaker;
+
+            _groupsFilePath = groupsFilePath;
+            _buffersPool = buffersPool;
+            _ioService = ioService;
             _tasksQueue = tasksQueue;
             _config = config;
 
             _timeTracker = diagnosticsTools?.TimeTracker;
         }
 
-        public IGroupsLoader Make(
-            string groupFilePath, 
-            IGroupsSummaryInfo groupsSummary, 
-            IGroup[] output,
-            LineIndexes[] lines,
-            ulong[] sortingSegments,
-            IRangablePool<byte[]> buffersPool) =>
-
+        public IGroupsLoader Make(IGroupsSummaryInfo groupsSummary, IGroup[] output) =>
             new GroupsLoader(
-                groupFilePath,
+                _groupsFilePath,
                 groupsSummary,
                 output,
-                lines,
-                sortingSegments,
-                buffersPool,
-                _ioServiceMaker.Make(buffersPool),
+                _buffersPool,
+                _ioService,
                 _tasksQueue,
                 _config,
                 _timeTracker);
@@ -61,15 +59,16 @@ namespace Bigsort.Implementation
 
             private readonly IIoService _ioService;
             private readonly ITasksQueue _tasksQueue;
-            private readonly GroupMaker _groupMaker;
 
             private readonly IGroupsSummaryInfo _groupsSummary;
-            private readonly IRangablePool<byte[]> _buffersPool;
             private readonly IGroup[] _output;
+            private readonly LineIndexes[] _linesIndexes;
+            private readonly ulong[] _sortingSegments;
+            private readonly IBuffersPool _buffersPool;
 
             private readonly Action _dispose;
             private readonly IFileReader[] _readers;
-            private readonly byte[][] _tempBuffers;
+            private readonly byte[][] _tempBuffers, _buffers;
             private readonly string _groupsFilePath;
             private readonly int 
                 _reservedLinesCount,
@@ -77,16 +76,13 @@ namespace Bigsort.Implementation
                 _usingBufferLength,
                 _enginesCount;
 
-            private int _linesTop = 0;
-            private int _loadingTop = 0;
+            private int _linesTop, _loadingTop, _buffersTop;
 
             public GroupsLoader(
                 string groupsFilePath,
                 IGroupsSummaryInfo groupsSummary,
                 IGroup[] output,
-                LineIndexes[] lines,
-                ulong[] sortingSegments,
-                IRangablePool<byte[]> buffersPool,
+                IBuffersPool buffersPool,
                 IIoService ioService,
                 ITasksQueue tasksQueue,
                 IConfig config,
@@ -95,15 +91,60 @@ namespace Bigsort.Implementation
                 _groupsSummary = groupsSummary;
                 _output = output;
                 _tasksQueue = tasksQueue;
-                _buffersPool = buffersPool;
                 _ioService = ioService;
+                _buffersPool = buffersPool;
 
+                var memoryUsedForBuffers = (long) 
+                    _buffersPool.Count * 
+                    config.PhysicalBufferLength;
+                
+                var maxGroupBuffersCount = (int) Math.Ceiling((double)
+                    groupsSummary.MaxGroupSize / 
+                    config.PhysicalBufferLength);
+
+                var maxGroupSize = 
+                    maxGroupBuffersCount * 
+                    config.PhysicalBufferLength;
+
+                var lineSize = 
+                    Marshal.SizeOf<LineIndexes>() +
+                    sizeof(ulong);
+
+                var maxSizeForGroupLines = 
+                    lineSize * 
+                    groupsSummary.MaxGroupLinesCount;
+
+                var maxLoadedGroupsCount = 
+                    memoryUsedForBuffers / 
+                    (maxGroupSize + maxSizeForGroupLines);
+
+                var memoryForLines = (int)
+                    maxLoadedGroupsCount * 
+                    maxSizeForGroupLines;
+
+                _reservedLinesCount = 
+                    memoryForLines / 
+                    lineSize;
+
+                var buffersCountForFree = (int) Math.Ceiling((double) 
+                    memoryForLines / 
+                    config.PhysicalBufferLength);
+
+                var buffersCount = 
+                    _buffersPool.Count - 
+                    buffersCountForFree;
+
+                var allBuffers = _buffersPool.ExtractAll();
+                Array.Resize(ref allBuffers, buffersCount);
+                
+                _buffers = allBuffers;
+                _linesIndexes = new LineIndexes[_reservedLinesCount];
+                _sortingSegments = new ulong[_reservedLinesCount];
+                
                 _groupsFilePath = groupsFilePath;
                 _physicalBufferLength = config.PhysicalBufferLength;
                 _usingBufferLength = config.UsingBufferLength;
 
-                _reservedLinesCount = lines.Length;
-                _groupMaker = new GroupMaker(lines, sortingSegments, _usingBufferLength);
                 _enginesCount = Math.Max(1, Environment.ProcessorCount - 1);
 
                 _readers = Enumerable
@@ -204,23 +245,29 @@ namespace Bigsort.Implementation
 
             private IGroup TryCreateGroup(GroupInfo groupInfo)
             {
-                var linesOverIndex = Interlocked
-                    .Add(ref _linesTop, groupInfo.LinesCount);
-                
+                var linesOverIndex = _linesTop + groupInfo.LinesCount;
                 if (linesOverIndex > _reservedLinesCount)
                     return null;
 
                 var buffersCount = BuffersCountFor(groupInfo.BytesCount);
-                var buffers = _buffersPool.TryGet(buffersCount);
-                if (buffers == null)
+                var buffersOverIndex = _buffersTop + buffersCount;
+                if (buffersOverIndex > _buffers.Length)
                     return null;
+                
+                var buffersRange = new Range(_buffersTop, buffersCount);
+                var linesRange = new Range(_linesTop, groupInfo.LinesCount);
+                var group = new Group
+                {
+                    BytesCount = groupInfo.BytesCount,
+                    Buffers = CreateArraySegment(_buffers, buffersRange),
+                    Lines = CreateArraySegment(_linesIndexes, linesRange),
+                    SortingSegments = CreateArraySegment(_sortingSegments, linesRange)
+                };
 
-                var linesRange = new Range(
-                    linesOverIndex - groupInfo.LinesCount, 
-                    groupInfo.LinesCount);
+                _linesTop = linesOverIndex;
+                _buffersTop = buffersOverIndex;
 
-                return _groupMaker
-                    .Make(groupInfo, linesRange, buffers);
+                return group;
             }
             
             public void Dispose() =>
@@ -276,24 +323,24 @@ namespace Bigsort.Implementation
                     while (--i < loadingBlocksCount)
                     {
                         var x = loadingBlocks[i];
+                        var buffers = groups[x.GroupIndex].Buffers;
                         reader.Position = x.Block.Offset;
 
                         var buffRightLength = buffLength - x.PositionInBuffer;
                         if (buffRightLength >= x.Block.Length)
-                            reader.Read(groups[x.GroupIndex].Buffers[x.BufferIndex],
+                            reader.Read(buffers.Array[buffers.Offset + x.BufferIndex],
                                         x.PositionInBuffer,
                                         x.Block.Length);
                         else
                         {
-                            var buffers = groups[x.GroupIndex].Buffers;
                             reader.Read(tempBuff, 0, x.Block.Length);
 
                             Array.Copy(tempBuff, 0,
-                                       buffers[x.BufferIndex], x.PositionInBuffer,
+                                       buffers.Array[buffers.Offset + x.BufferIndex], x.PositionInBuffer,
                                        buffRightLength);
 
                             Array.Copy(tempBuff, buffRightLength,
-                                       buffers[x.BufferIndex + 1], 0,
+                                       buffers.Array[buffers.Offset + x.BufferIndex + 1], 0,
                                        x.Block.Length - buffRightLength);
                         }
 
@@ -305,93 +352,16 @@ namespace Bigsort.Implementation
             }
         }
 
-        private class GroupMaker
+        private static ArraySegment<T> CreateArraySegment<T>(T[] array, Range range) =>
+            new ArraySegment<T>(array, range.Offset, range.Length);
+
+        private class Group
+            : IGroup
         {
-            private readonly LineIndexes[] _linesIndexes;
-            private readonly ulong[] _sortingSegments;
-            private readonly int _bufferLength;
-
-            public GroupMaker(
-                LineIndexes[] linesIndexes, 
-                ulong[] sortingSegments, 
-                int bufferLength)
-            {
-                _linesIndexes = linesIndexes;
-                _sortingSegments = sortingSegments;
-                _bufferLength = bufferLength;
-            }
-
-
-            public IGroup Make(
-                    GroupInfo info,
-                    Range linesRange,
-                    IUsingHandle<byte[][]> buffersHandle) =>
-
-                new Group(
-                    info,
-                    linesRange,
-                    buffersHandle,
-                    _bufferLength,
-                    _linesIndexes,
-                    _sortingSegments);
-
-            private class Group
-                : IGroup
-            {
-                private readonly int _bufferLength;
-                private readonly Action _dispose;
-
-                public Group(
-                    GroupInfo groupInfo,
-                    Range linesRange,
-                    IUsingHandle<byte[][]> buffersHandle,
-                    int bufferLength,
-                    LineIndexes[] linesIndexes,
-                    ulong[] sortingSegments)
-                {
-                    BytesCount = groupInfo.BytesCount;
-                    Buffers = buffersHandle.Value;
-
-                    Lines = new ArraySegment<LineIndexes>(
-                        linesIndexes,
-                        linesRange.Offset,
-                        linesRange.Length);
-
-                    SortingSegments = new ArraySegment<ulong>(
-                        sortingSegments,
-                        linesRange.Offset,
-                        linesRange.Length);
-                    
-                    _bufferLength = bufferLength;
-                    _dispose = buffersHandle.Dispose;
-                }
-
-                public byte[][] Buffers { get; }
-                public ArraySegment<LineIndexes> Lines { get; }
-                public ArraySegment<ulong> SortingSegments { get; }
-                public int BytesCount { get; }
-
-                int IReadOnlyCollection<byte>.Count =>
-                    BytesCount;
-
-                public byte this[int i]
-                {
-                    get { return Buffers[i / _bufferLength][i % _bufferLength]; }
-                    set { Buffers[i / _bufferLength][i % _bufferLength] = value; }
-                }
-
-                public IEnumerator<byte> GetEnumerator() =>
-                    Buffers.Select(buff => buff.Take(_bufferLength))
-                           .Aggregate(Enumerable.Concat)
-                           .Take(BytesCount)
-                           .GetEnumerator();
-
-                IEnumerator IEnumerable.GetEnumerator() =>
-                    GetEnumerator();
-
-                public void Dispose() =>
-                    _dispose();
-            }
+            public ArraySegment<byte[]> Buffers { get; set; }
+            public ArraySegment<LineIndexes> Lines { get; set; }
+            public ArraySegment<ulong> SortingSegments { get; set; }
+            public int BytesCount { get; set; }
         }
     }
 }

@@ -8,43 +8,41 @@ namespace Bigsort.Implementation
     public class InputReaderMaker
         : IInputReaderMaker
     {
-        private readonly IIoServiceMaker _ioServiceMaker;
+        private readonly string _groupsFilePath;
+        private readonly IIoService _ioService;
         private readonly IUsingHandleMaker _usingHandleMaker;
         private readonly ITasksQueue _tasksQueue;
+        private readonly IBuffersPool _buffersPool;
         private readonly IConfig _config;
 
         public InputReaderMaker(
-            IIoServiceMaker ioServiceMaker,
+            string groupsFilePath,
+            IIoService ioService,
             IUsingHandleMaker usingHandleMaker, 
             ITasksQueue tasksQueue, 
+            IBuffersPool buffersPool,
             IConfig config)
         {
-            _ioServiceMaker = ioServiceMaker;
+            _groupsFilePath = groupsFilePath;
+            _ioService = ioService;
             _usingHandleMaker = usingHandleMaker;
             _tasksQueue = tasksQueue;
+            _buffersPool = buffersPool;
             _config = config;
         }
 
-        public IInputReader Make(
-                string inputPath,
-                long fileLength,
-                IPool<byte[]> buffersPool) =>
+        public IInputReader Make(long fileLength) =>
+            Make(0, fileLength);
 
-            Make(inputPath, 0, fileLength, buffersPool);
-
-        public IInputReader Make(
-                string inputPath, 
-                long fileOffset, 
-                long readingLength, 
-                IPool<byte[]> buffersPool) =>
+        public IInputReader Make(long fileOffset, long readingLength) =>
 
             new BuffersProvider(
-                inputPath, 
+                _groupsFilePath, 
                 fileOffset, 
                 readingLength, 
-                buffersPool,
+                _buffersPool,
                 _tasksQueue,
-                _ioServiceMaker.Make(buffersPool),
+                _ioService,
                 _usingHandleMaker,
                 _config);
         

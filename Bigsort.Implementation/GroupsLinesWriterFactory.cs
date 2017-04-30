@@ -5,61 +5,64 @@ using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    public class GroupsLinesWriterMaker
-        : IGroupsLinesWriterMaker
+    public class GroupsLinesWriterFactory
+        : IGroupsLinesWriterFactory
     {
-        private readonly IIoServiceMaker _ioServiceMaker;
+        private readonly string _groupsFilePath;
+        private readonly IIoService _ioService;
         private readonly ITasksQueue _tasksQueue;
         private readonly IPoolMaker _poolMaker;
+        private readonly IBuffersPool _buffersPool;
         private readonly IConfig _config;
 
-        public GroupsLinesWriterMaker(
-            IIoServiceMaker ioServiceMaker,
+        public GroupsLinesWriterFactory(
+            string groupsFilePath,
+            IIoService ioService,
             ITasksQueue tasksQueue,
             IPoolMaker poolMaker,
+            IBuffersPool buffersPool,
             IConfig config)
         {
-            _ioServiceMaker = ioServiceMaker;
+            _groupsFilePath = groupsFilePath;
+            _ioService = ioService;
             _tasksQueue = tasksQueue;
             _poolMaker = poolMaker;
+            _buffersPool = buffersPool;
             _config = config;
         }
 
-        public IGroupsLinesWriter Make(
-            string groupsFilePath, 
-            IPool<byte[]> buffersPool, 
-            long fileOffset = 0) =>
+        public IGroupsLinesWriter Create(long fileOffset = 0) =>
 
             new LinesWriter(
-                groupsFilePath, 
+                _groupsFilePath, 
                 fileOffset,
-                buffersPool,
+                _buffersPool,
                 _poolMaker,
                 _tasksQueue,
-                _ioServiceMaker.Make(buffersPool),
+                _ioService,
                 _config);
 
         private class LinesWriter
             : IGroupsLinesWriter
         {
             private readonly IIoService _ioService;
-            private readonly IPool<byte[]> _buffersPool;
+            private readonly IBuffersPool _buffersPool;
             private readonly IDisposablePool<IFileWriter> _writers;
             private readonly ITasksQueue _tasksQueue;
 
             private readonly Group[] _groupsStorage;
             private readonly int _bufferLength;
-            private readonly string _path;
-            private long _writingPosition, _tasksCount = 0;
+            private long _writingPosition, _tasksCount;
             
-            public LinesWriter(string path, long fileOffset,
-                IPool<byte[]> buffersPool, 
+            public LinesWriter(
+                string path, 
+                long fileOffset,
+                IBuffersPool buffersPool, 
                 IPoolMaker poolMaker,
                 ITasksQueue tasksQueue, 
                 IIoService ioService,
                 IConfig config)
             {
-                _path = path;
                 _buffersPool = buffersPool;
                 _tasksQueue = tasksQueue;
                 _ioService = ioService;

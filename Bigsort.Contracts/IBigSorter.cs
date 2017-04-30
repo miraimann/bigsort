@@ -2,6 +2,6 @@
 {
     public interface IBigSorter
     {
-        void Sort(string inputPath, string outputPath);
+        void Sort();
     }
 }

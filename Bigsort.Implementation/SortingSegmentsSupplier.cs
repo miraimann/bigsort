@@ -73,15 +73,16 @@ namespace Bigsort.Implementation
                     int cellIndex = lineReadingOffset % _usingBufferLength,
                         bufferIndex = lineReadingOffset / _usingBufferLength;
 
-                    segment = _read(group.Buffers[bufferIndex], cellIndex);
+                    var buffers = group.Buffers;
+                    segment = _read(buffers.Array[buffers.Offset + bufferIndex], cellIndex);
                     var bufferLeftLength = _usingBufferLength - cellIndex;
                     if (bufferLeftLength < SegmentSize) // is broken to two buffers
                     {
                         var bitsOffset = (SegmentSize - bufferLeftLength) * BitsInByteCount;
                         segment = (segment >> bitsOffset) << bitsOffset;
 
-                        if (++bufferIndex < group.Buffers.Length)
-                            segment |= _read(group.Buffers[bufferIndex], 0)
+                        if (++bufferIndex < buffers.Count)
+                            segment |= _read(buffers.Array[buffers.Offset + bufferIndex], 0)
                                     << (bufferLeftLength * BitsInByteCount);
                     }
 

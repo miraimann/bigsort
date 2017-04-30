@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Bigsort.Contracts;
 using Bigsort.Contracts.DevelopmentTools;
 using Bigsort.Implementation;
@@ -8,31 +9,27 @@ namespace Bigsort.Lib
 {
     public class IoC
     {
-        internal IBigSorter BuildBigSorter<TSegment>(
-            ISegmentService<TSegment> segmentService)
-
-            where TSegment : IEquatable<TSegment>
-                           , IComparable<TSegment>
+        internal IBigSorter BuildBigSorter(
+            string inputFilePath, 
+            string outputFilePath)
         {
-            IConfig config = 
-                new Config();
-
-            ITimeTracker timeTracker =
+            string groupsFilePath = Path.GetTempFileName();
+#if DEBUG
+            ITimeTracker timeTracker = 
                 new TimeTracker();
 
-            IDiagnosticTools diagnosticTools =
+            IDiagnosticTools diagnosticTools = 
                 new DiagnosticTools(
                     timeTracker);
-
+#else
+            IDiagnosticTools diagnosticTools = null;
+#endif
+            IConfig config = 
+                new Config();
+            
             IUsingHandleMaker usingHandleMaker =
                 new UsingHandleMaker();
-
-            ILinesReservation<TSegment> linesReservation =
-                new LinesReservation<TSegment>(
-                    usingHandleMaker, 
-                    config,
-                    diagnosticTools);
-            
+                  
             IGroupsSummaryInfoMarger groupsSummaryInfoMarger = 
                 new GroupsSummaryInfoMarger(
                     diagnosticTools);
@@ -47,131 +44,98 @@ namespace Bigsort.Lib
                     config);
             
             IIoService ioService =
-                new IoServiceMaker(
+                new IoService(
                     buffersPool);
 
             ITasksQueue tasksQueue =
                 new TasksQueue(
                     config);
             
-            IInputReaderMaker grouperBuffersProviderMaker =
+            IInputReaderMaker inputReaderMaker =
                 new InputReaderMaker(
-                    buffersPool,
+                    groupsFilePath,
                     ioService,
                     usingHandleMaker,
                     tasksQueue,
-                    config);
-
-            IGroupsLinesWriterMaker groupsLinesWriterMaker =
-                new GroupsLinesWriterMaker(
-                    ioService,
                     buffersPool,
-                    tasksQueue,
                     config);
 
-            IGrouperIOMaker grouperIoMaker =
-                new GrouperIOMaker(
-                    grouperBuffersProviderMaker,
-                    groupsLinesWriterMaker,
+            IGroupsLinesWriterFactory groupsLinesWriterFactory =
+                new GroupsLinesWriterFactory(
+                    groupsFilePath,
+                    ioService,
+                    tasksQueue,
+                    poolMaker,
+                    buffersPool,
+                    config);
+
+            IGrouperIOs grouperIOs =
+                new GrouperIOs(
+                    inputFilePath,
+                    inputReaderMaker,
+                    groupsLinesWriterFactory,
                     ioService,
                     config);
 
             IGrouper grouper =
                 new Grouper(
                     groupsSummaryInfoMarger,
-                    grouperIoMaker,
+                    grouperIOs,
                     tasksQueue,
                     config,
                     diagnosticTools);
-
-            IMemoryOptimizer memoryOptimizer =
-                new MemoryOptimizer(
-                    linesReservation,
+            
+            IGroupsLoaderMaker groupsLoaderMaker =
+                new GroupsLoaderMaker(
+                    groupsFilePath,
                     buffersPool,
-                    config);
-
-            IGroupsService groupsService =
-                new GroupsService(
-                    buffersPool,
-                    linesReservation,
-                    poolMaker,
                     ioService,
                     tasksQueue,
-                    memoryOptimizer,
                     config,
                     diagnosticTools);
-
-            ILinesStorage<TSegment> linesStorage =
-                linesReservation;
-
+            
             ISortingSegmentsSupplier sortingSegmentsSupplier =
-                new SortingSegmentsSupplier<TSegment>(
-                    linesStorage,
-                    segmentService,
+                new SortingSegmentsSupplier(
+                    config,
                     diagnosticTools);
 
             ILinesIndexesExtractor linesIndexesExtractor =
                 new LinesIndexesExtractor(
-                    linesStorage,
+                    config,
                     diagnosticTools);
 
             IGroupSorter groupSorter = 
-                new GroupSorter<TSegment>(
+                new GroupSorter(
                     sortingSegmentsSupplier,
                     linesIndexesExtractor,
-                    linesStorage,
-                    segmentService,
                     diagnosticTools);
 
-            ILinesIndexesStorage linesIndexesStorage =
-                linesStorage;
-
-            ISortedGroupWriterMaker sortedGroupWriterMaker =
-                new SortedGroupWriterMaker(
-                    ioService,
+            ISortedGroupWriterFactory sortedGroupWriterFactory =
+                new SortedGroupWriterFactory(
+                    outputFilePath,
                     poolMaker,
-                    linesIndexesStorage,
+                    ioService,
+                    config,
                     diagnosticTools);
-
-            ISorter sorter1 = 
-                new Sorter(
-                    groupsService,
-                    groupSorter,
-                    sortedGroupWriterMaker,
-                    tasksQueue);
-
+            
             ISorter sorter =
                 new Sorter(
-                    linesReservation,
-                    groupsService,
+                    groupsLoaderMaker,
                     groupSorter,
-                    sortedGroupWriterMaker,
-                    ioService,
-                    tasksQueue,
-                    poolMaker);
+                    sortedGroupWriterFactory,
+                    tasksQueue);
 
             IBigSorter bigSorter =
                 new BigSorter(
+                    inputFilePath,
+                    outputFilePath,
+                    groupsFilePath,
                     ioService,
                     grouper,
                     sorter,
                     diagnosticTools);
 
             return bigSorter;
-        }
-
-        public IBigSorter BuildBigSorter()
-        {
-            IConfig config = new Config();
-
-            if (config.SortingSegment == "byte")
-                return BuildBigSorter(new ByteSegmentService());
-
-            if (config.SortingSegment == "uint")
-                return BuildBigSorter(new UInt32SegmentService());
-
-            // if (config.SortingSegment == "ulong")
-            return BuildBigSorter(new UInt64SegmentService());
         }
     }
 }
