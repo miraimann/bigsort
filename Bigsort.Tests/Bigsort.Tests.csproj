@@ -62,7 +62,7 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GroupMatrixServiceTests.cs" />
+    <Compile Include="GroupsLoaderTests.cs" />
     <Compile Include="GrouperTests.Group.cs" />
     <Compile Include="Tools.InfinityBuffersPool.cs" />
     <Compile Include="Tools.MemoryReader.cs" />

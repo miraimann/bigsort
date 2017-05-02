@@ -139,28 +139,17 @@ namespace Bigsort.Implementation
                     _offset = 0;
 
                     Write(array,
-                        offset + countToBuffEnd,
-                        count - countToBuffEnd);
+                          offset + countToBuffEnd,
+                          count - countToBuffEnd);
                     return;
                 }
 
                 Array.Copy(array, offset,
-                    _buff, _offset,
-                    count);
+                           _buff, _offset,
+                           count);
 
                 _offset += count;
             }
-
-            // public void WriteByte(byte x)
-            // {
-            //     if (_offset == _buff.Length)
-            //     {
-            //         _stream.Write(_buff, 0, _buff.Length);
-            //         _offset = 0;
-            //     }
-            // 
-            //     _buff[_offset++] = x;
-            // }
 
             public void Flush()
             {

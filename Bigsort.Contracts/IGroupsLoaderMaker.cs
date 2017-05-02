@@ -2,6 +2,6 @@
 {
     public interface IGroupsLoaderMaker
     {
-        IGroupsLoader Make(IGroupsSummaryInfo groupsSummary, IGroup[] output);
+        IGroupsLoader Make(GroupInfo[] groupsInfo, IGroup[] output);
     }
 }

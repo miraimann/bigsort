@@ -10,7 +10,7 @@ namespace Bigsort.Implementation
     public class GrouperIOs
         : IGrouperIOs
     {
-        private readonly IReadOnlyList<IGrouperIO> _implementation;
+        private readonly Lazy<IReadOnlyList<IGrouperIO>> _implementation;
 
         public GrouperIOs(
             string inputFilePath, 
@@ -19,15 +19,16 @@ namespace Bigsort.Implementation
             IIoService ioService, 
             IConfig config)
         {
-            var inputFileLength = ioService.SizeOfFile(inputFilePath);
-            if (config.GrouperEnginesCount == 1)
-                _implementation = new[]
-                {
-                    new IO(inputReaderMaker.Make(inputFileLength),
-                           groupsLinesWriterFactory.Create())
-                };
-            else
+            _implementation = new Lazy<IReadOnlyList<IGrouperIO>>(() =>
             {
+                var inputFileLength = ioService.SizeOfFile(inputFilePath);
+                if (config.GrouperEnginesCount == 1)
+                    return new[]
+                    {
+                        new IO(inputReaderMaker.Make(inputFileLength),
+                               groupsLinesWriterFactory.Create())
+                    };
+                
                 var implementation = new List<IGrouperIO>();
                 var blockLength = inputFileLength/config.GrouperEnginesCount;
 
@@ -54,21 +55,21 @@ namespace Bigsort.Implementation
                         offset = inputStream.Position;
                     }
 
-                _implementation = implementation;
-            }
+                return implementation;
+            });
         }
 
         public int Count =>
-            _implementation.Count;
+            _implementation.Value.Count;
 
         public IGrouperIO this[int i] =>
-            _implementation[i];
+            _implementation.Value[i];
 
         public IEnumerator<IGrouperIO> GetEnumerator() =>
-            _implementation.Cast<IGrouperIO>().GetEnumerator();
+            _implementation.Value.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() =>
-            _implementation.GetEnumerator();
+            GetEnumerator();
         
         // ReSharper disable once InconsistentNaming
         private class IO

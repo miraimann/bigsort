@@ -2,6 +2,6 @@
 {
     public interface ISorter
     {
-        void Sort(IGroupsSummaryInfo groupsSummary);
+        void Sort(GroupInfo[] groupsInfo);
     }
 }

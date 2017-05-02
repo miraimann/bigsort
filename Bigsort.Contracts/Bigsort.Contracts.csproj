@@ -67,8 +67,7 @@
     <Compile Include="IGroupsLinesWriter.cs" />
     <Compile Include="IGroupsLinesWriterFactory.cs" />
     <Compile Include="IGroupsLoaderMaker.cs" />
-    <Compile Include="IGroupsSummaryInfo.cs" />
-    <Compile Include="IGroupsSummaryInfoMarger.cs" />
+    <Compile Include="IGroupsInfoMarger.cs" />
     <Compile Include="DevelopmentTools\ILog.cs" />
     <Compile Include="DevelopmentTools\ILogger.cs" />
     <Compile Include="DevelopmentTools\ILogRoot.cs" />

@@ -15,13 +15,13 @@ namespace Bigsort.Implementation
             GroupingLogName = LogName + "." + nameof(SplitToGroups);
 
         private readonly ITimeTracker _timeTracker;
-        private readonly IGroupsSummaryInfoMarger _summaryInfoMarger;
+        private readonly IGroupsInfoMarger _summaryInfoMarger;
         private readonly IGrouperIOs _ios;
         private readonly ITasksQueue _tasksQueue;
-        private readonly int _physicalBufferLength;
+        private readonly int _usingBufferLength;
 
         public Grouper(
-            IGroupsSummaryInfoMarger summaryInfoMarger,
+            IGroupsInfoMarger summaryInfoMarger,
             IGrouperIOs grouperIOs,
             ITasksQueue tasksQueue,
             IConfig config,
@@ -30,16 +30,16 @@ namespace Bigsort.Implementation
             _summaryInfoMarger = summaryInfoMarger;
             _ios = grouperIOs;
             _tasksQueue = tasksQueue;
-            _physicalBufferLength = config.PhysicalBufferLength;
+            _usingBufferLength = config.UsingBufferLength;
             _timeTracker = diagnosticTool?.TimeTracker;
         }
 
-        public IGroupsSummaryInfo SplitToGroups()
+        public GroupInfo[] SplitToGroups()
         {
             var watch = Stopwatch.StartNew();
             
             var engines = _ios
-                .Select(io => new Engine(_tasksQueue, io, _physicalBufferLength))
+                .Select(io => new Engine(_tasksQueue, io, _usingBufferLength))
                 .ToArray();
             
             var doneEvents = Enumerable
@@ -76,36 +76,39 @@ namespace Bigsort.Implementation
 
             private readonly IGrouperIO _io;
             private readonly ITasksQueue _tasksQueue;
-            private readonly int _buffLength;
+            private readonly int _usingBufferLength;
 
             public Engine(
                 ITasksQueue tasksQueue,
                 IGrouperIO io,
-                int buffLength)
+                int usingBufferLength)
             {
                 _io = io;
                 _tasksQueue = tasksQueue;
-                _buffLength = buffLength;
+                _usingBufferLength = usingBufferLength;
             }
 
             public void Run(ManualResetEvent done)
             {
-                var newLineLength = Environment.NewLine.Length;
-                var startingBuff = new byte[newLineLength + 1];
-                startingBuff[newLineLength] = EndBuff;
+                IUsingHandle<byte[]> firstBufferHandle;
+                var firstBufferLength = _io.Input.GetFirstBuffer(out firstBufferHandle);
+                firstBufferHandle.Value[firstBufferLength] =
+                    firstBufferLength == _usingBufferLength - 1
+                        ? EndBuff
+                        : EndStream;
 
                 Run(new State
                 {
                     LettersCount = 0,
                     DigitsCount = 0,
                     CurrentGroupId = 0,
-                    Iterator = newLineLength,
-                    Anchor = newLineLength,
+                    Iterator = Consts.EndLineBytesCount,
+                    Anchor = Consts.EndLineBytesCount,
 
-                    DisposeCurrentBuff = Consts.ZeroAction,
+                    DisposeCurrentBuff = firstBufferHandle.Dispose,
                     DisposePreviousBuff = Consts.ZeroAction,
 
-                    CurrentBuff = startingBuff,
+                    CurrentBuff = firstBufferHandle.Value,
                     PreviousBuff = null,
 
                     CurrentStage = Stage.ReadNumber,
@@ -116,7 +119,8 @@ namespace Bigsort.Implementation
 
             private void Run(State state)
             {
-                int lettersCount = state.LettersCount,
+                int usingBufferLength = _usingBufferLength,
+                    lettersCount = state.LettersCount,
                     digitsCount = state.DigitsCount,
                     i = state.Iterator,
                     j = state.Anchor;
@@ -124,13 +128,13 @@ namespace Bigsort.Implementation
                 ushort id = state.CurrentGroupId;
 
                 byte[] currentBuff = state.CurrentBuff,
-                    previousBuff = state.PreviousBuff;
+                       previousBuff = state.PreviousBuff;
 
                 Action disposeCurrentBuff = state.DisposeCurrentBuff,
-                    disposePreviousBuff = state.DisposePreviousBuff;
+                       disposePreviousBuff = state.DisposePreviousBuff;
 
                 Stage backStage = state.BackStage,
-                    stage = state.CurrentStage;
+                      stage = state.CurrentStage;
 
                 byte c;
 
@@ -143,12 +147,12 @@ namespace Bigsort.Implementation
                             while (currentBuff[i] > Consts.Dot)
                                 i++;
 
-                            if (j < _buffLength)
+                            if (j < usingBufferLength)
                                 digitsCount += i - j;
 
                             if (currentBuff[i] == Consts.Dot)
                             {
-                                if (j > _buffLength)
+                                if (j > usingBufferLength)
                                     digitsCount += i;
 
                                 j = ++i;
@@ -202,12 +206,12 @@ namespace Bigsort.Implementation
                             while (currentBuff[i] > EndLine)
                                 i++;
 
-                            if (j < _buffLength)
+                            if (j < usingBufferLength)
                                 lettersCount += i - j;
 
                             if (currentBuff[i] == EndLine)
                             {
-                                if (j > _buffLength)
+                                if (j > usingBufferLength)
                                     lettersCount += i;
 
                                 stage = Stage.ReleaseLine;
@@ -252,7 +256,7 @@ namespace Bigsort.Implementation
                                 return;
                             }
 
-                            j += _buffLength;
+                            j += usingBufferLength;
                             i = 0;
 
                             disposePreviousBuff = disposeCurrentBuff;
@@ -261,8 +265,8 @@ namespace Bigsort.Implementation
                             previousBuff = currentBuff;
                             currentBuff = handle.Value;
 
-                            if (count == _buffLength - 1)
-                                currentBuff[_buffLength - 1] = EndBuff;
+                            if (count == usingBufferLength - 1)
+                                currentBuff[usingBufferLength - 1] = EndBuff;
                             else
                             {
                                 var endStreamIndex = Math.Max(0, count - 1);
@@ -286,7 +290,7 @@ namespace Bigsort.Implementation
                             if (lineStart < 0)
                             {
                                 lineLength = Math.Abs(lineStart);
-                                lineStart += previousBuff.Length - 1; // _buffLength - 1;
+                                lineStart += _usingBufferLength - 1;
 
                                 previousBuff[lineStart] = (byte) lettersCount;
                                 if (lineLength > 1)

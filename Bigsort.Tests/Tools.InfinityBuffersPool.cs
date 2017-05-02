@@ -7,26 +7,34 @@ namespace Bigsort.Tests
         public class InfinityBuffersPool
             : IBuffersPool
         {
-            private readonly int _bufferSize;
+            private const int DefaultMemoryLimit = 1024 * 1024 * 1024;
+            private readonly int _bufferSize, _memoryLimit;
 
-            public InfinityBuffersPool(int bufferSize)
+            public InfinityBuffersPool(int bufferSize, 
+                int memoryLimit = DefaultMemoryLimit)
             {
                 _bufferSize = bufferSize;
+                _memoryLimit = memoryLimit;
             }
 
             public int Count =>
-                int.MaxValue;
+                _memoryLimit / _bufferSize + 1;
 
-            public IUsingHandle<byte[]> GetBuffer() =>
+            public IUsingHandle<byte[]> Get() =>
                 new ZeroHandle<byte[]>(new byte[_bufferSize]);
 
-            public IUsingHandle<byte[][]> TryGetBuffers(int count)
-            {
-                var buffers = new byte[count][];
-                for (int i = 0; i < count; i++)
-                    buffers[i] = new byte[_bufferSize];
+            public IUsingHandle<byte[]> TryGet() =>
+                Get();
 
-                return new ZeroHandle<byte[][]>(buffers);
+            public byte[] TryExtract() =>
+                TryGet().Value;
+
+            public byte[][] ExtractAll()
+            {
+                byte[][] all = new byte[Count][];
+                for (int i = 0; i < Count; i++)
+                    all[i] = new byte[_bufferSize];
+                return all;
             }
 
             public void Free(int _) { }

@@ -13,7 +13,9 @@ namespace Bigsort.Lib
             string inputFilePath, 
             string outputFilePath)
         {
-            string groupsFilePath = Path.GetTempFileName();
+            string groupsFilePath = Path.Combine(
+                Path.GetTempPath(),
+                Path.GetRandomFileName());
 #if DEBUG
             ITimeTracker timeTracker = 
                 new TimeTracker();
@@ -30,7 +32,7 @@ namespace Bigsort.Lib
             IUsingHandleMaker usingHandleMaker =
                 new UsingHandleMaker();
                   
-            IGroupsSummaryInfoMarger groupsSummaryInfoMarger = 
+            IGroupsInfoMarger groupsSummaryInfoMarger = 
                 new GroupsSummaryInfoMarger(
                     diagnosticTools);
             
@@ -53,7 +55,7 @@ namespace Bigsort.Lib
             
             IInputReaderMaker inputReaderMaker =
                 new InputReaderMaker(
-                    groupsFilePath,
+                    inputFilePath,
                     ioService,
                     usingHandleMaker,
                     tasksQueue,
@@ -90,7 +92,6 @@ namespace Bigsort.Lib
                     groupsFilePath,
                     buffersPool,
                     ioService,
-                    tasksQueue,
                     config,
                     diagnosticTools);
             

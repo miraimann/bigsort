@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
@@ -8,7 +9,7 @@ namespace Bigsort.Implementation
     public class InputReaderMaker
         : IInputReaderMaker
     {
-        private readonly string _groupsFilePath;
+        private readonly string _inputFilePath;
         private readonly IIoService _ioService;
         private readonly IUsingHandleMaker _usingHandleMaker;
         private readonly ITasksQueue _tasksQueue;
@@ -16,14 +17,14 @@ namespace Bigsort.Implementation
         private readonly IConfig _config;
 
         public InputReaderMaker(
-            string groupsFilePath,
+            string inputFilePath,
             IIoService ioService,
             IUsingHandleMaker usingHandleMaker, 
             ITasksQueue tasksQueue, 
             IBuffersPool buffersPool,
             IConfig config)
         {
-            _groupsFilePath = groupsFilePath;
+            _inputFilePath = inputFilePath;
             _ioService = ioService;
             _usingHandleMaker = usingHandleMaker;
             _tasksQueue = tasksQueue;
@@ -35,9 +36,8 @@ namespace Bigsort.Implementation
             Make(0, fileLength);
 
         public IInputReader Make(long fileOffset, long readingLength) =>
-
-            new BuffersProvider(
-                _groupsFilePath, 
+            new InputReader(
+                _inputFilePath, 
                 fileOffset, 
                 readingLength, 
                 _buffersPool,
@@ -46,7 +46,7 @@ namespace Bigsort.Implementation
                 _usingHandleMaker,
                 _config);
         
-        private class BuffersProvider
+        private class InputReader
             : IInputReader
         {
             private const int InitCapacity = 16;
@@ -57,13 +57,14 @@ namespace Bigsort.Implementation
             private readonly IPool<byte[]> _buffersPool;
             private readonly ITasksQueue _tasksQueue;
 
+            private readonly Item _firstBufferItem;
             private readonly ConcurrentDictionary<int, Item> _readed;
             private readonly IEnumerator<int> _readingIndex;
             private readonly IUsingHandle<byte[]> _zeroHandle;
             private readonly Action[] _readNext;
 
-            public BuffersProvider(
-                string path,
+            public InputReader(
+                string inputFilePath,
                 long readingOffset,
                 long readingLength,
                 IPool<byte[]> buffersPool,
@@ -81,13 +82,41 @@ namespace Bigsort.Implementation
                 // -1 - for set "Buffer End" Symbol to last cell of buffer without data lose 
                 var readingBufferLength = config.UsingBufferLength - 1;
 
-                _capacity = (int) Math.Min(
-                    Math.Ceiling((double) readingLength / readingBufferLength),
+                using (var reader = ioService.OpenRead(inputFilePath))
+                {
+                    var firstBufferHandle = _buffersPool.Get();
+                    var length = (int) Math.Min(
+                        readingBufferLength - Consts.EndLineBytesCount, 
+                        readingLength);
+
+                    reader.Position = readingOffset;
+                    length = reader.Read(firstBufferHandle.Value,
+                                         Consts.EndLineBytesCount,
+                                         length);
+
+                    _firstBufferItem = new Item(
+                        length + Consts.EndLineBytesCount, 
+                        firstBufferHandle);
+
+                    readingOffset += length;
+                    readingLength -= length;
+                }
+
+                _capacity = (int)Math.Min(
+                    Math.Ceiling((double)readingLength / readingBufferLength),
                     InitCapacity);
 
                 _readed = new ConcurrentDictionary<int, Item>(
                     concurrencyLevel: config.MaxRunningTasksCount,
-                            capacity: _capacity);
+                            capacity: Math.Max(1, _capacity));
+
+                if (_capacity == 0)
+                {
+                    _readed.TryAdd(0, new Item(0, _zeroHandle));
+                    _readNext = new Action[] { () => _readed.TryAdd(0, new Item(0, _zeroHandle)) };
+                    _readingIndex = Enumerable.Repeat(0, int.MaxValue).GetEnumerator();
+                    return;
+                }
 
                 var readerStep = (_capacity - 1) * readingBufferLength;
                 _readingIndex = ReadingIndexes.GetEnumerator();
@@ -96,7 +125,8 @@ namespace Bigsort.Implementation
                 _readNext = new Action[_capacity];
                 for (int i = 0; i < _capacity; i++)
                 {
-                    var reader = ioService.OpenRead(path, readingOffset + i * readingBufferLength);
+                    var reader = ioService.OpenRead(inputFilePath, 
+                        position: readingOffset + i * readingBufferLength);
 
                     int buffIndex = i;
                     Action read = delegate
@@ -130,6 +160,12 @@ namespace Bigsort.Implementation
 
                 for (int i = 0; i < _readNext.Length; i++)
                     _tasksQueue.Enqueue(_readNext[i]);
+            }
+
+            public int GetFirstBuffer(out IUsingHandle<byte[]> buffHandle)
+            {
+                buffHandle = _firstBufferItem.Handle;
+                return _firstBufferItem.Length;
             }
 
             public int TryGetNextBuffer(out IUsingHandle<byte[]> buffHandle)

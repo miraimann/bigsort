@@ -51,7 +51,7 @@ namespace Bigsort.Implementation
             private readonly ITasksQueue _tasksQueue;
 
             private readonly Group[] _groupsStorage;
-            private readonly int _bufferLength;
+            private readonly int _usingBufferLength;
             private long _writingPosition, _tasksCount;
             
             public LinesWriter(
@@ -67,12 +67,11 @@ namespace Bigsort.Implementation
                 _tasksQueue = tasksQueue;
                 _ioService = ioService;
                 _writingPosition = fileOffset;
-                _bufferLength = config.PhysicalBufferLength;
+                _usingBufferLength = config.UsingBufferLength;
 
                 _groupsStorage = new Group[Consts.MaxGroupsCount];
                 _writers = poolMaker.MakeDisposablePool(
-                    () => _ioService.OpenWrite(path),
-                    writer => writer.Dispose());
+                      () => _ioService.OpenWrite(path));
             }
 
             public GroupInfo[] SelectSummaryGroupsInfo()
@@ -158,9 +157,9 @@ namespace Bigsort.Implementation
                                   group.BufferOffset));
 
                 var newOffset = acc.BufferOffset + group.BufferOffset;
-                if (newOffset >= _bufferLength)
+                if (newOffset >= _usingBufferLength)
                 {
-                    var countToAccBuffEnd = _bufferLength - acc.BufferOffset;
+                    var countToAccBuffEnd = _usingBufferLength - acc.BufferOffset;
                     Array.Copy(group.BufferHandle.Value, 0,
                                acc.BufferHandle.Value, acc.BufferOffset,
                                countToAccBuffEnd);
@@ -174,7 +173,7 @@ namespace Bigsort.Implementation
                                newOffset);
                     
                     var positionMomento = _writingPosition;
-                    _writingPosition += _bufferLength;
+                    _writingPosition += _usingBufferLength;
 
                     IncrementTasksCount();
                     _tasksQueue.Enqueue(delegate
@@ -183,7 +182,7 @@ namespace Bigsort.Implementation
                         {
                             var writer = writerHandle.Value;
                             writer.Position = positionMomento;
-                            writer.Write(oldBuffHandle.Value, 0, _bufferLength);
+                            writer.Write(oldBuffHandle.Value, 0, _usingBufferLength);
                             
                             oldBuffHandle.Dispose();
                             DecrementTasksCount();
@@ -203,20 +202,20 @@ namespace Bigsort.Implementation
                 byte[] buff, int offset, int length)
             {
                 var newOffset = group.BufferOffset + length;
-                if (newOffset >= _bufferLength)
+                if (newOffset >= _usingBufferLength)
                 {
-                    var countToBuffEnd = _bufferLength - group.BufferOffset;
+                    var countToBuffEnd = _usingBufferLength - group.BufferOffset;
                     Array.Copy(buff, offset,
                                group.BufferHandle.Value, group.BufferOffset,
                                countToBuffEnd);
 
                     var oldBuffHandle = group.BufferHandle;
                     group.BufferHandle = _buffersPool.Get();
-                    group.BytesCount += _bufferLength;
+                    group.BytesCount += _usingBufferLength;
 
                     var positionMomento = _writingPosition;
-                    _writingPosition += _bufferLength;
-                    group.Mapping.Add(new LongRange(positionMomento, _bufferLength));
+                    _writingPosition += _usingBufferLength;
+                    group.Mapping.Add(new LongRange(positionMomento, _usingBufferLength));
 
                     newOffset = length - countToBuffEnd;
                     Array.Copy(buff, offset + countToBuffEnd,
@@ -230,7 +229,7 @@ namespace Bigsort.Implementation
                         {
                             var writer = writersHandle.Value;
                             writer.Position = positionMomento;
-                            writer.Write(oldBuffHandle.Value, 0, _bufferLength);
+                            writer.Write(oldBuffHandle.Value, 0, _usingBufferLength);
 
                             oldBuffHandle.Dispose();
                             DecrementTasksCount();
@@ -252,7 +251,7 @@ namespace Bigsort.Implementation
                 Interlocked.Decrement(ref _tasksCount);
 
             private bool HasTasks() =>
-                Interlocked.Read(ref _tasksCount) == 0;
+                Interlocked.Read(ref _tasksCount) != 0;
 
             private class Group
             {

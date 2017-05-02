@@ -23,12 +23,12 @@ namespace Bigsort.Implementation
             _tasksQueue = tasksQueue;
         }
 
-        public void Sort(IGroupsSummaryInfo groupsSummary)
+        public void Sort(GroupInfo[] groupsInfo)
         {
             var groups = new IGroup[Consts.MaxGroupsCount];
                 
             using (var groupsWriter = _groupWriterFactory.Create())
-            using (var groupsLoader = _groupsLoaderMaker.Make(groupsSummary, groups))
+            using (var groupsLoader = _groupsLoaderMaker.Make(groupsInfo, groups))
             {
                 var loadedGroupsRange = groupsLoader.LoadNextGroups();
                 while (!Range.IsZero(loadedGroupsRange))

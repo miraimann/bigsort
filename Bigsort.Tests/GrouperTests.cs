@@ -119,6 +119,10 @@ namespace Bigsort.Tests
 
             configMock
                 .SetupGet(o => o.PhysicalBufferLength)
+                .Returns(buffSize + sizeof(ulong));
+            
+            configMock
+                .SetupGet(o => o.UsingBufferLength)
                 .Returns(buffSize);
 
             configMock
@@ -129,7 +133,7 @@ namespace Bigsort.Tests
                 .SetupGet(o => o.GrouperEnginesCount)
                 .Returns(enginesCount);
             
-            IGroupsSummaryInfoMarger groupsSummaryInfoMarger = 
+            IGroupsInfoMarger groupsSummaryInfoMarger = 
                 new GroupsSummaryInfoMarger();
 
             IUsingHandleMaker usingHandleMaker =
@@ -144,31 +148,35 @@ namespace Bigsort.Tests
             IBuffersPool buffersPool = 
                 new BuffersPool(poolMaker, configMock.Object);
             
-            IInputReaderMaker grouperBuffersProviderMaker =
+            IInputReaderMaker inputReaderMaker =
                 new InputReaderMaker(
-                    buffersPool,
+                    inputPath,
                     ioServiceMock.Object,
                     usingHandleMaker,
                     tasksQueue,
-                    configMock.Object);
-
-            IGroupsLinesWriterFactory linesWriterMaker =
-                new GroupsLinesWriterFactory(
-                    ioServiceMock.Object,
                     buffersPool,
-                    tasksQueue,
                     configMock.Object);
 
-            IGrouperIOs grouperIoMaker = 
+            IGroupsLinesWriterFactory linesWriterFactory =
+                new GroupsLinesWriterFactory(
+                    groupsPath,
+                    ioServiceMock.Object,
+                    tasksQueue,
+                    poolMaker,
+                    buffersPool,
+                    configMock.Object);
+
+            IGrouperIOs grouperIOs = 
                 new GrouperIOs(
-                    grouperBuffersProviderMaker,
-                    linesWriterMaker,
+                    inputPath,
+                    inputReaderMaker,
+                    linesWriterFactory,
                     ioServiceMock.Object,
                     configMock.Object); 
 
             var grouper = new Grouper(
                 groupsSummaryInfoMarger,
-                grouperIoMaker,
+                grouperIOs,
                 tasksQueue,
                 configMock.Object);
 
@@ -176,18 +184,8 @@ namespace Bigsort.Tests
             var expectedGroups = trivialGrouper
                 .SplitToGroups(testCase.Lines);
             
-            var summary = grouper
-                .SplitToGroups(inputPath, groupsPath);
-            
-            Assert.AreEqual(
-                expectedGroups.Max(group => group.LinesCount),
-                summary.MaxGroupLinesCount);
-
-            Assert.AreEqual(
-                expectedGroups.Max(group => group.BytesCount),
-                summary.MaxGroupSize);
-
-            var resultGroups = ExtractGroups(summary, groupsFileContent);
+            var groupsInfo = grouper.SplitToGroups();
+            var resultGroups = ExtractGroups(groupsInfo, groupsFileContent);
 
             Assert.IsTrue(resultGroups.Select(Group.IsValid).All(o => o));
             CollectionAssert.AreEqual(
@@ -230,25 +228,24 @@ namespace Bigsort.Tests
         }
         
         private static Group[] ExtractGroups(
-            IGroupsSummaryInfo groupsSummaryInfo,
+            GroupInfo[] groupsInfo,
             byte[] groupsContent)
         {
             const int unknown = -1;
-
-            var groups = groupsSummaryInfo.GroupsInfo;
-            var result = new Group[groups.Count(o => !GroupInfo.IsZero(o))];
+            
+            var result = new Group[groupsInfo.Count(o => !GroupInfo.IsZero(o))];
             var resultPosition = 0;
 
             for (int i = 0; i < Consts.MaxGroupsCount; i++)
             {
-                if (!GroupInfo.IsZero(groups[i]))
+                if (!GroupInfo.IsZero(groupsInfo[i]))
                 {
                     var lines = new List<Group.Line>();
                     result[resultPosition++] =
                         new Group(i)
                         {
-                            BytesCount = groups[i].BytesCount,
-                            LinesCount = groups[i].LinesCount,
+                            BytesCount = groupsInfo[i].BytesCount,
+                            LinesCount = groupsInfo[i].LinesCount,
                             Lines = lines
                         };
 
@@ -256,7 +253,7 @@ namespace Bigsort.Tests
                     int lineRemainder = 0;
                     byte lettersCount = 0;
 
-                    foreach (var blockRange in groups[i].Mapping)
+                    foreach (var blockRange in groupsInfo[i].Mapping)
                     {
                         var offset = (int) blockRange.Offset;
                         var overBlock = offset + (int) blockRange.Length;

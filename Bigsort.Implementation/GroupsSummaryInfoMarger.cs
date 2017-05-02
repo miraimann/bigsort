@@ -5,7 +5,7 @@ using Bigsort.Contracts.DevelopmentTools;
 namespace Bigsort.Implementation
 {
     public class GroupsSummaryInfoMarger
-        : IGroupsSummaryInfoMarger
+        : IGroupsInfoMarger
     {
         public const string
             LogName = nameof(GroupsSummaryInfoMarger),
@@ -19,11 +19,10 @@ namespace Bigsort.Implementation
             _timeTracker = diagnosticTools?.TimeTracker;
         }
 
-        public IGroupsSummaryInfo Marge(GroupInfo[][] summaryInfos)
+        public GroupInfo[] Marge(GroupInfo[][] summaryInfos)
         {
             var start = DateTime.Now;
-
-            int maxLinesCount = 0, maxBytesCount = 0; 
+            
             for (int i = 0; i < Consts.MaxGroupsCount; i++)
             {
                 int j = 0;
@@ -60,29 +59,14 @@ namespace Bigsort.Implementation
 
                         acc.Mapping = mapping;
                     }
-
-                    maxLinesCount = Math.Max(maxLinesCount, acc.LinesCount);
-                    maxBytesCount = Math.Max(maxBytesCount, acc.BytesCount);
+                    
                     summaryInfos[0][i] = acc;
                 }
             }
             
-            _timeTracker.Add(MargingLogName, DateTime.Now - start);
+            _timeTracker?.Add(MargingLogName, DateTime.Now - start);
 
-            return new Summary
-            {
-                GroupsInfo = summaryInfos[0],
-                MaxGroupLinesCount = maxLinesCount,
-                MaxGroupSize = maxBytesCount
-            };
-        }
-
-        private class Summary
-            : IGroupsSummaryInfo
-        {
-            public GroupInfo[] GroupsInfo { get; internal set; }
-            public int MaxGroupLinesCount { get; internal set; }
-            public int MaxGroupSize { get; internal set; }
+            return summaryInfos[0];
         }
     }
 }

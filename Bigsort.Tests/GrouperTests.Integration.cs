@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Bigsort.Contracts;
@@ -84,8 +85,8 @@ namespace Bigsort.Tests
             public void Test(
                 string inputFileSettings,
                 string groupsFile,
-                int bufferSize, 
-                int enginesCount, 
+                int bufferSize,
+                int enginesCount,
                 int maxThreadsCount,
                 bool clear)
             {
@@ -105,9 +106,14 @@ namespace Bigsort.Tests
                     }
 
                     var configMock = new Mock<IConfig>();
+                    var physicalBufferLength = bufferSize + 1;
 
                     configMock
                         .SetupGet(o => o.PhysicalBufferLength)
+                        .Returns(physicalBufferLength);
+                    
+                    configMock
+                        .SetupGet(o => o.UsingBufferLength)
                         .Returns(bufferSize);
 
                     configMock
@@ -121,8 +127,8 @@ namespace Bigsort.Tests
                     configMock
                         .SetupGet(o => o.BufferReadingEnsurance)
                         .Returns(GroupBufferRowReadingEnsurance);
-                    
-                    IGroupsSummaryInfoMarger groupsSummaryInfoMarger =
+
+                    IGroupsInfoMarger groupsSummaryInfoMarger =
                         new GroupsSummaryInfoMarger();
 
                     IUsingHandleMaker usingHandleMaker =
@@ -132,63 +138,56 @@ namespace Bigsort.Tests
                         new TasksQueue(configMock.Object);
 
                     IBuffersPool buffersPool =
-                        new InfinityBuffersPool(bufferSize);
+                        new InfinityBuffersPool(physicalBufferLength);
 
                     IIoService ioService =
-                        new IoServiceMaker(
+                        new IoService(
                             buffersPool);
-
-                    IInputReaderMaker grouperBuffersProviderMaker =
-                        new InputReaderMaker(
-                            buffersPool,
-                            ioService,
-                            usingHandleMaker,
-                            tasksQueue,
-                            configMock.Object);
-
-                    IGroupsLinesWriterFactory linesWriterMaker =
-                        new GroupsLinesWriterFactory(
-                            ioService,
-                            buffersPool,
-                            tasksQueue,
-                            configMock.Object);
-
-                    IGrouperIOs grouperIoMaker =
-                        new GrouperIOs(
-                            grouperBuffersProviderMaker,
-                            linesWriterMaker,
-                            ioService,
-                            configMock.Object);
 
                     IPoolMaker poolMaker = 
                         new PoolMaker(
                             usingHandleMaker);
 
-                    var linesReservationMock = new Mock<ILinesReservation>();
-
-                    IMemoryOptimizer memoryOptimizer = 
-                        new MemoryOptimizer(
-                            linesReservationMock.Object,
+                    IInputReaderMaker inputReaderMaker =
+                        new InputReaderMaker(
+                            inputFilePath,
+                            ioService,
+                            usingHandleMaker,
+                            tasksQueue,
                             buffersPool,
                             configMock.Object);
 
-                    ILinesIndexesExtractor linesIndexesExtractor =
-                        new LinesIndexesExtractor(
-                            linesReservationMock.Object);
-                    
-                    IGroupsService groupsService =
-                        new GroupsService(
-                            buffersPool,
-                            linesReservationMock.Object,
-                            poolMaker,
+                    IGroupsLinesWriterFactory linesWriterFactory =
+                        new GroupsLinesWriterFactory(
+                            groupsFile,
                             ioService,
                             tasksQueue,
-                            memoryOptimizer,
+                            poolMaker,
+                            buffersPool,
+                            configMock.Object);
+
+                    IGrouperIOs grouperIOs =
+                        new GrouperIOs(
+                            inputFilePath,
+                            inputReaderMaker,
+                            linesWriterFactory,
+                            ioService,
+                            configMock.Object);
+                    
+                    ILinesIndexesExtractor linesIndexesExtractor =
+                        new LinesIndexesExtractor(
+                            configMock.Object);
+
+                    IGroupsLoaderMaker groupsLoaderMaker =
+                        new GroupsLoaderMaker(
+                            groupsFile,
+                            buffersPool,
+                            ioService,
                             configMock.Object);
                     
                     var grouper = new Grouper(
                         groupsSummaryInfoMarger,
-                        grouperIoMaker,
+                        grouperIOs,
                         tasksQueue,
                         configMock.Object);
 
@@ -196,15 +195,18 @@ namespace Bigsort.Tests
                     var expectedGroups = trivialGrouper.SplitToGroups(
                         ReadAllLinesFrom(inputFilePath));
 
-                    var summary = grouper
-                        .SplitToGroups(inputFilePath, groupsFile);
+                    var groupsInfo = grouper.SplitToGroups();
 
+                    var output = new IGroup[Consts.MaxGroupsCount];
+                    var loader = groupsLoaderMaker.Make(groupsInfo, output);
+                    loader.LoadNextGroups();
+                    
                     var expectedGroupIds = expectedGroups
                         .Select(o => o.Id)
                         .ToArray();
 
-                    var actualGroupIds = summary.GroupsInfo
-                        .Select((group, id) => new {group, id})
+                    var actualGroupIds = groupsInfo
+                        .Select((group, id) => new { group, id })
                         .Where(o => !GroupInfo.IsZero(o.group))
                         .Select(o => o.id)
                         .ToArray();
@@ -273,39 +275,19 @@ namespace Bigsort.Tests
                     CollectionAssert.AreEqual(
                         expectedGroupIds,
                         actualGroupIds);
-
-                    Assert.AreEqual(
-                        expectedGroups.Max(group => group.LinesCount),
-                        summary.MaxGroupLinesCount);
-
-                    Assert.AreEqual(
-                        expectedGroups.Max(group => group.BytesCount),
-                        summary.MaxGroupSize);
-
+                    
                     int j = 0;
                     for (int i = 0; i < Consts.MaxGroupsCount; i++)
                     {
-                        var info = summary.GroupsInfo[i];
+                        var info = groupsInfo[i];
                         if (GroupInfo.IsZero(info))
                             continue;
 
                         var expectedInfo = expectedGroups[j];
                         Assert.AreEqual(expectedInfo.BytesCount, info.BytesCount);
                         Assert.AreEqual(expectedInfo.LinesCount, info.LinesCount);
-
-                        IGroup matrix;
-                        Assert.IsTrue(groupMatrixService.TryCreateGroup(info, out matrix));
-
-                        using (var reader = ioService.OpenRead(groupsFile))
-                            groupMatrixService.LoadGroup(matrix, info, reader);
-
-                        var lineIndexes = new LineIndexes[info.LinesCount];
-
-                        linesIndexesStorageMock
-                            .Setup(o => o.Indexes)
-                            .Returns(lineIndexes);
-
-                        linesIndexesExtractor.ExtractIndexes(matrix, new Range(0, info.LinesCount));
+                        
+                        linesIndexesExtractor.ExtractIndexes(output[i]);
 
                         var expectedLines = expectedInfo.Lines
                             .Select(o => o.Content)
@@ -314,14 +296,14 @@ namespace Bigsort.Tests
                         foreach (var line in expectedLines)
                             line[0] = Consts.EndLineByte1;
 
-                        var expectedLinesDictionary = new Dictionary<HashedBytesArray, int>(
-                            summary.GroupsInfo[i].LinesCount);
+                        var expectedLinesDictionary = 
+                            new Dictionary<HashedBytesArray, int>(info.LinesCount);
 
                         for (int k = 0; k < info.LinesCount; k++)
                         {
                             var hashedLine = Hash(expectedLines[k]);
                             if (expectedLinesDictionary.ContainsKey(hashedLine))
-                                ++ expectedLinesDictionary[hashedLine];
+                                ++expectedLinesDictionary[hashedLine];
                             else expectedLinesDictionary.Add(hashedLine, 1);
                         }
 #region DEBUG
@@ -330,19 +312,38 @@ namespace Bigsort.Tests
 //                             .Values.Sum(o => o);
 // #endif
 #endregion
+                        var lines = output[i].Lines;
                         for (int k = 0; k < info.LinesCount; k++)
                         {
-                            var lineLength = lineIndexes[k].lettersCount
-                                           + lineIndexes[k].digitsCount
+                            var lineIndexes = lines.Array[lines.Offset + k];
+                            var lineLength = lineIndexes.lettersCount
+                                           + lineIndexes.digitsCount
                                            + 3;
 
+                            var buffers = output[i].Buffers;
+                            var bufferIndex = lineIndexes.start / bufferSize;
+                            var indexInBuffer = lineIndexes.start % bufferSize;
                             var line = new byte[lineLength];
-                            for (int m = 0; m < lineLength; m++)
-                                line[m] = matrix[lineIndexes[k].start + m];
+                            
+                            if (indexInBuffer + lineLength <= bufferSize)
+                                Array.Copy(buffers.Array[buffers.Offset + bufferIndex], indexInBuffer,
+                                           line, 0,
+                                           lineLength);
+                            else
+                            {
+                                var bufferRightLength = bufferSize - indexInBuffer;
+                                Array.Copy(buffers.Array[buffers.Offset + bufferIndex], indexInBuffer,
+                                           line, 0,
+                                           bufferRightLength);
+
+                                Array.Copy(buffers.Array[buffers.Offset + bufferIndex + 1], 0,
+                                           line, bufferRightLength,
+                                           lineLength - bufferRightLength);
+                            }
 
                             var actualHashedLine = Hash(line);
                             Assert.IsTrue(expectedLinesDictionary.ContainsKey(actualHashedLine));
-                            -- expectedLinesDictionary[actualHashedLine];
+                            --expectedLinesDictionary[actualHashedLine];
                             if (expectedLinesDictionary[actualHashedLine] == 0)
                                 expectedLinesDictionary.Remove(actualHashedLine);
                         }
@@ -352,13 +353,14 @@ namespace Bigsort.Tests
                     }
 
                     Assert.AreEqual(expectedGroups.Length, j);
+                    loader.Dispose();
                 }
                 finally
                 {
                     if (clear)
                     {
-                        if (!inputFileSettings.StartsWith(UseExistanceFile) 
-                            && inputFilePath != null 
+                        if (!inputFileSettings.StartsWith(UseExistanceFile)
+                            && inputFilePath != null
                             && File.Exists(inputFilePath))
                             File.Delete(inputFilePath);
 

@@ -2,6 +2,6 @@
 {
     public interface IGrouper
     {
-        IGroupsSummaryInfo SplitToGroups();
+        GroupInfo[] SplitToGroups();
     }
 }

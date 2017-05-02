@@ -2,11 +2,11 @@
 
 namespace Bigsort.Contracts
 {
-    public interface IGroupsSummaryInfoMarger
+    public interface IGroupsInfoMarger
     {
         /// <summary>
         /// Marge summaryInfos. Corrupt argument value.
         /// </summary>
-        IGroupsSummaryInfo Marge(GroupInfo[][] summaryInfos);
+        GroupInfo[] Marge(GroupInfo[][] summaryInfos);
     }
 }
