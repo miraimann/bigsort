@@ -13,16 +13,5 @@ namespace Bigsort.Contracts
             Func<T> productFactory,
             Action<T> productCleaner = null)
             where T : IDisposable;
-
-        IRangesPool MakRangesPool(int length);
-
-        IRangablePool<T> MakeRangablePool<T>(
-            Func<T> productFactory,
-            Action<T> productCleaner = null);
-        
-        IRangablePool<T> MakeRangablePool<T>(
-            IEnumerable<T> init,
-            Func<T> productFactory,
-            Action<T> productCleaner = null);
     }
 }

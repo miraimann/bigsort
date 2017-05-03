@@ -1,5 +1,4 @@
-﻿using System;
-using System.Configuration;
+﻿using System.Configuration;
 using System.IO;
 using Bigsort.Contracts;
 
@@ -18,7 +17,7 @@ namespace Bigsort.Implementation
                 .AppSettings["BigsortMaxRunningTasksCount"];
 
             MaxRunningTasksCount = raw == null
-                ? Math.Max(1, Environment.ProcessorCount - 1)
+                ? Consts.MaxRunningTasksCount
                 : int.Parse(raw);
 
             raw = ConfigurationManager

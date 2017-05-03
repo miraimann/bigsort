@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace Bigsort.Implementation
 {
@@ -31,5 +32,15 @@ namespace Bigsort.Implementation
             {EndLineByte1, EndLineByte2};
 
         public static readonly Action ZeroAction = () => { };
+
+
+        public static readonly int MaxRunningTasksCount =
+            Math.Max(1, Environment.ProcessorCount - 1);
+
+        public static readonly ParallelOptions UseMaxTasksCountOptions =
+            new ParallelOptions
+            {
+                MaxDegreeOfParallelism = MaxRunningTasksCount
+            };
     }
 }

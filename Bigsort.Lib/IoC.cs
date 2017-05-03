@@ -123,8 +123,7 @@ namespace Bigsort.Lib
                 new Sorter(
                     groupsLoaderMaker,
                     groupSorter,
-                    sortedGroupWriterFactory,
-                    tasksQueue);
+                    sortedGroupWriterFactory);
 
             IBigSorter bigSorter =
                 new BigSorter(

@@ -70,15 +70,12 @@
     <Compile Include="Tools.GroupGenerator.cs" />
     <Compile Include="GroupSorterTests.Cases_10_19.cs" />
     <Compile Include="GroupSorterTests.Cases_20_29.cs" />
-    <Compile Include="GroupSorterTests.Integration.cs" />
-    <Compile Include="LinesReservationTests.cs" />
     <Compile Include="GrouperTests.Cases_00_19.cs" />
     <Compile Include="GrouperTests.Integration.cs" />
     <Compile Include="GrouperTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="GroupSorterTests.Cases_00_09.cs" />
     <Compile Include="GroupSorterTests.cs" />
-    <Compile Include="SortedGroupWriterTests.cs" />
     <Compile Include="Tools.cs" />
     <Compile Include="GrouperTests.TrivialGrouper.cs" />
     <Compile Include="Tools.HashedBytesArray.cs" />

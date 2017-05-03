@@ -147,12 +147,12 @@ namespace Bigsort.Implementation
                 _usingBufferLength = config.UsingBufferLength;
                 
                 _readers = Enumerable
-                    .Range(0, Environment.ProcessorCount)
+                    .Range(0, Consts.MaxRunningTasksCount)
                     .Select(_ => _ioService.OpenRead(_groupsFilePath))
                     .ToArray();
 
                 var tempBuffersHandles = Enumerable
-                    .Range(0, Environment.ProcessorCount)
+                    .Range(0, Consts.MaxRunningTasksCount)
                     .Select(_ => _buffersPool.Get())
                     .ToArray();
 
@@ -217,16 +217,17 @@ namespace Bigsort.Implementation
                 }
 
                 Array.Sort(loading, BlockLoadingInfo.ByPositionComparer);
-                Parallel.ForEach(Enumerable.Range(0, Environment.ProcessorCount),
+                Parallel.ForEach(
+                    Enumerable.Range(0, Consts.MaxRunningTasksCount), 
+                    Consts.UseMaxTasksCountOptions,
                     j =>
                     {
                         var groups = _output;
                         var buffLength = _usingBufferLength;
                         var reader = _readers[j];
                         var tempBuff = _tempBuffers[j];
-                        var step = Environment.ProcessorCount;
 
-                        for (; j < loading.Length; j += step)
+                        for (; j < loading.Length; j += Consts.MaxRunningTasksCount)
                         {
                             var x = loading[j];
                             var buffers = groups[x.GroupIndex].Buffers;
