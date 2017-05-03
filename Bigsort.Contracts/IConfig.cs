@@ -11,7 +11,5 @@
         int GrouperEnginesCount { get; }
 
         int MaxRunningTasksCount { get; }
-
-        int BufferReadingEnsurance { get; }
     }
 }

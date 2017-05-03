@@ -15,7 +15,6 @@ namespace Bigsort.Tests
     public partial class GroupSorterTests
     {
         private const int
-            BufferReadingEnsurance = 7,
             LinesStorageLength = 1024,
             LargeBufferSize = 1024,
             LinesRangeOffset = 12,
@@ -34,8 +33,7 @@ namespace Bigsort.Tests
             int usingBufferSize = LargeBufferSize;
             if (bufferSize < BufferSize.Large)
             {
-                usingBufferSize = sizeof(ulong)
-                                + BufferReadingEnsurance;
+                usingBufferSize = sizeof(ulong);
                 if (bufferSize != BufferSize.Min)
                     ++usingBufferSize;
             }
@@ -43,12 +41,9 @@ namespace Bigsort.Tests
             configMock
                 .SetupGet(o => o.UsingBufferLength)
                 .Returns(usingBufferSize);
-            configMock
-                .SetupGet(o => o.BufferReadingEnsurance)
-                .Returns(BufferReadingEnsurance);
 
             var physicalBufferLength =
-                usingBufferSize + BufferReadingEnsurance;
+                usingBufferSize + Consts.BufferReadingEnsurance;
 
             configMock
                 .SetupGet(o => o.PhysicalBufferLength)
@@ -117,8 +112,7 @@ namespace Bigsort.Tests
 
             lineIndexesExtractorMock
                 .Setup(o => o.ExtractIndexes(groupMock.Object))
-                .Callback(() => 
-                                Array.Copy(testCase.InputLines, 0,
+                .Callback(() => Array.Copy(testCase.InputLines, 0,
                                            lines, LinesRangeOffset,
                                            testCase.InputLines.Length));
 

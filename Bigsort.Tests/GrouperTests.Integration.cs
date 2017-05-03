@@ -8,7 +8,6 @@ using Bigsort.Tools.TestFileGenerator;
 using Moq;
 using NUnit.Framework;
 using static Bigsort.Tests.Tools;
-using Range = Bigsort.Contracts.Range;
 
 namespace Bigsort.Tests
 {
@@ -17,7 +16,6 @@ namespace Bigsort.Tests
         public class Integration
         {
             private const string UseExistanceFile = "Use existance file:";
-            private const int GroupBufferRowReadingEnsurance = 7;
 
             [TestCase("12_Kb [1-32].[0-128] E:\\12Kb", // inputFileSettings 
                       "E:\\12Kbgroups",               // groupsFile
@@ -123,10 +121,6 @@ namespace Bigsort.Tests
                     configMock
                         .SetupGet(o => o.GrouperEnginesCount)
                         .Returns(enginesCount);
-
-                    configMock
-                        .SetupGet(o => o.BufferReadingEnsurance)
-                        .Returns(GroupBufferRowReadingEnsurance);
 
                     IGroupsInfoMarger groupsSummaryInfoMarger =
                         new GroupsSummaryInfoMarger();

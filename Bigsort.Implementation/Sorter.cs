@@ -1,4 +1,5 @@
 ﻿using System.Threading;
+using System.Threading.Tasks;
 using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
@@ -30,13 +31,14 @@ namespace Bigsort.Implementation
             using (var groupsWriter = _groupWriterFactory.Create())
             using (var groupsLoader = _groupsLoaderMaker.Make(groupsInfo, groups))
             {
+                var outputPosition = 0L;
                 var loadedGroupsRange = groupsLoader.LoadNextGroups();
                 while (!Range.IsZero(loadedGroupsRange))
                 {
                     var groupsBlockDone = new CountdownEvent(loadedGroupsRange.Length);
                     int i = loadedGroupsRange.Offset,
                         n = i + loadedGroupsRange.Length;
-
+                    
                     while (i != n)
                     {
                         var j = i++;
@@ -57,20 +59,19 @@ namespace Bigsort.Implementation
                     groupsBlockDone.Wait();
                     groupsBlockDone.Reset();
 
-                    var possition = 0L;
                     i = loadedGroupsRange.Offset;
                     while (i != n)
                     {
-                        var j = i++;
-                        var p = possition;
+                        int j = i++;
                         var group = groups[j];
                         if (group == null)
                         {
                             groupsBlockDone.Signal();
                             continue;
                         }
-
-                        possition += group.BytesCount;
+                        
+                        long p = outputPosition;
+                        outputPosition += group.BytesCount;
                         _tasksQueue.Enqueue(delegate
                         {
                             groupsWriter.Write(group, p);

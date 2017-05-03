@@ -25,7 +25,6 @@ namespace Bigsort.Implementation
                 .AppSettings["BigsortGrouperEnginesCount"];
 
             GrouperEnginesCount = raw == null ? 1 : int.Parse(raw);
-            BufferReadingEnsurance = sizeof(ulong) - 1;
 
             raw = ConfigurationManager
                 .AppSettings["BigsortPhysicalBufferLength"];
@@ -35,7 +34,7 @@ namespace Bigsort.Implementation
                 : 256 * 1024;
 
             UsingBufferLength = PhysicalBufferLength 
-                              - BufferReadingEnsurance;
+                              - Consts.BufferReadingEnsurance;
         }
 
         public string GroupsFileDirectoryPath { get; }
@@ -43,6 +42,5 @@ namespace Bigsort.Implementation
         public int UsingBufferLength { get; }
         public int MaxRunningTasksCount { get; }
         public int GrouperEnginesCount { get; }
-        public int BufferReadingEnsurance { get; }
     }
 }

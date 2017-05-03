@@ -26,16 +26,14 @@ namespace Bigsort.Tests
             const int buffersMemoryLimit = 1024 * 1024;
 
             var configMock = new Mock<IConfig>();
-            var physicalBufferLength = usingBufferSize + sizeof(ulong);
+            var physicalBufferLength = usingBufferSize 
+                                     + Consts.BufferReadingEnsurance;
             configMock
                 .SetupGet(o => o.PhysicalBufferLength)
                 .Returns(physicalBufferLength);
             configMock
                 .SetupGet(o => o.UsingBufferLength)
                 .Returns(usingBufferSize);
-            configMock
-                .SetupGet(o => o.BufferReadingEnsurance)
-                .Returns(sizeof(ulong));
             
             var bytesCount = blocks.Value.Sum(o => o.Length);
             var linesCount = bytesCount / 4; // max

@@ -10,11 +10,12 @@ namespace Bigsort.Implementation
             GroupIdLettersCount = 2,
             // all combination from 0 to 2 (GroupIdLettersCount) chars 
             // where 96 is ASCIIPrintableCharsCount
-            MaxGroupsCount = AsciiPrintableCharsCount * AsciiPrintableCharsCount 
-                           + AsciiPrintableCharsCount + 1,
+            MaxGroupsCount = AsciiPrintableCharsCount*AsciiPrintableCharsCount
+                             + AsciiPrintableCharsCount + 1,
             TemporaryMissingResult = -1,
             EndLineBytesCount = 2,
             SegmentSize = sizeof(ulong),
+            BufferReadingEnsurance = SegmentSize - 1,
             BitsInByteCount = 8;
 
         public const ulong
