@@ -41,7 +41,7 @@ namespace Bigsort.Implementation
             var lines = group.Lines.Array;
             var segments = group.SortingSegments.Array;
 
-            _segmentsSupplier.SupplyNext(group);
+            _segmentsSupplier.SupplyNext(group, offset, length);
             Array.Sort(segments, lines, offset, length);
 
             int n = offset + length;

@@ -72,12 +72,12 @@
     <Compile Include="SortedGroupWriterFactory.cs" />
     <Compile Include="Sorter.cs" />
     <Compile Include="DevelopmentTools\TimeTracker.cs" />
+    <Compile Include="SortingSegmentsSupplier.cs" />
     <Compile Include="UsingHandleMaker.cs" />
     <Compile Include="GroupSorter.cs" />
     <Compile Include="IoService.cs" />
     <Compile Include="LinesIndexesExtractor.cs" />
     <Compile Include="BigSorter.cs" />
-    <Compile Include="SortingSegmentsSupplier.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TasksQueue.cs" />
   </ItemGroup>

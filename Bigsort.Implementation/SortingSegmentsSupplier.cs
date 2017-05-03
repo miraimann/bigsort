@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Bigsort.Contracts;
 using Bigsort.Contracts.DevelopmentTools;
+using static Bigsort.Implementation.Consts;
 
 namespace Bigsort.Implementation
 {
@@ -12,13 +14,17 @@ namespace Bigsort.Implementation
             LogName = nameof(SortingSegmentsSupplier),
             SupplingLogName = nameof(SupplyNext) + "." + LogName;
         
-        private const int 
-            SegmentSize = sizeof(ulong),
-            BitsInByteCount = 8;
-        
+        private static readonly Func<byte[], int, ulong> ReadSegment;
+
         private readonly ITimeTracker _timeTracker;
-        private readonly Func<byte[], int, ulong> _read;
         private readonly int _usingBufferLength;
+
+        static SortingSegmentsSupplier()
+        {
+            if (BitConverter.IsLittleEndian)
+                ReadSegment = ReverseReadSegment;
+            else ReadSegment = DirectReadSegment;
+        }
 
         public SortingSegmentsSupplier(
             IConfig config,
@@ -26,23 +32,16 @@ namespace Bigsort.Implementation
         {
             _usingBufferLength = config.UsingBufferLength;
             _timeTracker = diagnosticTools?.TimeTracker;
-
-            if (BitConverter.IsLittleEndian)
-                 _read = ReverseRead;
-            else _read = DirectRead;
         }
-
-        public void SupplyNext(IGroup group)
+        
+        public void SupplyNext(IGroup group, int offset, int count)
         {
             var watch = Stopwatch.StartNew();
 
             var lines = group.Lines.Array;
             var segments = group.SortingSegments.Array;
 
-            int offset = group.Lines.Offset,
-                count = group.Lines.Count,
-                n = offset + count;
-
+            var n = offset + count;
             for (; offset < n; ++offset)
             {
                 var line = lines[offset];
@@ -52,62 +51,64 @@ namespace Bigsort.Implementation
                                     ? line.digitsCount + 1
                                     : line.lettersCount) -
                                  line.sortingOffset;
-
                 if (maxLength <= 0)
                 {
                     line.sortingOffset = 0;
                     if (line.sortByDigits)
-                        segment = Consts.SegmentDigitsOut;
+                        segment = SegmentDigitsOut;
                     else
                     {
-                        segment = Consts.SegmentLettersOut;
+                        segment = SegmentLettersOut;
                         line.sortByDigits = true;
                     }
                 }
                 else
                 {
-                    var lineReadingOffset = line.start
-                                          + line.sortingOffset
-                                          + (line.sortByDigits ? 1 : line.digitsCount + 3);
-                    
-                    int cellIndex = lineReadingOffset % _usingBufferLength,
-                        bufferIndex = lineReadingOffset / _usingBufferLength;
-
                     var buffers = group.Buffers;
-                    segment = _read(buffers.Array[buffers.Offset + bufferIndex], cellIndex);
-                    var bufferLeftLength = _usingBufferLength - cellIndex;
-                    if (bufferLeftLength < SegmentSize) // is broken to two buffers
+
+                    int bufferLength = _usingBufferLength,
+                        lineReadingOffset = line.start + line.sortingOffset
+                                          + (line.sortByDigits ? 1 : line.digitsCount + 3),
+
+                        cellIndex = lineReadingOffset % bufferLength,
+                        buffIndex = lineReadingOffset / bufferLength;
+
+                    segment = ReadSegment(buffers.Array[buffers.Offset + buffIndex], cellIndex);
+                    var bufferRightLength = bufferLength - cellIndex;
+                    if (bufferRightLength < SegmentSize) // is broken to two buffers
                     {
-                        var bitsOffset = (SegmentSize - bufferLeftLength) * BitsInByteCount;
+                        var bitsOffset = (SegmentSize - bufferRightLength) * BitsInByteCount;
                         segment = (segment >> bitsOffset) << bitsOffset;
 
-                        if (++bufferIndex < buffers.Count)
-                            segment |= _read(buffers.Array[buffers.Offset + bufferIndex], 0)
-                                    << (bufferLeftLength * BitsInByteCount);
+                        if (++buffIndex < bufferLength)
+                            segment |= ReadSegment(buffers.Array[buffers.Offset + buffIndex], 0)
+                                    >> (bufferRightLength * BitsInByteCount);
                     }
 
                     if (maxLength < SegmentSize)
                     {
                         var bitsOffset = (SegmentSize - maxLength) * BitsInByteCount;
                         segment = (segment >> bitsOffset) << bitsOffset;
-                    }                                                          
-                                                                               
-                    line.sortingOffset += SegmentSize;                        
-                }                                                              
-                                                                               
-                lines[offset] = line;                                          
-                segments[offset] = segment;                                           
+                    }
+
+                    line.sortingOffset += SegmentSize;
+                }
+
+                lines[offset] = line;
+                segments[offset] = segment;
             }
             
             _timeTracker?.Add(SupplingLogName, watch.Elapsed);
         }
-        
-        private static ulong DirectRead(byte[] buff, int offset) =>
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ulong DirectReadSegment(byte[] buff, int offset) =>
             BitConverter.ToUInt64(buff, offset);
+        
+        private static ulong ReverseReadSegment(byte[] buff, int offset) =>
+            Reverse(DirectReadSegment(buff, offset));
 
-        private static ulong ReverseRead(byte[] buff, int offset) =>
-            Reverse(DirectRead(buff, offset));
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ulong Reverse(ulong x) =>
              ((x & 0xFF00000000000000) >> 56)
            | ((x & 0x00FF000000000000) >> 40)

@@ -172,6 +172,9 @@ namespace Bigsort.Implementation
             {
                 var watch = Stopwatch.StartNew();
 
+                _linesTop = 0; 
+                _buffersTop = 0;
+
                 var groupsInfos = _groupsInfo;
                 var actualGroupsIndexes = new List<int>();
 

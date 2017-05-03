@@ -123,9 +123,9 @@ namespace Bigsort.Tests
                 .Aggregate(Enumerable.Concat)
                 .ToArray();
             
-            Console.WriteLine(string.Join(" ", expectedGroupBytes));
-            Console.WriteLine(string.Join(" ", actualGroupBytes));
-
+            // Console.WriteLine(string.Join(" ", expectedGroupBytes));
+            // Console.WriteLine(string.Join(" ", actualGroupBytes));
+            
             CollectionAssert.AreEqual(
                 expectedGroupBytes, 
                 actualGroupBytes);

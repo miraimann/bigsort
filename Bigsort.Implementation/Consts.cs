@@ -13,11 +13,13 @@ namespace Bigsort.Implementation
             MaxGroupsCount = AsciiPrintableCharsCount * AsciiPrintableCharsCount 
                            + AsciiPrintableCharsCount + 1,
             TemporaryMissingResult = -1,
-            EndLineBytesCount = 2;
+            EndLineBytesCount = 2,
+            SegmentSize = sizeof(ulong),
+            BitsInByteCount = 8;
 
         public const ulong
-            SegmentDigitsOut = ulong.MinValue,
-            SegmentLettersOut = ulong.MaxValue;
+            SegmentDigitsOut = ulong.MaxValue,
+            SegmentLettersOut = ulong.MinValue;
 
         public const byte
             Dot = (byte) '.',

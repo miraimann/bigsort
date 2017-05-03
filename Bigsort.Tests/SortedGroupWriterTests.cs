@@ -13,7 +13,7 @@
 //    public class SortedGroupWriterTests
 //    {
 //        [TestCase(11, 1, 22, 1024, 0)]
-//        [TestCase(11, 1 ,2, 11, 0)]
+//        [TestCase(11, 1, 2, 11, 0)]
 //        [TestCase(2222, 1, 2, 11, 0)]
 //        public void DebugTest(
 //                int linesCount,
@@ -34,22 +34,13 @@
 //            [Values(1, 11, 111, 222, 2222)] int linesCount,
 //            [Values(1, 2, 3, 22, 32, 255)] int maxNumberLength,
 //            [Values(2, 3, 4, 22, 64, 255)] int maxStingLength,
-//            [Values(8, 9, 10, 11, 12, 13, 14, 15, 16, 1024, 32*1024)] int bufferSize,
+//            [Values(8, 9, 10, 11, 12, 13, 14, 15, 16, 1024, 32 * 1024)] int bufferSize,
 //            [Values(0, 1, 2, 3, 4, 5, 6, 7)] int readingEnsurance)
 //        {
 //            Assume.That(maxNumberLength + maxStingLength + 3 <
 //                        bufferSize - readingEnsurance);
 
 //            var linesIndexes = new LineIndexes[linesCount];
-//            var linesStorageMock = new Mock<ILinesIndexesStorage>();
-
-//            linesStorageMock
-//                .SetupGet(o => o.Length)
-//                .Returns(linesCount);
-
-//            linesStorageMock
-//                .Setup(o => o.Indexes)
-//                .Returns(linesIndexes);
 
 //            var configMock = new Mock<IConfig>();
 //            configMock
@@ -62,7 +53,7 @@
 //            IBuffersPool buffersPool =
 //                new InfinityBuffersPool(bufferSize);
 
-//            IGroupsService groupMatrixService =
+//            IGroupsLoaderMaker groupLoaderMaker =
 //                new GroupsService(buffersPool, configMock.Object);
 
 //            ISortedGroupWriter sortedGroupWriter =
@@ -83,9 +74,9 @@
 //            var groupReader = new MemoryReader(groupStream);
 //            var groupInfo = new GroupInfo
 //            {
-//                BytesCount = (int) groupStream.Length,
+//                BytesCount = (int)groupStream.Length,
 //                LinesCount = linesCount,
-//                Mapping = new[] {new LongRange(0, (int)groupStream.Length)}
+//                Mapping = new[] { new LongRange(0, (int)groupStream.Length) }
 //            };
 
 //            IGroup matrix;
@@ -95,8 +86,8 @@
 //            linesIndexesExtractor.ExtractIndexes(matrix, new Range(0, linesCount));
 
 //            var indexedLines = Enumerable
-//                .Zip(lines, linesIndexes, 
-//                    (line, indexes) => new {line, indexes})
+//                .Zip(lines, linesIndexes,
+//                    (line, indexes) => new { line, indexes })
 //                .ToArray();
 
 //            Mix(indexedLines, linesCount / 2);
@@ -119,15 +110,15 @@
 //            linesIndexes = indexedLines
 //                .Select(o => o.indexes)
 //                .ToArray();
-            
+
 //            linesStorageMock
 //                .Setup(o => o.Indexes)
 //                .Returns(linesIndexes);
-            
-//            var mixedGroupStream = new MemoryStream((int) groupStream.Length);
+
+//            var mixedGroupStream = new MemoryStream((int)groupStream.Length);
 //            var mixedGroupWriter = new MemoryWriter(mixedGroupStream);
 
-//            sortedGroupWriter.Write(matrix, 
+//            sortedGroupWriter.Write(matrix,
 //                new Contracts.Range(0, linesCount),
 //                mixedGroupWriter);
 

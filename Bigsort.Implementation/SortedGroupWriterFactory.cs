@@ -4,7 +4,6 @@ using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation
 {
-
     public class SortedGroupWriterFactory
         : ISortedGroupWriterFactory
     {
