@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using Bigsort.Contracts;
 
@@ -35,25 +34,6 @@ namespace Bigsort.Implementation
             using (var stream = new FileStream(path, FileMode.OpenOrCreate))
                 stream.SetLength(length);
         }
-
-        public string CreateTempFile(long length)
-        {
-            var path = Path.GetTempFileName();
-            CreateFile(path, length);
-            return path;
-        }
-
-        public IEnumerable<string> EnumerateFilesOf(string directory) =>
-            Directory.EnumerateFiles(directory);
-
-        public bool DirectoryExists(string path) =>
-            Directory.Exists(path);
-
-        public void CreateDirectory(string path) =>
-            Directory.CreateDirectory(path);
-
-        public bool FileExists(string path) =>
-            File.Exists(path);
 
         public void DeleteFile(string path) =>
             File.Delete(path);

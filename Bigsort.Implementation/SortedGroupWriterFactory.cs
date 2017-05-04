@@ -109,8 +109,8 @@ namespace Bigsort.Implementation
                             }
 
                             var nextBuff = buffers.Array[buffers.Offset + i + 1];
-                            output.Write(buff, j, buffLeftLength);
                             nextBuff[nextLength - 1] = Consts.EndLineByte2;
+                            output.Write(buff, j, buffLeftLength);
                             output.Write(nextBuff, 0, nextLength);
                             continue;
                         }

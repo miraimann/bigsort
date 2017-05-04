@@ -27,7 +27,10 @@ namespace Bigsort.Lib
             IDiagnosticTools diagnosticTools = null;
 #endif
             IConfig config = 
-                new Config();
+                new Config(
+                    inputFilePath,
+                    outputFilePath,
+                    groupsFilePath);
             
             IUsingHandleMaker usingHandleMaker =
                 new UsingHandleMaker();
