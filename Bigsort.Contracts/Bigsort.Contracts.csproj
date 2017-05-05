@@ -74,7 +74,6 @@
     <Compile Include="IPool.cs" />
     <Compile Include="IPoolMaker.cs" />
     <Compile Include="ISortedGroupWriterFactory.cs" />
-    <Compile Include="ISorter.cs" />
     <Compile Include="DevelopmentTools\ITimeTracker.cs" />
     <Compile Include="IUsingHandleMaker.cs" />
     <Compile Include="LongRange.cs" />
@@ -86,7 +85,7 @@
     <Compile Include="IGroupSorter.cs" />
     <Compile Include="IIoService.cs" />
     <Compile Include="ILinesIndexesExtractor.cs" />
-    <Compile Include="IBigSorter.cs" />
+    <Compile Include="ISorter.cs" />
     <Compile Include="ISortedGroupWriter.cs" />
     <Compile Include="ISortingSegmentsSupplier.cs" />
     <Compile Include="IUsingHandle.cs" />

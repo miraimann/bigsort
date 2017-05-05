@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using Bigsort.Contracts;
 using Bigsort.Contracts.DevelopmentTools;
 using Bigsort.Implementation;
@@ -9,7 +8,7 @@ namespace Bigsort.Lib
 {
     public class IoC
     {
-        internal IBigSorter BuildBigSorter(
+        internal ISorter BuildBigSorter(
             string inputFilePath, 
             string outputFilePath)
         {
@@ -124,21 +123,17 @@ namespace Bigsort.Lib
             
             ISorter sorter =
                 new Sorter(
-                    groupsLoaderMaker,
-                    groupSorter,
-                    sortedGroupWriterFactory);
-
-            IBigSorter bigSorter =
-                new BigSorter(
                     inputFilePath,
                     outputFilePath,
                     groupsFilePath,
                     ioService,
-                    grouper,
-                    sorter,
+                    grouper, 
+                    groupsLoaderMaker,
+                    groupSorter,
+                    sortedGroupWriterFactory,
                     diagnosticTools);
 
-            return bigSorter;
+            return sorter;
         }
     }
 }

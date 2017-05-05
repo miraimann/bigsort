@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Threading;
 using System.Threading.Tasks;
 using Bigsort.Contracts;
 using Bigsort.Contracts.DevelopmentTools;
@@ -13,8 +12,8 @@ namespace Bigsort.Implementation
     public class GroupsLoaderMaker
         : IGroupsLoaderMaker
     {
-        private readonly ITimeTracker _timeTracker;
         private readonly string _groupsFilePath;
+        private readonly ITimeTracker _timeTracker;
         private readonly IIoService _ioService;
         private readonly IBuffersPool _buffersPool;
         private readonly IConfig _config;
