@@ -2,7 +2,7 @@
 
 namespace Bigsort.Contracts
 {
-    public struct GroupInfo
+    internal struct GroupInfo
     {
         /// <summary>
         /// Mapping is ranges (offset, count) of group bytes blocks 

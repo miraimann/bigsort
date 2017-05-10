@@ -2,7 +2,7 @@
 
 namespace Bigsort.Contracts
 {
-    public interface ITasksQueue
+    internal interface ITasksQueue
     {
         void Enqueue(Action action);
     }

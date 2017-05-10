@@ -1,6 +1,6 @@
 ﻿namespace Bigsort.Contracts
 {
-    public interface IBuffersPool
+    internal interface IBuffersPool
         : IPool<byte[]>
     {
     }

@@ -1,6 +1,6 @@
 ﻿namespace Bigsort.Contracts
 {
-    public interface ISorter
+    internal interface ISorter
     {
         void Sort();
     }

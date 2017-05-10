@@ -2,7 +2,7 @@
 
 namespace Bigsort.Contracts
 {
-    public interface IGrouperIOs
+    internal interface IGrouperIOs
         : IReadOnlyList<IGrouperIO>
     {
     }

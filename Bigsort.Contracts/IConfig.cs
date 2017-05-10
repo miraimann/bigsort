@@ -1,6 +1,6 @@
 ﻿namespace Bigsort.Contracts
 {
-    public interface IConfig
+    internal interface IConfig
     {
         string InputFilePath { get; }
         string OutputFilePath { get; }

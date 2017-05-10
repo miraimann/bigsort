@@ -2,7 +2,7 @@
 
 namespace Bigsort.Implementation
 {
-    public class BuffersPool
+    internal class BuffersPool
         : IBuffersPool
     {
         private readonly int _physicalBufferLength;

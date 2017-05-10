@@ -8,7 +8,7 @@ using Microsoft.VisualBasic.Devices;
 
 namespace Bigsort.Implementation
 {
-    public class Config
+    internal class Config
         : IConfig
     {
         public Config(string inputFilePath, string outputFilePath)

@@ -7,7 +7,7 @@ using static Bigsort.Implementation.Consts;
 
 namespace Bigsort.Implementation
 {
-    public class SortingSegmentsSupplier
+    internal class SortingSegmentsSupplier
         : ISortingSegmentsSupplier
     {
         public const string
@@ -47,19 +47,19 @@ namespace Bigsort.Implementation
                 var line = lines[offset];
                 ulong segment;
 
-                int maxLength = (line.sortByDigits
-                                    ? line.digitsCount + 1
-                                    : line.lettersCount) -
-                                 line.sortingOffset;
+                int maxLength = (line.SortByDigits
+                                    ? line.DigitsCount + 1
+                                    : line.LettersCount) -
+                                 line.SortingOffset;
                 if (maxLength <= 0)
                 {
-                    line.sortingOffset = 0;
-                    if (line.sortByDigits)
+                    line.SortingOffset = 0;
+                    if (line.SortByDigits)
                         segment = SegmentDigitsOut;
                     else
                     {
                         segment = SegmentLettersOut;
-                        line.sortByDigits = true;
+                        line.SortByDigits = true;
                     }
                 }
                 else
@@ -67,8 +67,8 @@ namespace Bigsort.Implementation
                     var buffers = group.Buffers;
 
                     int bufferLength = _usingBufferLength,
-                        lineReadingOffset = line.start + line.sortingOffset
-                                          + (line.sortByDigits ? 1 : line.digitsCount + 3),
+                        lineReadingOffset = line.Start + line.SortingOffset
+                                          + (line.SortByDigits ? 1 : line.DigitsCount + 3),
 
                         cellIndex = lineReadingOffset % bufferLength,
                         buffIndex = lineReadingOffset / bufferLength;
@@ -91,7 +91,7 @@ namespace Bigsort.Implementation
                         segment = (segment >> bitsOffset) << bitsOffset;
                     }
 
-                    line.sortingOffset += SegmentSize;
+                    line.SortingOffset += SegmentSize;
                 }
 
                 lines[offset] = line;

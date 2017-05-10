@@ -4,7 +4,7 @@ using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    public class PoolMaker
+    internal class PoolMaker
         : IPoolMaker
     {
         public IPool<T> MakePool<T>(

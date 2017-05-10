@@ -9,7 +9,7 @@ using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation
 {
-    public class GroupsLoaderMaker
+    internal class GroupsLoaderMaker
         : IGroupsLoaderMaker
     {
         private readonly ITimeTracker _timeTracker;

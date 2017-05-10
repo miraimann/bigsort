@@ -2,7 +2,7 @@
 
 namespace Bigsort.Contracts
 {
-    public interface IInputReader
+    internal interface IInputReader
         : IDisposable
     {
         int GetFirstBuffer(out Handle<byte[]> buffHandle);

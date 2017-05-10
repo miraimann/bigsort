@@ -1,7 +1,6 @@
 ﻿namespace Bigsort.Contracts
 {
-    // ReSharper disable once InconsistentNaming
-    public interface IGrouperIO
+    internal interface IGrouperIO
     {
         IInputReader Input { get; }
         

@@ -309,13 +309,13 @@ namespace Bigsort.Tests
                         for (int k = 0; k < info.LinesCount; k++)
                         {
                             var lineIndexes = lines.Array[lines.Offset + k];
-                            var lineLength = lineIndexes.lettersCount
-                                           + lineIndexes.digitsCount
+                            var lineLength = lineIndexes.LettersCount
+                                           + lineIndexes.DigitsCount
                                            + 3;
 
                             var buffers = output[i].Buffers;
-                            var bufferIndex = lineIndexes.start / bufferSize;
-                            var indexInBuffer = lineIndexes.start % bufferSize;
+                            var bufferIndex = lineIndexes.Start / bufferSize;
+                            var indexInBuffer = lineIndexes.Start % bufferSize;
                             var line = new byte[lineLength];
                             
                             if (indexInBuffer + lineLength <= bufferSize)

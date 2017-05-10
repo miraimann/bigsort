@@ -1,34 +1,35 @@
 ﻿using System;
-using System.Runtime.InteropServices;
 
 namespace Bigsort.Contracts
 {
-    [StructLayout(LayoutKind.Explicit, Size = sizeof(long))]
-    public struct LineIndexes : IEquatable<LineIndexes>
+    internal struct LineIndexes : IEquatable<LineIndexes>
     {
         public const byte DefaultSortingOffset = 2;
         public const bool DefaultSortByDigits = false;
 
-        [FieldOffset(0)] private readonly long asLong;
-        [FieldOffset(0)] public int start;
-        [FieldOffset(4)] public byte digitsCount;
-        [FieldOffset(5)] public byte lettersCount;
-        [FieldOffset(6)] public byte sortingOffset;
-        [FieldOffset(7)] public bool sortByDigits;
+        public int Start;
+        public byte DigitsCount;
+        public byte LettersCount;
+        public byte SortingOffset;
+        public bool SortByDigits;
 
         public override string ToString() =>
-            $"{start}|{lettersCount}|{digitsCount}|" +
-            $"{sortingOffset}|{sortByDigits}";
+            $"{Start}|{LettersCount}|{DigitsCount}|" +
+            $"{SortingOffset}|{SortByDigits}";
 
         public override bool Equals(object obj) =>
             obj is LineIndexes
                 && Equals((LineIndexes)obj);
         
-        public bool Equals(LineIndexes other) =>
-            asLong == other.asLong;
-        
+        public bool Equals(LineIndexes other) => 
+               Start == other.Start
+            && DigitsCount == other.DigitsCount
+            && LettersCount == other.LettersCount
+            && SortingOffset == other.SortingOffset
+            && SortByDigits == other.SortByDigits;
+
         public override int GetHashCode() =>
-            asLong.GetHashCode();
+            Start.GetHashCode();
 
         public static bool operator ==(
                 LineIndexes left, LineIndexes right) =>

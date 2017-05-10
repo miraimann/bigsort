@@ -2,7 +2,7 @@
 
 namespace Bigsort.Contracts
 {
-    public interface IPoolMaker
+    internal interface IPoolMaker
     {
         IPool<T> MakePool<T>(
             Func<T> productFactory,

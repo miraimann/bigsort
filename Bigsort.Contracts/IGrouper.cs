@@ -1,6 +1,6 @@
 ﻿namespace Bigsort.Contracts
 {
-    public interface IGrouper
+    internal interface IGrouper
     {
         GroupInfo[] SplitToGroups();
     }

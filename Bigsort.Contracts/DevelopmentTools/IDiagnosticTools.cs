@@ -1,6 +1,6 @@
 ﻿namespace Bigsort.Contracts.DevelopmentTools
 {
-    public interface IDiagnosticTools
+    internal interface IDiagnosticTools
     {
         ITimeTracker TimeTracker { get; }
 

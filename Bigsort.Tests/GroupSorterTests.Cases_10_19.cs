@@ -4,7 +4,6 @@ namespace Bigsort.Tests
 {
     public partial class GroupSorterTests
     {
-        // ReSharper disable once InconsistentNaming
         public static IEnumerable<TestCase> Cases_10_19
         {
             get

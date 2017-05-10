@@ -141,13 +141,17 @@ namespace Bigsort.Tests
         {
             private readonly string _name;
 
-            public LongRanges(string name, LongRange[] value)
+            public LongRanges(string name, 
+                long[] offsets, 
+                int[] lengths)
             {
-                Value = value;
                 _name = name;
+                Value = Enumerable
+                    .Zip(offsets, lengths, (a, b) => new LongRange(a, b))
+                    .ToArray();
             }
 
-            public LongRange[] Value { get; }
+            internal LongRange[] Value { get; }
 
             public override string ToString() =>
                 _name;
@@ -157,57 +161,33 @@ namespace Bigsort.Tests
         {
             get
             {
-                yield return new LongRanges("00", new[]
-                {
-                    new LongRange(0, 4),
-                    new LongRange(4, 4)
-                });
+                yield return new LongRanges("00", 
+                    new long[] {0, 4},
+                    new int [] {4, 4});
 
-                yield return new LongRanges("01", new[]
-                {
-                    new LongRange(0, 1024)
-                });
+                yield return new LongRanges("01",
+                    new long[] {0},
+                    new int[] {1024});
 
-                yield return new LongRanges("02", new[]
-                {
-                    new LongRange(37, 1024)
-                });
+                yield return new LongRanges("02",
+                    new long[] {37},
+                    new int[] {1024});
 
-                yield return new LongRanges("03", new[]
-                {
-                    new LongRange(37, 1000),
-                    new LongRange(1037, 1000)
-                });
+                yield return new LongRanges("03",
+                    new long[] { 37, 1037 },
+                    new int[] { 1000, 1000 });
 
-                yield return new LongRanges("04", new[]
-                {
-                    new LongRange(7, 8),
-                    new LongRange(29, 8),
-                    new LongRange(137, 8),
-                    new LongRange(237, 8),
-                    new LongRange(1037, 8),
-                    new LongRange(2037, 8)
-                });
+                yield return new LongRanges("04",
+                    new long[] { 7, 29, 137, 237, 1037, 2037 },
+                    new int[]  { 8,  8,   8,   8,    8,    8 });
 
-                yield return new LongRanges("05", new[]
-                {
-                    new LongRange(7, 14),
-                    new LongRange(29, 14),
-                    new LongRange(137, 14),
-                    new LongRange(237, 14),
-                    new LongRange(1037, 14),
-                    new LongRange(2037, 14)
-                });
+                yield return new LongRanges("05",
+                    new long[] {  7, 29, 137, 237, 1037, 2037 },
+                    new int[]  { 14, 14,  14,  14,   14,   14 });
 
-                yield return new LongRanges("06", new[]
-{
-                    new LongRange(7, 7),
-                    new LongRange(29, 8),
-                    new LongRange(137, 9),
-                    new LongRange(237, 2),
-                    new LongRange(1037, 3),
-                    new LongRange(2037, 2)
-                });
+                yield return new LongRanges("06",
+                    new long[] { 7, 29, 137, 237, 1037, 2037 },
+                    new int[]  { 7,  8,   9,   2,    3,    2 });
             }
         }
     }

@@ -6,7 +6,7 @@ using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    public class TasksQueue
+    internal class TasksQueue
         : ITasksQueue
     {
         private readonly ConcurrentQueue<Action> _tasksQueue;

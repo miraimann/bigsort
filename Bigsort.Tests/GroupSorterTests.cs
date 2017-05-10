@@ -121,17 +121,17 @@ namespace Bigsort.Tests
             var resultLines = lines
                 .Skip(LinesRangeOffset)
                 .Take(testCase.InputLines.Length)
-                .Select(o => o.start)
+                .Select(o => o.Start)
                 .ToArray();
 
-            Console.WriteLine(string.Join(" ", testCase.ExpectedSortedLines));
-            Console.WriteLine(string.Join(" ", resultLines));
+            // Console.WriteLine(string.Join(" ", testCase.ExpectedSortedLines));
+            // Console.WriteLine(string.Join(" ", resultLines));
 
             CollectionAssert.AreEqual(
                 testCase.ExpectedSortedLines,
                 resultLines);
         }
-        
+
         public static IEnumerable<TestCase> TestCases =>
             new[] { Cases_00_09, Cases_10_19, Cases_20_29 }
                 .Aggregate(Enumerable.Concat);
@@ -151,7 +151,7 @@ namespace Bigsort.Tests
                 BytesView = input.BytesView;
             }
 
-            public LineIndexes[] InputLines { get; }
+            internal LineIndexes[] InputLines { get; }
             public byte[] GroupBytes { get; }
             public int[] ExpectedSortedLines { get; }
 
@@ -193,7 +193,7 @@ namespace Bigsort.Tests
                     var lineIndexes = ParseLine(indexes);
                     var lineBytes = BytesOfString(bytesView);
                     lineBytes[0] = (byte)'\r';
-                    lineBytes[1] = lineIndexes.digitsCount;
+                    lineBytes[1] = lineIndexes.DigitsCount;
 
                     _items.Add(new Item(lineIndexes, lineBytes));
                 }
@@ -204,7 +204,7 @@ namespace Bigsort.Tests
                     _items.SelectMany(o => o.Bytes)
                           .ToArray();
 
-                public LineIndexes[] CombineLinesIndexes() =>
+                internal LineIndexes[] CombineLinesIndexes() =>
                     _items.Select(o => o.Indexes)
                           .ToArray();
 
@@ -214,38 +214,37 @@ namespace Bigsort.Tests
                 IEnumerator IEnumerable.GetEnumerator() =>
                     GetEnumerator();
 
-                public static LineIndexes ParseLine(string src)
+                internal static LineIndexes ParseLine(string src)
                 {
                     var parts = src.Split(new[] { '|' },
                         StringSplitOptions.RemoveEmptyEntries);
 
                     return new LineIndexes
                     {
-                        start = int.Parse(parts[0]),
-                        lettersCount = byte.Parse(parts[1]),
-                        digitsCount = byte.Parse(parts[2]),
+                        Start = int.Parse(parts[0]),
+                        LettersCount = byte.Parse(parts[1]),
+                        DigitsCount = byte.Parse(parts[2]),
 
-                        sortingOffset = parts.Length < 4
+                        SortingOffset = parts.Length < 4
                                       ? LineIndexes.DefaultSortingOffset
                                       : byte.Parse(parts[3]),
 
-                        sortByDigits = parts.Length == 5
+                        SortByDigits = parts.Length == 5
                                     && bool.Parse(parts[4])
                     };
                 }
 
                 public class Item
                 {
-                    public Item(LineIndexes indexes,
+                    internal Item(LineIndexes indexes,
                         byte[] bytes)
                     {
                         Indexes = indexes;
                         Bytes = bytes;
                     }
 
-                    public LineIndexes Indexes { get; }
+                    internal LineIndexes Indexes { get; }
                     public byte[] Bytes { get; }
-
                 }
             }
         }

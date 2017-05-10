@@ -1,6 +1,6 @@
 ﻿namespace Bigsort.Contracts
 {
-    public interface ISortingSegmentsSupplier
+    internal interface ISortingSegmentsSupplier
     {
         void SupplyNext(IGroup group, int offset, int count);
     }

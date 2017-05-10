@@ -5,7 +5,7 @@ using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation.DevelopmentTools
 {
-    public class TimeTracker
+    internal class TimeTracker
         : ITimeTracker
     {
         private readonly ConcurrentDictionary<string, TimeSpan> _storage = 

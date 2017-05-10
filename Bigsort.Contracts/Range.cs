@@ -1,6 +1,6 @@
 ﻿namespace Bigsort.Contracts
 {
-    public struct Range
+    internal struct Range
     {
         public Range(int offset, int count)
         {

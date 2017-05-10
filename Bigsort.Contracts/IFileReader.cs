@@ -2,7 +2,7 @@
 
 namespace Bigsort.Contracts
 {
-    public interface IFileReader
+    internal interface IFileReader
         : IDisposable
     {
         long Position { get; set; }

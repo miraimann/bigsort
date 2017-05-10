@@ -4,7 +4,7 @@ using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation
 {
-    public class GroupsInfoMarger
+    internal class GroupsInfoMarger
         : IGroupsInfoMarger
     {
         public const string

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Bigsort.Contracts.DevelopmentTools
 {
-    public interface ITimeTracker
+    internal interface ITimeTracker
     {
         void Add(string key, TimeSpan time);
         

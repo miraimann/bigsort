@@ -1,6 +1,6 @@
 ﻿namespace Bigsort.Contracts
 {
-    public interface IPool<T>
+    internal interface IPool<T>
     {
         int Count { get; }
 

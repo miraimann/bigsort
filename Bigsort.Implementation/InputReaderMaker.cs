@@ -6,7 +6,7 @@ using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    public class InputReaderMaker
+    internal class InputReaderMaker
         : IInputReaderMaker
     {
         private readonly IIoService _ioService;

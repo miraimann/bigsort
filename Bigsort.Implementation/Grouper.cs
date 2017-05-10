@@ -7,7 +7,7 @@ using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation
 {
-    public class Grouper
+    internal class Grouper
         : IGrouper
     {
         public const string

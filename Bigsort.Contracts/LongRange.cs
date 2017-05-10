@@ -2,7 +2,7 @@
 
 namespace Bigsort.Contracts
 {
-    public struct LongRange
+    internal struct LongRange
     {
         public long Offset;
         public int Length;

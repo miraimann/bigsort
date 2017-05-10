@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace Bigsort.Tests
 {
     public partial class GroupSorterTests
     {
-        // ReSharper disable once InconsistentNaming
         public static IEnumerable<TestCase> Cases_20_29
         {
             get

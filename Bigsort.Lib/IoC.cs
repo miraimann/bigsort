@@ -5,9 +5,9 @@ using Bigsort.Implementation.DevelopmentTools;
 
 namespace Bigsort.Lib
 {
-    public static class IoC
+    internal static class IoC
     {
-        internal static ISorter BuildSorter(
+        public static ISorter BuildSorter(
             string inputFilePath, 
             string outputFilePath)
         {

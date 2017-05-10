@@ -1,6 +1,6 @@
 ﻿namespace Bigsort.Contracts
 {
-    public interface IGroupSorter
+    internal interface IGroupSorter
     {
         void Sort(IGroup group);
     }

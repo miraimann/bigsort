@@ -5,7 +5,7 @@ using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation
 {
-    public class GroupSorter
+    internal class GroupSorter
         : IGroupSorter
     {
         public const string

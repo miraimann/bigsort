@@ -6,7 +6,7 @@ using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation
 {
-    public class Sorter
+    internal class Sorter
         : ISorter
     {
         private readonly IDiagnosticTools _diagnosticTools;

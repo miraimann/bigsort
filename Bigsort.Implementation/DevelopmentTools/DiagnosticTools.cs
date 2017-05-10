@@ -3,7 +3,7 @@ using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation.DevelopmentTools
 {
-    public class DiagnosticTools
+    internal class DiagnosticTools
         : IDiagnosticTools
     {
         public DiagnosticTools(ITimeTracker timeTracker)

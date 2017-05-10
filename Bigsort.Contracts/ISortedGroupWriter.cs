@@ -2,7 +2,7 @@
 
 namespace Bigsort.Contracts
 {
-    public interface ISortedGroupWriter
+    internal interface ISortedGroupWriter
         : IDisposable
     {
         void Write(IGroup group, long position);

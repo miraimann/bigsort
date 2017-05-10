@@ -34,3 +34,8 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.0.0.1")]
 [assembly: AssemblyFileVersion("1.0.0.1")]
+
+[assembly: InternalsVisibleTo("Bigsort.Lib")]
+[assembly: InternalsVisibleTo("Bigsort.Tests")]
+[assembly: InternalsVisibleTo("Castle.Core")]
+[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]

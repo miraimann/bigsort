@@ -2,7 +2,7 @@
 
 namespace Bigsort.Contracts
 {
-    public class Handle<T>
+    internal class Handle<T>
         : IDisposable
     {
         private readonly Action<T> _dispose;

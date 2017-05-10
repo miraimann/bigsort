@@ -4,7 +4,7 @@ using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation
 {
-    public class SortedGroupWriterFactory
+    internal class SortedGroupWriterFactory
         : ISortedGroupWriterFactory
     {
         private readonly ITimeTracker _timeTracker;
@@ -75,14 +75,14 @@ namespace Bigsort.Implementation
                     while (offset < n)
                     {
                         var line = lines[offset++];
-                        int lineLength = line.digitsCount + line.lettersCount + 3,
-                            start = line.start + 2,
+                        int lineLength = line.DigitsCount + line.LettersCount + 3,
+                            start = line.Start + 2,
                             i = start/bufferLength,
                             j = start%bufferLength,
                             buffLeftLength = bufferLength - j;
 
                         bool isLastLineInGroup =
-                            line.start + lineLength == bytesCount;
+                            line.Start + lineLength == bytesCount;
 
                         var buff = buffers.Array[buffers.Offset + i];
                         if (buffLeftLength < lineLength)

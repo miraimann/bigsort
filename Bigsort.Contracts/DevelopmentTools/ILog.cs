@@ -2,7 +2,7 @@
 
 namespace Bigsort.Contracts.DevelopmentTools
 {
-    public interface ILog
+    internal interface ILog
     {
         void CopyTo(Stream stream);
         string ToSring();

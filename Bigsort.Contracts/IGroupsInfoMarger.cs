@@ -1,6 +1,6 @@
 ﻿namespace Bigsort.Contracts
 {
-    public interface IGroupsInfoMarger
+    internal interface IGroupsInfoMarger
     {
         /// <summary>
         /// Marges summaryInfos. Corrupts argument value.

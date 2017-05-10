@@ -2,7 +2,7 @@
 
 namespace Bigsort.Contracts
 {
-    public interface IGroup
+    internal interface IGroup
     {
         ArraySegment<byte[]> Buffers { get; }
         ArraySegment<LineIndexes> Lines { get; }

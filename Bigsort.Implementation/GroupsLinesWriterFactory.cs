@@ -5,7 +5,7 @@ using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    public class GroupsLinesWriterFactory
+    internal class GroupsLinesWriterFactory
         : IGroupsLinesWriterFactory
     {
         private readonly IIoService _ioService;

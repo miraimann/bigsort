@@ -2,7 +2,7 @@
 
 namespace Bigsort.Contracts
 {
-    public interface IGroupsLoader
+    internal interface IGroupsLoader
         : IDisposable
     {
         Range LoadNextGroups();

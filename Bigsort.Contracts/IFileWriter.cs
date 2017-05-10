@@ -2,7 +2,7 @@
 
 namespace Bigsort.Contracts
 {
-    public interface IFileWriter
+    internal interface IFileWriter
         : IDisposable
     {
         long Position { get; set; }

@@ -1,6 +1,6 @@
 ﻿namespace Bigsort.Contracts
 {
-    public interface IGroupsLinesWriterFactory
+    internal interface IGroupsLinesWriterFactory
     {
         IGroupsLinesWriter Create(long fileOffset = 0);
     }

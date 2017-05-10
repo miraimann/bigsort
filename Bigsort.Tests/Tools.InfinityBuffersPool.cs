@@ -4,7 +4,7 @@ namespace Bigsort.Tests
 {
     public static partial class Tools
     {
-        public class InfinityBuffersPool
+        internal class InfinityBuffersPool
             : IBuffersPool
         {
             private const int DefaultMemoryLimit = 1024 * 1024 * 1024;

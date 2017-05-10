@@ -4,7 +4,7 @@ using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    public class IoService
+    internal class IoService
         : IIoService
     {
         private readonly IBuffersPool _buffersPool;

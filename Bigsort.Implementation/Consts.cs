@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Bigsort.Implementation
 {
-    public class Consts
+    internal class Consts
     {
         public const int
             AsciiPrintableCharsCount = 95,

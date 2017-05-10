@@ -1,6 +1,6 @@
 ﻿namespace Bigsort.Contracts
 {
-    public interface ILinesIndexesExtractor
+    internal interface ILinesIndexesExtractor
     {
         void ExtractIndexes(IGroup group);
     }

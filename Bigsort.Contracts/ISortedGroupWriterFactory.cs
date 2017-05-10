@@ -1,6 +1,6 @@
 ﻿namespace Bigsort.Contracts
 {
-    public interface ISortedGroupWriterFactory
+    internal interface ISortedGroupWriterFactory
     {
         ISortedGroupWriter Create();
     }

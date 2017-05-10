@@ -1,6 +1,6 @@
 ﻿namespace Bigsort.Contracts
 {
-    public interface IGroupsLoaderMaker
+    internal interface IGroupsLoaderMaker
     {
         IGroupsLoader Make(GroupInfo[] groupsInfo, IGroup[] output);
     }

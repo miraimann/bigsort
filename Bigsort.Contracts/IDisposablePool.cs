@@ -2,7 +2,7 @@
 
 namespace Bigsort.Contracts
 {
-    public interface IDisposablePool<T>
+    internal interface IDisposablePool<T>
         : IPool<T>
         , IDisposable
     {

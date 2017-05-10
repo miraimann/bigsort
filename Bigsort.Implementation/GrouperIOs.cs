@@ -5,7 +5,7 @@ using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    public class GrouperIOs
+    internal class GrouperIOs
         : IGrouperIOs
     {
         private readonly Lazy<IReadOnlyList<IGrouperIO>> _implementation;

@@ -1,6 +1,6 @@
 ﻿namespace Bigsort.Contracts
 {
-    public interface IIoService
+    internal interface IIoService
     {
         IFileReader OpenRead(string path, 
             long position = 0);

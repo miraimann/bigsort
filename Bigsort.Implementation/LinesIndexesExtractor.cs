@@ -4,7 +4,7 @@ using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation
 {
-    public class LinesIndexesExtractor
+    internal class LinesIndexesExtractor
         : ILinesIndexesExtractor
     {
         public const string
@@ -44,16 +44,16 @@ namespace Bigsort.Implementation
                  
                 var line = lines[linesOffset++] = new LineIndexes
                 {
-                    start = i,
-                    lettersCount = buffers[d][b],
-                    digitsCount  = buffers[q][p],
-                    sortingOffset = Consts.GroupIdLettersCount
+                    Start = i,
+                    LettersCount = buffers[d][b],
+                    DigitsCount  = buffers[q][p],
+                    SortingOffset = Consts.GroupIdLettersCount
                 };
 
                 buffers[d][b] = Consts.EndLineByte1;
                 
-                i += line.digitsCount;
-                i += line.lettersCount;
+                i += line.DigitsCount;
+                i += line.LettersCount;
                 i += 3;
             }
 
