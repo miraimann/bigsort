@@ -90,7 +90,7 @@ namespace Bigsort.Implementation
 
             public void Run(ManualResetEvent done)
             {
-                IUsingHandle<byte[]> firstBufferHandle;
+                Handle<byte[]> firstBufferHandle;
                 var firstBufferLength = _io.Input.GetFirstBuffer(out firstBufferHandle);
                 firstBufferHandle.Value[firstBufferLength] =
                     firstBufferLength == _usingBufferLength - 1
@@ -228,7 +228,7 @@ namespace Bigsort.Implementation
                             disposePreviousBuff?.Invoke();
                             disposePreviousBuff = null;
 
-                            IUsingHandle<byte[]> handle;
+                            Handle<byte[]> handle;
                             int count = _io.Input.TryGetNextBuffer(out handle);
                             if (count == Consts.TemporaryMissingResult)
                             {
@@ -299,7 +299,7 @@ namespace Bigsort.Implementation
 
                                 _io.Output.AddBrokenLine(id,
                                     previousBuff, lineStart, lineLength,
-                                    currentBuff, 0, i);
+                                    currentBuff, i);
                             }
                             else
                             {

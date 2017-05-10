@@ -9,7 +9,7 @@ namespace Bigsort.Contracts
 
         void AddBrokenLine(ushort groupId,
             byte[] leftBuff, int leftOffset, int leftLength,
-            byte[] rightBuff, int rightOffset, int rightLength);
+            byte[] rightBuff, int rightLength);
 
         void FlushAndDispose(ManualResetEvent done);
         

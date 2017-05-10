@@ -37,25 +37,5 @@ namespace Bigsort.Contracts
         public static bool operator !=(
                 LineIndexes left, LineIndexes right) =>
             !left.Equals(right);
-
-        public static LineIndexes Parse(string src)
-        {
-            var parts = src.Split(new [] { '|' }, 
-                StringSplitOptions.RemoveEmptyEntries);
-
-            return new LineIndexes
-            {
-                start = int.Parse(parts[0]),
-                lettersCount = byte.Parse(parts[1]),
-                digitsCount = byte.Parse(parts[2]),
-
-                sortingOffset = parts.Length < 4 
-                              ? DefaultSortingOffset 
-                              : byte.Parse(parts[3]),
-
-                sortByDigits = parts.Length == 5 
-                            && bool.Parse(parts[4])
-            };
-        }
     }
 }

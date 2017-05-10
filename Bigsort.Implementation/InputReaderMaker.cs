@@ -11,7 +11,6 @@ namespace Bigsort.Implementation
     {
         private readonly string _inputFilePath;
         private readonly IIoService _ioService;
-        private readonly IUsingHandleMaker _usingHandleMaker;
         private readonly ITasksQueue _tasksQueue;
         private readonly IBuffersPool _buffersPool;
         private readonly IConfig _config;
@@ -19,14 +18,12 @@ namespace Bigsort.Implementation
         public InputReaderMaker(
             string inputFilePath,
             IIoService ioService,
-            IUsingHandleMaker usingHandleMaker, 
             ITasksQueue tasksQueue, 
             IBuffersPool buffersPool,
             IConfig config)
         {
             _inputFilePath = inputFilePath;
             _ioService = ioService;
-            _usingHandleMaker = usingHandleMaker;
             _tasksQueue = tasksQueue;
             _buffersPool = buffersPool;
             _config = config;
@@ -43,7 +40,6 @@ namespace Bigsort.Implementation
                 _buffersPool,
                 _tasksQueue,
                 _ioService,
-                _usingHandleMaker,
                 _config);
         
         private class InputReader
@@ -60,7 +56,6 @@ namespace Bigsort.Implementation
             private readonly Item _firstBufferItem;
             private readonly ConcurrentDictionary<int, Item> _readed;
             private readonly IEnumerator<int> _readingIndex;
-            private readonly IUsingHandle<byte[]> _zeroHandle;
             private readonly Action[] _readNext;
 
             public InputReader(
@@ -70,13 +65,11 @@ namespace Bigsort.Implementation
                 IPool<byte[]> buffersPool,
                 ITasksQueue tasksQueue,
                 IIoService ioService,
-                IUsingHandleMaker usingHandleMaker,
                 IConfig config)
             {
                 _buffersPool = buffersPool;
                 _tasksQueue = tasksQueue;
-
-                _zeroHandle = usingHandleMaker.Make<byte[]>(null, _ => { });
+                
                 _readingOut = readingOffset + readingLength;
 
                 // -1 - for set "Buffer End" Symbol to last cell of buffer without data lose 
@@ -112,8 +105,8 @@ namespace Bigsort.Implementation
 
                 if (_capacity == 0)
                 {
-                    _readed.TryAdd(0, new Item(0, _zeroHandle));
-                    _readNext = new Action[] { () => _readed.TryAdd(0, new Item(0, _zeroHandle)) };
+                    _readed.TryAdd(0, new Item(0, Handle<byte[]>.Zero));
+                    _readNext = new Action[] { () => _readed.TryAdd(0, new Item(0, Handle<byte[]>.Zero)) };
                     _readingIndex = Enumerable.Repeat(0, int.MaxValue).GetEnumerator();
                     return;
                 }
@@ -151,7 +144,7 @@ namespace Bigsort.Implementation
                             }
                             else
                             {
-                                _readed.TryAdd(buffIndex, new Item(0, _zeroHandle));
+                                _readed.TryAdd(buffIndex, new Item(0, Handle<byte[]>.Zero));
                                 reader.Dispose();
                             }
                         };
@@ -162,13 +155,13 @@ namespace Bigsort.Implementation
                     _tasksQueue.Enqueue(_readNext[i]);
             }
 
-            public int GetFirstBuffer(out IUsingHandle<byte[]> buffHandle)
+            public int GetFirstBuffer(out Handle<byte[]> buffHandle)
             {
                 buffHandle = _firstBufferItem.Handle;
                 return _firstBufferItem.Length;
             }
 
-            public int TryGetNextBuffer(out IUsingHandle<byte[]> buffHandle)
+            public int TryGetNextBuffer(out Handle<byte[]> buffHandle)
             {
                 Item x;
                 if (_readed.TryRemove(_readingIndex.Current, out x))
@@ -201,14 +194,14 @@ namespace Bigsort.Implementation
 
         private struct Item
         {
-            public Item(int length, IUsingHandle<byte[]> handle)
+            public Item(int length, Handle<byte[]> handle)
             {
                 Length = length;
                 Handle = handle;
             }
 
             public readonly int Length;
-            public readonly IUsingHandle<byte[]> Handle;
+            public readonly Handle<byte[]> Handle;
         }
     }
 }

@@ -190,7 +190,7 @@ namespace Bigsort.Tests
                             .ToString();
                     }
 
-                    var lineIndexes = LineIndexes.Parse(indexes);
+                    var lineIndexes = ParseLine(indexes);
                     var lineBytes = BytesOfString(bytesView);
                     lineBytes[0] = (byte)'\r';
                     lineBytes[1] = lineIndexes.digitsCount;
@@ -213,6 +213,26 @@ namespace Bigsort.Tests
 
                 IEnumerator IEnumerable.GetEnumerator() =>
                     GetEnumerator();
+
+                public static LineIndexes ParseLine(string src)
+                {
+                    var parts = src.Split(new[] { '|' },
+                        StringSplitOptions.RemoveEmptyEntries);
+
+                    return new LineIndexes
+                    {
+                        start = int.Parse(parts[0]),
+                        lettersCount = byte.Parse(parts[1]),
+                        digitsCount = byte.Parse(parts[2]),
+
+                        sortingOffset = parts.Length < 4
+                                      ? LineIndexes.DefaultSortingOffset
+                                      : byte.Parse(parts[3]),
+
+                        sortByDigits = parts.Length == 5
+                                    && bool.Parse(parts[4])
+                    };
+                }
 
                 public class Item
                 {

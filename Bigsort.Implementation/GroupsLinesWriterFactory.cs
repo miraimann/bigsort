@@ -97,11 +97,11 @@ namespace Bigsort.Implementation
 
             public void AddBrokenLine(ushort groupId,
                 byte[] leftBuff, int leftOffset, int leftLength,
-                byte[] rightBuff, int rightOffset, int rightLength)
+                byte[] rightBuff, int rightLength)
             {
                 var group = GetGroup(groupId);
                 SaveData(group, leftBuff, leftOffset, leftLength);
-                SaveData(group, rightBuff, rightOffset, rightLength);
+                SaveData(group, rightBuff, 0, rightLength);
                 ++group.LinesCount;
             }
 
@@ -255,7 +255,7 @@ namespace Bigsort.Implementation
 
             private class Group
             {
-                public Group(IUsingHandle<byte[]> bufferHandle)
+                public Group(Handle<byte[]> bufferHandle)
                 {
                     BufferHandle = bufferHandle;
                     Mapping = new List<LongRange>();
@@ -263,7 +263,7 @@ namespace Bigsort.Implementation
 
                 public int LinesCount, BytesCount, BufferOffset;
                 
-                public IUsingHandle<byte[]> BufferHandle;
+                public Handle<byte[]> BufferHandle;
 
                 public List<LongRange> Mapping { get; }
 

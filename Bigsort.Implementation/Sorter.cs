@@ -28,14 +28,15 @@ namespace Bigsort.Implementation
             ISortedGroupWriterFactory groupWriterFactory, 
             IDiagnosticTools diagnosticTools = null)
         {
+            _inputFilePath = inputFilePath;
+            _outputFilePath = outputFilePath;
+            _groupsFilePath = groupsFilePath;
+
             _ioService = ioService;
             _grouper = grouper;
             _groupsLoaderMaker = groupsLoaderMaker;
             _groupSorter = groupSorter;
             _groupWriterFactory = groupWriterFactory;
-            _groupsFilePath = groupsFilePath;
-            _inputFilePath = inputFilePath;
-            _outputFilePath = outputFilePath;
             _diagnosticTools = diagnosticTools;
         }
 

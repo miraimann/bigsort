@@ -30,17 +30,13 @@ namespace Bigsort.Lib
                     inputFilePath,
                     outputFilePath,
                     groupsFilePath);
-            
-            IUsingHandleMaker usingHandleMaker =
-                new UsingHandleMaker();
                   
             IGroupsInfoMarger groupsSummaryInfoMarger = 
                 new GroupsSummaryInfoMarger(
                     diagnosticTools);
             
             IPoolMaker poolMaker =
-                new PoolMaker(
-                    usingHandleMaker);
+                new PoolMaker();
 
             IBuffersPool buffersPool =
                 new BuffersPool(
@@ -59,7 +55,6 @@ namespace Bigsort.Lib
                 new InputReaderMaker(
                     inputFilePath,
                     ioService,
-                    usingHandleMaker,
                     tasksQueue,
                     buffersPool,
                     config);

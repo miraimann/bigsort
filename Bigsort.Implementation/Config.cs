@@ -31,8 +31,8 @@ namespace Bigsort.Implementation
             raw = ConfigurationManager
                 .AppSettings["BigsortGrouperEnginesCount"];
 
-            GrouperEnginesCount = raw == null 
-                ? Math.Max(1, Environment.ProcessorCount / 4) 
+            GrouperEnginesCount = raw == null // TODO: / 2 - for SSD and / 4 for HDD
+                ? Math.Max(1, Environment.ProcessorCount / 2)  
                 : int.Parse(raw);
        
             raw = ConfigurationManager

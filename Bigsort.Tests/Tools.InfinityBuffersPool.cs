@@ -20,10 +20,10 @@ namespace Bigsort.Tests
             public int Count =>
                 _memoryLimit / _bufferSize + 1;
 
-            public IUsingHandle<byte[]> Get() =>
-                new ZeroHandle<byte[]>(new byte[_bufferSize]);
+            public Handle<byte[]> Get() =>
+                Handle<byte[]>.Adapt(new byte[_bufferSize]);
 
-            public IUsingHandle<byte[]> TryGet() =>
+            public Handle<byte[]> TryGet() =>
                 Get();
 
             public byte[] TryExtract() =>
@@ -38,21 +38,6 @@ namespace Bigsort.Tests
             }
 
             public void Free(int _) { }
-
-            private class ZeroHandle<T>
-                : IUsingHandle<T>
-            {
-                public ZeroHandle(T value)
-                {
-                    Value = value;
-                }
-
-                public void Dispose()
-                {
-                }
-
-                public T Value { get; }
-            }
         }
     }
 }

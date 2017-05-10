@@ -1,12 +1,12 @@
 ﻿namespace Bigsort.Contracts
 {
-    public interface IPool<out T>
+    public interface IPool<T>
     {
         int Count { get; }
 
-        IUsingHandle<T> Get();
+        Handle<T> Get();
 
-        IUsingHandle<T> TryGet();
+        Handle<T> TryGet();
 
         T TryExtract();
 

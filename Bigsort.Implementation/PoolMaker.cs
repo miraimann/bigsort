@@ -7,21 +7,13 @@ namespace Bigsort.Implementation
     public class PoolMaker
         : IPoolMaker
     {
-        private readonly IUsingHandleMaker _usingHandleMaker;
-
-        public PoolMaker(IUsingHandleMaker usingHandleMaker)
-        {
-            _usingHandleMaker = usingHandleMaker;
-        }
-        
         public IPool<T> MakePool<T>(
                 Func<T> productFactory,
                 Action<T> productCleaner = null) =>
             
             new Pool<T>(
                 productFactory,
-                productCleaner,
-                _usingHandleMaker);
+                productCleaner);
 
         public IDisposablePool<T> MakeDisposablePool<T>(
             Func<T> productFactory,
@@ -30,36 +22,32 @@ namespace Bigsort.Implementation
 
             new DisposablePool<T>(
                 productFactory,
-                productCleaner,
-                _usingHandleMaker);
+                productCleaner);
 
         private class BasePool<TCollection, T> : IPool<T>
             where TCollection : IProducerConsumerCollection<T>, new()
         {
             private readonly Action<TCollection, T> _returnProduct;
-            private readonly IUsingHandleMaker _handleMaker;
             private readonly Func<T> _createProduct;
             protected TCollection Storage;
 
             protected BasePool(
                 TCollection storage,
                 Func<T> createProduct,
-                Action<TCollection, T> returnProduct,
-                IUsingHandleMaker handleMaker)
+                Action<TCollection, T> returnProduct)
             {
                 _returnProduct = returnProduct;
                 _createProduct = createProduct;
-                _handleMaker = handleMaker;
                 Storage = storage;
             }
 
             public int Count =>
                 Storage.Count;
 
-            public IUsingHandle<T> Get() =>
+            public Handle<T> Get() =>
                 TryGet() ?? Handle(_createProduct());
 
-            public IUsingHandle<T> TryGet()
+            public Handle<T> TryGet()
             {
                 T product;
                 return Storage.TryTake(out product)
@@ -85,28 +73,25 @@ namespace Bigsort.Implementation
             protected virtual void ReturnProduct(T x) =>
                 _returnProduct(Storage, x);
 
-            private IUsingHandle<T> Handle(T product) =>
-                _handleMaker.Make(product, ReturnProduct);
+            private Handle<T> Handle(T product) =>
+                Handle<T>.Make(product, ReturnProduct);
         }
 
         private class Pool<T>
             : BasePool<ConcurrentBag<T>,  T>
         {
             public Pool(Func<T> createProduct,
-                        Action<T> clearProduct,
-                        IUsingHandleMaker handleMaker)
+                        Action<T> clearProduct)
                 
                 : this(new ConcurrentBag<T>(),
                        createProduct,
-                       clearProduct,
-                       handleMaker)
+                       clearProduct)
             {
             }
 
             private Pool(ConcurrentBag<T> storage,
                          Func<T> createProduct,
-                         Action<T> clearProduct,
-                         IUsingHandleMaker handleMaker)
+                         Action<T> clearProduct)
 
                 : base(storage,
                        createProduct,
@@ -117,8 +102,7 @@ namespace Bigsort.Implementation
                             {
                                 clearProduct(x);
                                 s.Add(x);
-                            },
-                       handleMaker)
+                            })
             {
             }
         }
@@ -131,11 +115,9 @@ namespace Bigsort.Implementation
             private volatile Action<T> _returnProduct;
 
             public DisposablePool(Func<T> createProduct, 
-                                  Action<T> clearProduct,
-                                  IUsingHandleMaker handleMaker) 
+                                  Action<T> clearProduct) 
                 : base(createProduct,
-                       clearProduct,
-                       handleMaker)
+                       clearProduct)
             {
                 _returnProduct = base.ReturnProduct;
             }

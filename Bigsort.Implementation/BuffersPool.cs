@@ -1,5 +1,4 @@
-﻿using System;
-using Bigsort.Contracts;
+﻿using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
@@ -23,10 +22,10 @@ namespace Bigsort.Implementation
         public byte[] Create() =>
             new byte[_physicalBufferLength];
 
-        public IUsingHandle<byte[]> Get() =>
+        public Handle<byte[]> Get() =>
             _pool.Get();
 
-        public IUsingHandle<byte[]> TryGet() =>
+        public Handle<byte[]> TryGet() =>
             _pool.TryGet();
 
         public byte[] TryExtract() =>

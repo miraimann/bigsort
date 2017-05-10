@@ -73,7 +73,6 @@
     <Compile Include="SortedGroupWriterFactory.cs" />
     <Compile Include="DevelopmentTools\TimeTracker.cs" />
     <Compile Include="SortingSegmentsSupplier.cs" />
-    <Compile Include="UsingHandleMaker.cs" />
     <Compile Include="GroupSorter.cs" />
     <Compile Include="IoService.cs" />
     <Compile Include="LinesIndexesExtractor.cs" />

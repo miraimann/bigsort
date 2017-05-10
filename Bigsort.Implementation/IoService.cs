@@ -76,13 +76,15 @@ namespace Bigsort.Implementation
         private struct BufferingWriter
             : IFileWriter
         {
-            private readonly IUsingHandle<byte[]> _buffHandle;
+            private readonly Handle<byte[]> _buffHandle;
             private readonly byte[] _buff;
             private readonly Stream _stream;
             private int _offset;
 
-            public BufferingWriter(string path, long possition,
-                IUsingHandle<byte[]> buffHandle)
+            public BufferingWriter(
+                string path, 
+                long possition, 
+                Handle<byte[]> buffHandle)
             {
                 _stream = new FileStream(path,
                     FileMode.OpenOrCreate,

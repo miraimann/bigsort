@@ -5,7 +5,7 @@ namespace Bigsort.Contracts
     public interface IInputReader
         : IDisposable
     {
-        int GetFirstBuffer(out IUsingHandle<byte[]> buffHandle);
-        int TryGetNextBuffer(out IUsingHandle<byte[]> buffHandle);
+        int GetFirstBuffer(out Handle<byte[]> buffHandle);
+        int TryGetNextBuffer(out Handle<byte[]> buffHandle);
     }
 }

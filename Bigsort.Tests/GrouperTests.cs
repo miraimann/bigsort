@@ -136,11 +136,8 @@ namespace Bigsort.Tests
             IGroupsInfoMarger groupsSummaryInfoMarger = 
                 new GroupsSummaryInfoMarger();
 
-            IUsingHandleMaker usingHandleMaker =
-                new UsingHandleMaker();
-
             IPoolMaker poolMaker = 
-                new PoolMaker(usingHandleMaker);
+                new PoolMaker();
 
             ITasksQueue tasksQueue =
                 new TasksQueue(configMock.Object);
@@ -152,7 +149,6 @@ namespace Bigsort.Tests
                 new InputReaderMaker(
                     inputPath,
                     ioServiceMock.Object,
-                    usingHandleMaker,
                     tasksQueue,
                     buffersPool,
                     configMock.Object);
