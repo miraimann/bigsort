@@ -1,31 +1,20 @@
 ﻿using System.Diagnostics;
 using Bigsort.Contracts;
-using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation
 {
     internal class LinesIndexesExtractor
         : ILinesIndexesExtractor
     {
-        public const string
-            LogName = nameof(LinesIndexesExtractor),
-            IndexesExtractingLogName = LogName + "." + nameof(IndexesExtractingLogName);
-
-        private readonly ITimeTracker _timeTracker;
         private readonly int _usingBufferLength;
         
-        public LinesIndexesExtractor(
-            IConfig config,
-            IDiagnosticTools diagnosticTools = null)
+        public LinesIndexesExtractor(IConfig config)
         {
             _usingBufferLength = config.UsingBufferLength;
-            _timeTracker = diagnosticTools?.TimeTracker;
         }
 
         public void ExtractIndexes(IGroup group)
         {
-            var watch = Stopwatch.StartNew();
-
             var buffers = group.Buffers.Array;
             var lines = group.Lines.Array;
 
@@ -56,8 +45,6 @@ namespace Bigsort.Implementation
                 i += line.LettersCount;
                 i += 3;
             }
-
-            _timeTracker?.Add(IndexesExtractingLogName, watch.Elapsed);
         }
     }
 }

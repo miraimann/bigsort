@@ -1,28 +1,12 @@
-﻿using System;
-using Bigsort.Contracts;
-using Bigsort.Contracts.DevelopmentTools;
+﻿using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
     internal class GroupsInfoMarger
         : IGroupsInfoMarger
     {
-        public const string
-            LogName = nameof(GroupsInfoMarger),
-            MargingLogName = LogName + "." + nameof(Marge);
-
-        private readonly ITimeTracker _timeTracker;
-
-        public GroupsInfoMarger(
-            IDiagnosticTools diagnosticTools = null)
-        {
-            _timeTracker = diagnosticTools?.TimeTracker;
-        }
-
         public GroupInfo[] Marge(GroupInfo[][] summaryInfos)
         {
-            var start = DateTime.Now;
-            
             for (int i = 0; i < Consts.MaxGroupsCount; i++)
             {
                 int j = 0;
@@ -63,8 +47,6 @@ namespace Bigsort.Implementation
                     summaryInfos[0][i] = acc;
                 }
             }
-            
-            _timeTracker?.Add(MargingLogName, DateTime.Now - start);
 
             return summaryInfos[0];
         }

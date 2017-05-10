@@ -32,8 +32,7 @@ namespace Bigsort.Implementation
             {EndLineByte1, EndLineByte2};
 
         public static readonly Action ZeroAction = () => { };
-
-
+        
         public static readonly int MaxRunningTasksCount =
             Math.Max(1, Environment.ProcessorCount - 1);
 

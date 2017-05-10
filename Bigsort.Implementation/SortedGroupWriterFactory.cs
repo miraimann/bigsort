@@ -1,13 +1,10 @@
-﻿using System.Diagnostics;
-using Bigsort.Contracts;
-using Bigsort.Contracts.DevelopmentTools;
+﻿using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
     internal class SortedGroupWriterFactory
         : ISortedGroupWriterFactory
     {
-        private readonly ITimeTracker _timeTracker;
         private readonly IPoolMaker _poolMaker;
         private readonly IIoService _ioService;
         private readonly IConfig _config;
@@ -15,53 +12,41 @@ namespace Bigsort.Implementation
         public SortedGroupWriterFactory(
             IPoolMaker poolMaker, 
             IIoService ioService, 
-            IConfig config,
-            IDiagnosticTools diagnosticTools = null)
+            IConfig config)
         {
             _poolMaker = poolMaker;
             _ioService = ioService;
             _config = config;
-            _timeTracker = diagnosticTools?.TimeTracker;
         }
 
         public ISortedGroupWriter Create() =>
             new SortedGroupWriter(
                 _poolMaker,
                 _ioService,
-                _config,
-                _timeTracker);
+                _config);
 
         private class SortedGroupWriter
             : ISortedGroupWriter
         {
-            public const string
-                LogName = nameof(SortedGroupWriter),
-                WriteLogName = LogName + "." + nameof(Write);
-
-            private readonly ITimeTracker _timeTracker;
             private readonly IDisposablePool<IFileWriter> _writersPool;
             private readonly IConfig _config;
 
             public SortedGroupWriter(
                 IPoolMaker poolMaker,
                 IIoService ioService,
-                IConfig config, 
-                ITimeTracker timeTracker)
+                IConfig config)
             {
                 _writersPool = poolMaker.MakeDisposablePool(
                     () => ioService.OpenWrite(config.OutputFilePath, buffering: true));
 
                 _config = config;
-                _timeTracker = timeTracker;
             }
 
             public void Write(IGroup group, long position)
             {
-                var watch = Stopwatch.StartNew();
-
                 var lines = group.Lines.Array;
-
                 var buffers = group.Buffers;
+
                 int bufferLength = _config.UsingBufferLength,
                     bytesCount = group.BytesCount,
                     offset = group.Lines.Offset,
@@ -124,8 +109,6 @@ namespace Bigsort.Implementation
 
                     output.Flush();
                 }
-
-                _timeTracker?.Add(WriteLogName, watch.Elapsed);
             }
 
             public void Dispose() =>

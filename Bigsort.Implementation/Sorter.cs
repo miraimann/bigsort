@@ -1,15 +1,11 @@
-﻿using System;
-using System.IO;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Bigsort.Contracts;
-using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation
 {
     internal class Sorter
         : ISorter
     {
-        private readonly IDiagnosticTools _diagnosticTools;
         private readonly IIoService _ioService;
         private readonly IGrouper _grouper;
         private readonly IGroupsLoaderMaker _groupsLoaderMaker;
@@ -23,8 +19,7 @@ namespace Bigsort.Implementation
             IGroupsLoaderMaker groupsLoaderMaker, 
             IGroupSorter groupSorter, 
             ISortedGroupWriterFactory groupWriterFactory, 
-            IConfig config,
-            IDiagnosticTools diagnosticTools = null)
+            IConfig config)
         {
             _ioService = ioService;
             _grouper = grouper;
@@ -32,7 +27,6 @@ namespace Bigsort.Implementation
             _groupSorter = groupSorter;
             _groupWriterFactory = groupWriterFactory;
             _config = config;
-            _diagnosticTools = diagnosticTools;
         }
 
         public void Sort()
@@ -82,14 +76,6 @@ namespace Bigsort.Implementation
             }
 
             _ioService.DeleteFile(_config.GroupsFilePath);
-
-            using (var bigSortLogStream = File.OpenWrite("E:\\bslog.txt"))
-            using (var logWriter = new StreamWriter(bigSortLogStream))
-                foreach (var time in _diagnosticTools.TimeTracker.All)
-                {
-                    Console.WriteLine($"{time.Value} | {time.Key}");
-                    logWriter.WriteLine($"{time.Value} | {time.Key}");
-                }
         }
     }
 }

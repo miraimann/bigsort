@@ -56,7 +56,6 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DevelopmentTools\IDiagnosticTools.cs" />
     <Compile Include="IBuffersPool.cs" />
     <Compile Include="IDisposablePool.cs" />
     <Compile Include="IGrouperIOs.cs" />
@@ -68,13 +67,9 @@
     <Compile Include="IGroupsLinesWriterFactory.cs" />
     <Compile Include="IGroupsLoaderMaker.cs" />
     <Compile Include="IGroupsInfoMarger.cs" />
-    <Compile Include="DevelopmentTools\ILog.cs" />
-    <Compile Include="DevelopmentTools\ILogger.cs" />
-    <Compile Include="DevelopmentTools\ILogRoot.cs" />
     <Compile Include="IPool.cs" />
     <Compile Include="IPoolMaker.cs" />
     <Compile Include="ISortedGroupWriterFactory.cs" />
-    <Compile Include="DevelopmentTools\ITimeTracker.cs" />
     <Compile Include="LongRange.cs" />
     <Compile Include="Range.cs" />
     <Compile Include="IGroup.cs" />

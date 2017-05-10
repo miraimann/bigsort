@@ -1,18 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Bigsort.Contracts;
-using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation
 {
     internal class GroupsLoaderMaker
         : IGroupsLoaderMaker
     {
-        private readonly ITimeTracker _timeTracker;
         private readonly IIoService _ioService;
         private readonly IBuffersPool _buffersPool;
         private readonly IConfig _config;
@@ -20,14 +17,11 @@ namespace Bigsort.Implementation
         public GroupsLoaderMaker(
             IBuffersPool buffersPool,
             IIoService ioService,
-            IConfig config,
-            IDiagnosticTools diagnosticsTools = null)
+            IConfig config)
         {
             _buffersPool = buffersPool;
             _ioService = ioService;
             _config = config;
-
-            _timeTracker = diagnosticsTools?.TimeTracker;
         }
 
         public IGroupsLoader Make(GroupInfo[] groupsInfo, IGroup[] output) =>
@@ -36,18 +30,11 @@ namespace Bigsort.Implementation
                 output,
                 _buffersPool,
                 _ioService,
-                _config,
-                _timeTracker);
+                _config);
         
         private class GroupsLoader
             : IGroupsLoader
         {
-            public const string
-                LogName = nameof(GroupsLoader),
-                GroupsLoadingLogName = LogName + "." + nameof(LoadNextGroups);
-
-            private readonly ITimeTracker _timeTracker;
-
             private readonly IIoService _ioService;
             private readonly IBuffersPool _buffersPool;
 
@@ -71,8 +58,7 @@ namespace Bigsort.Implementation
                 IGroup[] output,
                 IBuffersPool buffersPool,
                 IIoService ioService,
-                IConfig config,
-                ITimeTracker timeTracker)
+                IConfig config)
             {
                 _groupsInfo = groupsInfo;
                 _output = output;
@@ -158,14 +144,10 @@ namespace Bigsort.Implementation
                     .Concat<IDisposable>(_readers, tempBuffersHandles)
                     .Select(o => new Action(o.Dispose))
                     .Aggregate((a, b) => a + b);
-
-                _timeTracker = timeTracker;
             }
 
             public Range LoadNextGroups()
             {
-                var watch = Stopwatch.StartNew();
-
                 _linesTop = 0; 
                 _buffersTop = 0;
 
@@ -249,8 +231,7 @@ namespace Bigsort.Implementation
 
                 var offset = _loadingTop;
                 _loadingTop = i;
-
-                _timeTracker?.Add(GroupsLoadingLogName, watch.Elapsed);
+                
                 return new Range(offset, i - offset);
             }
 

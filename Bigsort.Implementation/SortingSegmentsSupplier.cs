@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Bigsort.Contracts;
-using Bigsort.Contracts.DevelopmentTools;
 using static Bigsort.Implementation.Consts;
 
 namespace Bigsort.Implementation
@@ -10,13 +8,7 @@ namespace Bigsort.Implementation
     internal class SortingSegmentsSupplier
         : ISortingSegmentsSupplier
     {
-        public const string
-            LogName = nameof(SortingSegmentsSupplier),
-            SupplingLogName = nameof(SupplyNext) + "." + LogName;
-        
         private static readonly Func<byte[], int, ulong> ReadSegment;
-
-        private readonly ITimeTracker _timeTracker;
         private readonly int _usingBufferLength;
 
         static SortingSegmentsSupplier()
@@ -26,18 +18,13 @@ namespace Bigsort.Implementation
             else ReadSegment = DirectReadSegment;
         }
 
-        public SortingSegmentsSupplier(
-            IConfig config,
-            IDiagnosticTools diagnosticTools = null)
+        public SortingSegmentsSupplier(IConfig config)
         {
             _usingBufferLength = config.UsingBufferLength;
-            _timeTracker = diagnosticTools?.TimeTracker;
         }
         
         public void SupplyNext(IGroup group, int offset, int count)
         {
-            var watch = Stopwatch.StartNew();
-
             var lines = group.Lines.Array;
             var segments = group.SortingSegments.Array;
 
@@ -97,8 +84,6 @@ namespace Bigsort.Implementation
                 lines[offset] = line;
                 segments[offset] = segment;
             }
-            
-            _timeTracker?.Add(SupplingLogName, watch.Elapsed);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

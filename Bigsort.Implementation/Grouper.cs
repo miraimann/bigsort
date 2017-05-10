@@ -1,20 +1,13 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Bigsort.Contracts;
-using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation
 {
     internal class Grouper
         : IGrouper
     {
-        public const string
-            LogName = nameof(Grouper),
-            GroupingLogName = LogName + "." + nameof(SplitToGroups);
-
-        private readonly ITimeTracker _timeTracker;
         private readonly IGroupsInfoMarger _groupsInfoMarger;
         private readonly IGrouperIOs _ios;
         private readonly ITasksQueue _tasksQueue;
@@ -24,20 +17,16 @@ namespace Bigsort.Implementation
             IGroupsInfoMarger groupsInfoMarger,
             IGrouperIOs grouperIOs,
             ITasksQueue tasksQueue,
-            IConfig config,
-            IDiagnosticTools diagnosticTool = null)
+            IConfig config)
         {
             _groupsInfoMarger = groupsInfoMarger;
             _ios = grouperIOs;
             _tasksQueue = tasksQueue;
             _usingBufferLength = config.UsingBufferLength;
-            _timeTracker = diagnosticTool?.TimeTracker;
         }
 
         public GroupInfo[] SplitToGroups()
         {
-            var watch = Stopwatch.StartNew();
-            
             var engines = _ios
                 .Select(io => new Engine(_tasksQueue, io, _usingBufferLength))
                 .ToArray();
@@ -60,7 +49,6 @@ namespace Bigsort.Implementation
             for (int i = 0; i < engines.Length; i++)
                 summary[i] = _ios[i].Output.SelectSummaryGroupsInfo();
 
-            _timeTracker?.Add(GroupingLogName, watch.Elapsed);
             return _groupsInfoMarger.Marge(summary);
         }
 
