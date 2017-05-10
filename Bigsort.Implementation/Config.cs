@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Configuration;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -12,15 +11,18 @@ namespace Bigsort.Implementation
     public class Config
         : IConfig
     {
-        public Config(
-            string inputFilePath,
-            string outputFilePath,
-            string groupsFilePath)
+        public Config(string inputFilePath, string outputFilePath)
         {
-            string raw;
+            InputFilePath = inputFilePath;
+            OutputFilePath = outputFilePath;
 
-            GroupsFileDirectoryPath = Path.GetTempPath();
+            var raw = ConfigurationManager
+                .AppSettings["BigsortTempPath"];
 
+            GroupsFilePath = Path.Combine(
+                raw ?? Path.GetTempPath(),
+                Path.GetRandomFileName());
+            
             raw = ConfigurationManager
                 .AppSettings["BigsortMaxRunningTasksCount"];
 
@@ -48,9 +50,9 @@ namespace Bigsort.Implementation
 
                 var pathes = new[]
                 {
-                    inputFilePath,
-                    outputFilePath,
-                    groupsFilePath,
+                    InputFilePath,
+                    OutputFilePath,
+                    GroupsFilePath,
                 };
 
                 uint _, __, sectorsPerCluster, bytesPerSector;
@@ -67,7 +69,7 @@ namespace Bigsort.Implementation
 
                 Func<uint, uint, uint> lcm, gcd = null;
                 gcd = (a, b) => b == 0 ? a : gcd(b, a % b); // Greatest common divisor 
-                lcm = (a, b) => a / gcd(a, b) * b;          // Least common multiple
+                lcm = (a, b) => a / gcd(a, b) * b;          // Least common multipler
 
                 var bytesPerClustersLcm = 
                     (int) bytesPerClusters.Aggregate(lcm);
@@ -87,7 +89,10 @@ namespace Bigsort.Implementation
                                  + Consts.BufferReadingEnsurance;
         }
 
-        public string GroupsFileDirectoryPath { get; }
+        public string InputFilePath { get; }
+        public string OutputFilePath { get; }
+        public string GroupsFilePath { get; }
+        
         public int PhysicalBufferLength { get; }
         public int UsingBufferLength { get; }
         public int MaxRunningTasksCount { get; }

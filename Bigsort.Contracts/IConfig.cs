@@ -2,14 +2,13 @@
 {
     public interface IConfig
     {
-        string GroupsFileDirectoryPath { get; }
+        string InputFilePath { get; }
+        string OutputFilePath { get; }
+        string GroupsFilePath { get; }
 
         int PhysicalBufferLength { get; }
-
         int UsingBufferLength { get; }
-
         int GrouperEnginesCount { get; }
-
         int MaxRunningTasksCount { get; }
     }
 }

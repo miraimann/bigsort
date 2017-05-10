@@ -8,19 +8,16 @@ namespace Bigsort.Implementation
         : ISortedGroupWriterFactory
     {
         private readonly ITimeTracker _timeTracker;
-        private readonly string _outputFilePath;
         private readonly IPoolMaker _poolMaker;
         private readonly IIoService _ioService;
         private readonly IConfig _config;
 
         public SortedGroupWriterFactory(
-            string outputFilePath, 
             IPoolMaker poolMaker, 
             IIoService ioService, 
             IConfig config,
             IDiagnosticTools diagnosticTools = null)
         {
-            _outputFilePath = outputFilePath;
             _poolMaker = poolMaker;
             _ioService = ioService;
             _config = config;
@@ -29,7 +26,6 @@ namespace Bigsort.Implementation
 
         public ISortedGroupWriter Create() =>
             new SortedGroupWriter(
-                _outputFilePath,
                 _poolMaker,
                 _ioService,
                 _config,
@@ -47,14 +43,13 @@ namespace Bigsort.Implementation
             private readonly IConfig _config;
 
             public SortedGroupWriter(
-                string outputFilePath,
                 IPoolMaker poolMaker,
                 IIoService ioService,
                 IConfig config, 
                 ITimeTracker timeTracker)
             {
                 _writersPool = poolMaker.MakeDisposablePool(
-                    () => ioService.OpenWrite(outputFilePath, buffering: true));
+                    () => ioService.OpenWrite(config.OutputFilePath, buffering: true));
 
                 _config = config;
                 _timeTracker = timeTracker;

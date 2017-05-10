@@ -8,7 +8,6 @@ namespace Bigsort.Implementation
     public class GroupsLinesWriterFactory
         : IGroupsLinesWriterFactory
     {
-        private readonly string _groupsFilePath;
         private readonly IIoService _ioService;
         private readonly ITasksQueue _tasksQueue;
         private readonly IPoolMaker _poolMaker;
@@ -16,14 +15,12 @@ namespace Bigsort.Implementation
         private readonly IConfig _config;
 
         public GroupsLinesWriterFactory(
-            string groupsFilePath,
             IIoService ioService,
             ITasksQueue tasksQueue,
             IPoolMaker poolMaker,
             IBuffersPool buffersPool,
             IConfig config)
         {
-            _groupsFilePath = groupsFilePath;
             _ioService = ioService;
             _tasksQueue = tasksQueue;
             _poolMaker = poolMaker;
@@ -34,7 +31,6 @@ namespace Bigsort.Implementation
         public IGroupsLinesWriter Create(long fileOffset = 0) =>
 
             new LinesWriter(
-                _groupsFilePath, 
                 fileOffset,
                 _buffersPool,
                 _poolMaker,
@@ -55,7 +51,6 @@ namespace Bigsort.Implementation
             private long _writingPosition, _tasksCount;
             
             public LinesWriter(
-                string path, 
                 long fileOffset,
                 IBuffersPool buffersPool, 
                 IPoolMaker poolMaker,
@@ -71,7 +66,7 @@ namespace Bigsort.Implementation
 
                 _groupsStorage = new Group[Consts.MaxGroupsCount];
                 _writers = poolMaker.MakeDisposablePool(
-                      () => _ioService.OpenWrite(path));
+                      () => _ioService.OpenWrite(config.GroupsFilePath));
             }
 
             public GroupInfo[] SelectSummaryGroupsInfo()

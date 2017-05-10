@@ -4,16 +4,16 @@ using Bigsort.Contracts.DevelopmentTools;
 
 namespace Bigsort.Implementation
 {
-    public class GroupsSummaryInfoMarger
+    public class GroupsInfoMarger
         : IGroupsInfoMarger
     {
         public const string
-            LogName = nameof(GroupsSummaryInfoMarger),
+            LogName = nameof(GroupsInfoMarger),
             MargingLogName = LogName + "." + nameof(Marge);
 
         private readonly ITimeTracker _timeTracker;
 
-        public GroupsSummaryInfoMarger(
+        public GroupsInfoMarger(
             IDiagnosticTools diagnosticTools = null)
         {
             _timeTracker = diagnosticTools?.TimeTracker;

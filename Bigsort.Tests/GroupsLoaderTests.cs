@@ -34,6 +34,9 @@ namespace Bigsort.Tests
             configMock
                 .SetupGet(o => o.UsingBufferLength)
                 .Returns(usingBufferSize);
+            configMock
+                .SetupGet(o => o.GroupsFilePath)
+                .Returns(groupsFilePath);
             
             var bytesCount = blocks.Value.Sum(o => o.Length);
             var linesCount = bytesCount / 4; // max
@@ -63,7 +66,6 @@ namespace Bigsort.Tests
             
             IGroupsLoaderMaker loaderMaker =
                 new GroupsLoaderMaker(
-                    groupsFilePath,
                     buffersPool,
                     ioServiceMock.Object,
                     configMock.Object);

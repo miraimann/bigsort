@@ -9,47 +9,42 @@ namespace Bigsort.Implementation
     public class Sorter
         : ISorter
     {
-        private readonly string _inputFilePath, _outputFilePath, _groupsFilePath;
         private readonly IDiagnosticTools _diagnosticTools;
         private readonly IIoService _ioService;
         private readonly IGrouper _grouper;
         private readonly IGroupsLoaderMaker _groupsLoaderMaker;
         private readonly IGroupSorter _groupSorter;
         private readonly ISortedGroupWriterFactory _groupWriterFactory;
+        private readonly IConfig _config;
 
         public Sorter(
-            string inputFilePath, 
-            string outputFilePath,
-            string groupsFilePath,
             IIoService ioService,
             IGrouper grouper,
             IGroupsLoaderMaker groupsLoaderMaker, 
             IGroupSorter groupSorter, 
             ISortedGroupWriterFactory groupWriterFactory, 
+            IConfig config,
             IDiagnosticTools diagnosticTools = null)
         {
-            _inputFilePath = inputFilePath;
-            _outputFilePath = outputFilePath;
-            _groupsFilePath = groupsFilePath;
-
             _ioService = ioService;
             _grouper = grouper;
             _groupsLoaderMaker = groupsLoaderMaker;
             _groupSorter = groupSorter;
             _groupWriterFactory = groupWriterFactory;
+            _config = config;
             _diagnosticTools = diagnosticTools;
         }
 
         public void Sort()
         {
-            var fileLength = _ioService.SizeOfFile(_inputFilePath);
-            _ioService.CreateFile(_groupsFilePath, fileLength);
+            var fileLength = _ioService.SizeOfFile(_config.InputFilePath);
+            _ioService.CreateFile(_config.GroupsFilePath, fileLength);
 
             var groupsInfo = _grouper.SplitToGroups();
             var positions = new long[Consts.MaxGroupsCount];
             var groups = new IGroup[Consts.MaxGroupsCount];
 
-            _ioService.CreateFile(_outputFilePath, fileLength);
+            _ioService.CreateFile(_config.OutputFilePath, fileLength);
 
             using (var groupsWriter = _groupWriterFactory.Create())
             using (var groupsLoader = _groupsLoaderMaker.Make(groupsInfo, groups))
@@ -86,7 +81,7 @@ namespace Bigsort.Implementation
                 }
             }
 
-            _ioService.DeleteFile(_groupsFilePath);
+            _ioService.DeleteFile(_config.GroupsFilePath);
 
             using (var bigSortLogStream = File.OpenWrite("E:\\bslog.txt"))
             using (var logWriter = new StreamWriter(bigSortLogStream))

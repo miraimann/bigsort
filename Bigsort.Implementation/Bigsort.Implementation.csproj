@@ -68,7 +68,7 @@
     <Compile Include="Consts.cs" />
     <Compile Include="GrouperIOs.cs" />
     <Compile Include="GroupsLinesWriterFactory.cs" />
-    <Compile Include="GroupsSummaryInfoMarger.cs" />
+    <Compile Include="GroupsInfoMarger.cs" />
     <Compile Include="PoolMaker.cs" />
     <Compile Include="SortedGroupWriterFactory.cs" />
     <Compile Include="DevelopmentTools\TimeTracker.cs" />

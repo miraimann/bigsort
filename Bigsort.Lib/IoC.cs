@@ -1,20 +1,16 @@
-﻿using System.IO;
-using Bigsort.Contracts;
+﻿using Bigsort.Contracts;
 using Bigsort.Contracts.DevelopmentTools;
 using Bigsort.Implementation;
 using Bigsort.Implementation.DevelopmentTools;
 
 namespace Bigsort.Lib
 {
-    public class IoC
+    public static class IoC
     {
-        internal ISorter BuildBigSorter(
+        internal static ISorter BuildSorter(
             string inputFilePath, 
             string outputFilePath)
         {
-            string groupsFilePath = Path.Combine(
-                Path.GetTempPath(),
-                Path.GetRandomFileName());
 #if DEBUG
             ITimeTracker timeTracker = 
                 new TimeTracker();
@@ -28,11 +24,10 @@ namespace Bigsort.Lib
             IConfig config = 
                 new Config(
                     inputFilePath,
-                    outputFilePath,
-                    groupsFilePath);
+                    outputFilePath);
                   
-            IGroupsInfoMarger groupsSummaryInfoMarger = 
-                new GroupsSummaryInfoMarger(
+            IGroupsInfoMarger groupsInfoMarger = 
+                new GroupsInfoMarger(
                     diagnosticTools);
             
             IPoolMaker poolMaker =
@@ -53,7 +48,6 @@ namespace Bigsort.Lib
             
             IInputReaderMaker inputReaderMaker =
                 new InputReaderMaker(
-                    inputFilePath,
                     ioService,
                     tasksQueue,
                     buffersPool,
@@ -61,7 +55,6 @@ namespace Bigsort.Lib
 
             IGroupsLinesWriterFactory groupsLinesWriterFactory =
                 new GroupsLinesWriterFactory(
-                    groupsFilePath,
                     ioService,
                     tasksQueue,
                     poolMaker,
@@ -70,7 +63,6 @@ namespace Bigsort.Lib
 
             IGrouperIOs grouperIOs =
                 new GrouperIOs(
-                    inputFilePath,
                     inputReaderMaker,
                     groupsLinesWriterFactory,
                     ioService,
@@ -78,7 +70,7 @@ namespace Bigsort.Lib
 
             IGrouper grouper =
                 new Grouper(
-                    groupsSummaryInfoMarger,
+                    groupsInfoMarger,
                     grouperIOs,
                     tasksQueue,
                     config,
@@ -86,7 +78,6 @@ namespace Bigsort.Lib
             
             IGroupsLoaderMaker groupsLoaderMaker =
                 new GroupsLoaderMaker(
-                    groupsFilePath,
                     buffersPool,
                     ioService,
                     config,
@@ -110,7 +101,6 @@ namespace Bigsort.Lib
 
             ISortedGroupWriterFactory sortedGroupWriterFactory =
                 new SortedGroupWriterFactory(
-                    outputFilePath,
                     poolMaker,
                     ioService,
                     config,
@@ -118,14 +108,12 @@ namespace Bigsort.Lib
             
             ISorter sorter =
                 new Sorter(
-                    inputFilePath,
-                    outputFilePath,
-                    groupsFilePath,
                     ioService,
                     grouper, 
                     groupsLoaderMaker,
                     groupSorter,
                     sortedGroupWriterFactory,
+                    config,
                     diagnosticTools);
 
             return sorter;

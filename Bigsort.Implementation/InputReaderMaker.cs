@@ -9,20 +9,17 @@ namespace Bigsort.Implementation
     public class InputReaderMaker
         : IInputReaderMaker
     {
-        private readonly string _inputFilePath;
         private readonly IIoService _ioService;
         private readonly ITasksQueue _tasksQueue;
         private readonly IBuffersPool _buffersPool;
         private readonly IConfig _config;
 
         public InputReaderMaker(
-            string inputFilePath,
             IIoService ioService,
             ITasksQueue tasksQueue, 
             IBuffersPool buffersPool,
             IConfig config)
         {
-            _inputFilePath = inputFilePath;
             _ioService = ioService;
             _tasksQueue = tasksQueue;
             _buffersPool = buffersPool;
@@ -34,7 +31,6 @@ namespace Bigsort.Implementation
 
         public IInputReader Make(long fileOffset, long readingLength) =>
             new InputReader(
-                _inputFilePath, 
                 fileOffset, 
                 readingLength, 
                 _buffersPool,
@@ -59,7 +55,6 @@ namespace Bigsort.Implementation
             private readonly Action[] _readNext;
 
             public InputReader(
-                string inputFilePath,
                 long readingOffset,
                 long readingLength,
                 IPool<byte[]> buffersPool,
@@ -75,7 +70,7 @@ namespace Bigsort.Implementation
                 // -1 - for set "Buffer End" Symbol to last cell of buffer without data lose 
                 var readingBufferLength = config.UsingBufferLength - 1;
 
-                using (var reader = ioService.OpenRead(inputFilePath))
+                using (var reader = ioService.OpenRead(config.InputFilePath))
                 {
                     var firstBufferHandle = _buffersPool.Get();
                     var length = (int) Math.Min(
@@ -118,7 +113,7 @@ namespace Bigsort.Implementation
                 _readNext = new Action[_capacity];
                 for (int i = 0; i < _capacity; i++)
                 {
-                    var reader = ioService.OpenRead(inputFilePath, 
+                    var reader = ioService.OpenRead(config.InputFilePath, 
                         position: readingOffset + i * readingBufferLength);
 
                     int buffIndex = i;

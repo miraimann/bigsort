@@ -1,8 +1,8 @@
 ﻿namespace Bigsort.Lib
 {
-    public class FileLinesSorter
+    public class BigSorter
     {
         public static void Sort(string input, string output) =>
-            new IoC().BuildBigSorter(input, output).Sort();
+            IoC.BuildSorter(input, output).Sort();
     }
 }

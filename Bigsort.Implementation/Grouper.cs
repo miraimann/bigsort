@@ -15,19 +15,19 @@ namespace Bigsort.Implementation
             GroupingLogName = LogName + "." + nameof(SplitToGroups);
 
         private readonly ITimeTracker _timeTracker;
-        private readonly IGroupsInfoMarger _summaryInfoMarger;
+        private readonly IGroupsInfoMarger _groupsInfoMarger;
         private readonly IGrouperIOs _ios;
         private readonly ITasksQueue _tasksQueue;
         private readonly int _usingBufferLength;
 
         public Grouper(
-            IGroupsInfoMarger summaryInfoMarger,
+            IGroupsInfoMarger groupsInfoMarger,
             IGrouperIOs grouperIOs,
             ITasksQueue tasksQueue,
             IConfig config,
             IDiagnosticTools diagnosticTool = null)
         {
-            _summaryInfoMarger = summaryInfoMarger;
+            _groupsInfoMarger = groupsInfoMarger;
             _ios = grouperIOs;
             _tasksQueue = tasksQueue;
             _usingBufferLength = config.UsingBufferLength;
@@ -61,7 +61,7 @@ namespace Bigsort.Implementation
                 summary[i] = _ios[i].Output.SelectSummaryGroupsInfo();
 
             _timeTracker?.Add(GroupingLogName, watch.Elapsed);
-            return _summaryInfoMarger.Marge(summary);
+            return _groupsInfoMarger.Marge(summary);
         }
 
         private class Engine

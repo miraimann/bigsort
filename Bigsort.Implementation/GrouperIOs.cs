@@ -1,19 +1,16 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    // ReSharper disable once InconsistentNaming
     public class GrouperIOs
         : IGrouperIOs
     {
         private readonly Lazy<IReadOnlyList<IGrouperIO>> _implementation;
 
         public GrouperIOs(
-            string inputFilePath, 
             IInputReaderMaker inputReaderMaker, 
             IGroupsLinesWriterFactory groupsLinesWriterFactory,
             IIoService ioService, 
@@ -21,7 +18,7 @@ namespace Bigsort.Implementation
         {
             _implementation = new Lazy<IReadOnlyList<IGrouperIO>>(() =>
             {
-                var inputFileLength = ioService.SizeOfFile(inputFilePath);
+                var inputFileLength = ioService.SizeOfFile(config.InputFilePath);
                 if (config.GrouperEnginesCount == 1)
                     return new[]
                     {
@@ -33,7 +30,7 @@ namespace Bigsort.Implementation
                 var blockLength = inputFileLength/config.GrouperEnginesCount;
 
                 long offset = 0;
-                using (var inputStream = ioService.OpenRead(inputFilePath))
+                using (var inputStream = ioService.OpenRead(config.InputFilePath))
                     for (int i = 0; i < config.GrouperEnginesCount; i++)
                     {
                         inputStream.Position = Math.Min(
@@ -70,8 +67,7 @@ namespace Bigsort.Implementation
 
         IEnumerator IEnumerable.GetEnumerator() =>
             GetEnumerator();
-        
-        // ReSharper disable once InconsistentNaming
+
         private class IO
             : IGrouperIO
         {

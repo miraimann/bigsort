@@ -1,11 +1,9 @@
-﻿using System.Collections.Generic;
-
-namespace Bigsort.Contracts
+﻿namespace Bigsort.Contracts
 {
     public interface IGroupsInfoMarger
     {
         /// <summary>
-        /// Marge summaryInfos. Corrupt argument value.
+        /// Marges summaryInfos. Corrupts argument value.
         /// </summary>
         GroupInfo[] Marge(GroupInfo[][] summaryInfos);
     }

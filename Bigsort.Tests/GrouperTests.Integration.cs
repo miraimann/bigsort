@@ -122,8 +122,16 @@ namespace Bigsort.Tests
                         .SetupGet(o => o.GrouperEnginesCount)
                         .Returns(enginesCount);
 
+                    configMock
+                        .SetupGet(o => o.InputFilePath)
+                        .Returns(inputFilePath);
+
+                    configMock
+                        .SetupGet(o => o.GroupsFilePath)
+                        .Returns(groupsFile);
+
                     IGroupsInfoMarger groupsSummaryInfoMarger =
-                        new GroupsSummaryInfoMarger();
+                        new GroupsInfoMarger();
 
                     ITasksQueue tasksQueue =
                         new TasksQueue(configMock.Object);
@@ -140,7 +148,6 @@ namespace Bigsort.Tests
 
                     IInputReaderMaker inputReaderMaker =
                         new InputReaderMaker(
-                            inputFilePath,
                             ioService,
                             tasksQueue,
                             buffersPool,
@@ -148,7 +155,6 @@ namespace Bigsort.Tests
 
                     IGroupsLinesWriterFactory linesWriterFactory =
                         new GroupsLinesWriterFactory(
-                            groupsFile,
                             ioService,
                             tasksQueue,
                             poolMaker,
@@ -157,7 +163,6 @@ namespace Bigsort.Tests
 
                     IGrouperIOs grouperIOs =
                         new GrouperIOs(
-                            inputFilePath,
                             inputReaderMaker,
                             linesWriterFactory,
                             ioService,
@@ -169,7 +174,6 @@ namespace Bigsort.Tests
 
                     IGroupsLoaderMaker groupsLoaderMaker =
                         new GroupsLoaderMaker(
-                            groupsFile,
                             buffersPool,
                             ioService,
                             configMock.Object);

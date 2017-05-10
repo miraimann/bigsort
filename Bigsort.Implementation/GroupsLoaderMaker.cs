@@ -12,20 +12,17 @@ namespace Bigsort.Implementation
     public class GroupsLoaderMaker
         : IGroupsLoaderMaker
     {
-        private readonly string _groupsFilePath;
         private readonly ITimeTracker _timeTracker;
         private readonly IIoService _ioService;
         private readonly IBuffersPool _buffersPool;
         private readonly IConfig _config;
 
         public GroupsLoaderMaker(
-            string groupsFilePath,
             IBuffersPool buffersPool,
             IIoService ioService,
             IConfig config,
             IDiagnosticTools diagnosticsTools = null)
         {
-            _groupsFilePath = groupsFilePath;
             _buffersPool = buffersPool;
             _ioService = ioService;
             _config = config;
@@ -35,7 +32,6 @@ namespace Bigsort.Implementation
 
         public IGroupsLoader Make(GroupInfo[] groupsInfo, IGroup[] output) =>
             new GroupsLoader(
-                _groupsFilePath,
                 groupsInfo,
                 output,
                 _buffersPool,
@@ -71,7 +67,6 @@ namespace Bigsort.Implementation
             private int _linesTop, _loadingTop, _buffersTop;
 
             public GroupsLoader(
-                string groupsFilePath,
                 GroupInfo[] groupsInfo,
                 IGroup[] output,
                 IBuffersPool buffersPool,
@@ -142,7 +137,7 @@ namespace Bigsort.Implementation
                 _linesIndexes = new LineIndexes[_reservedLinesCount];
                 _sortingSegments = new ulong[_reservedLinesCount];
                 
-                _groupsFilePath = groupsFilePath;
+                _groupsFilePath = config.GroupsFilePath;
                 _usingBufferLength = config.UsingBufferLength;
                 
                 _readers = Enumerable

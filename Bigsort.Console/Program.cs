@@ -9,7 +9,7 @@ namespace Bigsort.Console
         {
             var t = DateTime.Now;
 
-            FileLinesSorter
+            BigSorter
                 .Sort(args[0], args[1]);
 
             System.Console.WriteLine("{0}", DateTime.Now - t);
