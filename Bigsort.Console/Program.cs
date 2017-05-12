@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using Bigsort.Lib;
 
 namespace Bigsort.Console
@@ -9,8 +10,7 @@ namespace Bigsort.Console
         {
             var t = DateTime.Now;
 
-            BigSorter
-                .Sort(args[0], args[1]);
+            BigSorter.Sort(args[0], args[1]);
 
             System.Console.WriteLine("{0}", DateTime.Now - t);
             System.Console.ReadKey();
