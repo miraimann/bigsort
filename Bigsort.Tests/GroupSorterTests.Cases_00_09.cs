@@ -142,7 +142,7 @@ namespace Bigsort.Tests
                        180, 280, 120, 300, 000, 240, 260
                    });
 
-                yield return new TestCase("8s",
+                yield return new TestCase("8",
                     new TestCase.InputLineList
                     {
                         { "000|14|3", "--222.||////////ooox" }, // 0 

@@ -143,9 +143,6 @@ namespace Bigsort.Tests
                         new IoService(
                             buffersPool);
 
-                    IPoolMaker poolMaker = 
-                        new PoolMaker();
-
                     IInputReaderMaker inputReaderMaker =
                         new InputReaderMaker(
                             ioService,
@@ -157,7 +154,6 @@ namespace Bigsort.Tests
                         new GroupsLinesWriterFactory(
                             ioService,
                             tasksQueue,
-                            poolMaker,
                             buffersPool,
                             configMock.Object);
 

@@ -1,4 +1,6 @@
-﻿using Bigsort.Contracts;
+﻿using System.Collections.Concurrent;
+using System.Threading;
+using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
@@ -6,32 +8,40 @@ namespace Bigsort.Implementation
         : IBuffersPool
     {
         private readonly int _physicalBufferLength;
-        private readonly IPool<byte[]> _pool;
+        private ConcurrentBag<byte[]> _storage;
         
-        public BuffersPool(
-            IPoolMaker poolMaker,
-            IConfig config)
+        public BuffersPool(IConfig config)
         {
             _physicalBufferLength = config.PhysicalBufferLength;
-            _pool = poolMaker.MakePool(Create);
+            _storage = new ConcurrentBag<byte[]>();
         }
 
         public int Count =>
-            _pool.Count;
+            _storage.Count;
 
         public byte[] Create() =>
             new byte[_physicalBufferLength];
 
         public Handle<byte[]> Get() =>
-            _pool.Get();
+            TryGet() ?? Handle(new byte[_physicalBufferLength]);
 
-        public Handle<byte[]> TryGet() =>
-            _pool.TryGet();
+        public Handle<byte[]> TryGet()
+        {
+            byte[] buffer;
+            return _storage.TryTake(out buffer)
+                ? Handle(buffer)
+                : null;
+        }
 
-        public byte[] TryExtract() =>
-            _pool.TryExtract();
+        public byte[][] ExtractAll()
+        {
+            var oldStorage = _storage;
+            Interlocked.Exchange(ref _storage, new ConcurrentBag<byte[]>());
+            return oldStorage.ToArray();
+        }
 
-        public byte[][] ExtractAll() =>
-            _pool.ExtractAll();
+        private Handle<byte[]> Handle(byte[] buffer) =>
+            Handle<byte[]>.Make(buffer, buff => _storage.Add(buff));
+        //, _storage.Add); is incorrect because _storage isn't readonly 
     }
 }

@@ -144,14 +144,11 @@ namespace Bigsort.Tests
             IGroupsInfoMarger groupsSummaryInfoMarger = 
                 new GroupsInfoMarger();
 
-            IPoolMaker poolMaker = 
-                new PoolMaker();
-
             ITasksQueue tasksQueue =
                 new TasksQueue(configMock.Object);
 
             IBuffersPool buffersPool = 
-                new BuffersPool(poolMaker, configMock.Object);
+                new BuffersPool(configMock.Object);
             
             IInputReaderMaker inputReaderMaker =
                 new InputReaderMaker(
@@ -164,7 +161,6 @@ namespace Bigsort.Tests
                 new GroupsLinesWriterFactory(
                     ioServiceMock.Object,
                     tasksQueue,
-                    poolMaker,
                     buffersPool,
                     configMock.Object);
 

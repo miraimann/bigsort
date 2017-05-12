@@ -57,7 +57,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IBuffersPool.cs" />
-    <Compile Include="IDisposablePool.cs" />
     <Compile Include="IGrouperIOs.cs" />
     <Compile Include="IInputReader.cs" />
     <Compile Include="IInputReaderMaker.cs" />
@@ -67,8 +66,6 @@
     <Compile Include="IGroupsLinesWriterFactory.cs" />
     <Compile Include="IGroupsLoaderMaker.cs" />
     <Compile Include="IGroupsInfoMarger.cs" />
-    <Compile Include="IPool.cs" />
-    <Compile Include="IPoolMaker.cs" />
     <Compile Include="ISortedGroupWriterFactory.cs" />
     <Compile Include="LongRange.cs" />
     <Compile Include="Range.cs" />

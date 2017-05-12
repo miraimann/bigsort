@@ -15,12 +15,8 @@ namespace Bigsort.Lib
             IGroupsInfoMarger groupsInfoMarger =
                 new GroupsInfoMarger();
 
-            IPoolMaker poolMaker =
-                new PoolMaker();
-
             IBuffersPool buffersPool =
                 new BuffersPool(
-                    poolMaker,
                     config);
 
             IIoService ioService =
@@ -42,7 +38,6 @@ namespace Bigsort.Lib
                 new GroupsLinesWriterFactory(
                     ioService,
                     tasksQueue,
-                    poolMaker,
                     buffersPool,
                     config);
 
@@ -81,7 +76,6 @@ namespace Bigsort.Lib
 
             ISortedGroupWriterFactory sortedGroupWriterFactory =
                 new SortedGroupWriterFactory(
-                    poolMaker,
                     ioService,
                     config);
 

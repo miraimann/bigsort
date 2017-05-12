@@ -46,7 +46,7 @@ namespace Bigsort.Implementation
             private readonly long _readingOut;
             private readonly int _capacity;
             
-            private readonly IPool<byte[]> _buffersPool;
+            private readonly IBuffersPool _buffersPool;
             private readonly ITasksQueue _tasksQueue;
 
             private readonly Item _firstBufferItem;
@@ -57,7 +57,7 @@ namespace Bigsort.Implementation
             public InputReader(
                 long readingOffset,
                 long readingLength,
-                IPool<byte[]> buffersPool,
+                IBuffersPool buffersPool,
                 ITasksQueue tasksQueue,
                 IIoService ioService,
                 IConfig config)

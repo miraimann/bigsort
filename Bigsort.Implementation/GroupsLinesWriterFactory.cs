@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using Bigsort.Contracts;
@@ -10,30 +11,25 @@ namespace Bigsort.Implementation
     {
         private readonly IIoService _ioService;
         private readonly ITasksQueue _tasksQueue;
-        private readonly IPoolMaker _poolMaker;
         private readonly IBuffersPool _buffersPool;
         private readonly IConfig _config;
 
         public GroupsLinesWriterFactory(
             IIoService ioService,
             ITasksQueue tasksQueue,
-            IPoolMaker poolMaker,
             IBuffersPool buffersPool,
             IConfig config)
         {
             _ioService = ioService;
             _tasksQueue = tasksQueue;
-            _poolMaker = poolMaker;
             _buffersPool = buffersPool;
             _config = config;
         }
 
         public IGroupsLinesWriter Create(long fileOffset = 0) =>
-
             new LinesWriter(
                 fileOffset,
                 _buffersPool,
-                _poolMaker,
                 _tasksQueue,
                 _ioService,
                 _config);
@@ -43,17 +39,17 @@ namespace Bigsort.Implementation
         {
             private readonly IIoService _ioService;
             private readonly IBuffersPool _buffersPool;
-            private readonly IDisposablePool<IFileWriter> _writers;
+            private readonly ConcurrentBag<IFileWriter> _writers;
             private readonly ITasksQueue _tasksQueue;
 
             private readonly Group[] _groupsStorage;
+            private readonly string _groupsFilePath;
             private readonly int _usingBufferLength;
             private long _writingPosition, _tasksCount;
             
             public LinesWriter(
                 long fileOffset,
-                IBuffersPool buffersPool, 
-                IPoolMaker poolMaker,
+                IBuffersPool buffersPool,
                 ITasksQueue tasksQueue, 
                 IIoService ioService,
                 IConfig config)
@@ -62,13 +58,14 @@ namespace Bigsort.Implementation
                 _tasksQueue = tasksQueue;
                 _ioService = ioService;
                 _writingPosition = fileOffset;
+
                 _usingBufferLength = config.UsingBufferLength;
+                _groupsFilePath = config.GroupsFilePath;
 
                 _groupsStorage = new Group[Consts.MaxGroupsCount];
-                _writers = poolMaker.MakeDisposablePool(
-                      () => _ioService.OpenWrite(config.GroupsFilePath));
+                _writers = new ConcurrentBag<IFileWriter>();
             }
-
+            
             public GroupInfo[] SelectSummaryGroupsInfo()
             {
                 var result = new GroupInfo[Consts.MaxGroupsCount];
@@ -117,13 +114,12 @@ namespace Bigsort.Implementation
                     IncrementTasksCount();
                     _tasksQueue.Enqueue(delegate
                     {
-                        using (var writerHandle = _writers.Get())
-                        {
-                            var writer = writerHandle.Value;
-                            writer.Position = _writingPosition;
-                            writer.Write(acc.BufferHandle.Value, 0, acc.BufferOffset);
-                            DecrementTasksCount();
-                        }
+                        var writer = GetWriter();
+                        writer.Position = _writingPosition;
+                        writer.Write(acc.BufferHandle.Value, 0, acc.BufferOffset);
+
+                        _writers.Add(writer);
+                        DecrementTasksCount();
                     });
                 }
 
@@ -134,7 +130,8 @@ namespace Bigsort.Implementation
                         _tasksQueue.Enqueue(disposeWriters);
                     else
                     {
-                        _writers.Dispose();
+                        foreach (var writer in _writers)
+                            writer.Dispose();
                         done.Set();
                     }
                 });
@@ -173,15 +170,13 @@ namespace Bigsort.Implementation
                     IncrementTasksCount();
                     _tasksQueue.Enqueue(delegate
                     {
-                        using (var writerHandle = _writers.Get())
-                        {
-                            var writer = writerHandle.Value;
-                            writer.Position = positionMomento;
-                            writer.Write(oldBuffHandle.Value, 0, _usingBufferLength);
+                        var writer = GetWriter();
+                        writer.Position = positionMomento;
+                        writer.Write(oldBuffHandle.Value, 0, _usingBufferLength);
                             
-                            oldBuffHandle.Dispose();
-                            DecrementTasksCount();
-                        }
+                        oldBuffHandle.Dispose();
+                        _writers.Add(writer);
+                        DecrementTasksCount();
                     });
                 }
                 else
@@ -220,15 +215,13 @@ namespace Bigsort.Implementation
                     IncrementTasksCount();
                     _tasksQueue.Enqueue(delegate
                     {
-                        using (var writersHandle = _writers.Get())
-                        {
-                            var writer = writersHandle.Value;
-                            writer.Position = positionMomento;
-                            writer.Write(oldBuffHandle.Value, 0, _usingBufferLength);
+                        var writer = GetWriter();
+                        writer.Position = positionMomento;
+                        writer.Write(oldBuffHandle.Value, 0, _usingBufferLength);
 
-                            oldBuffHandle.Dispose();
-                            DecrementTasksCount();
-                        }
+                        oldBuffHandle.Dispose();
+                        _writers.Add(writer);
+                        DecrementTasksCount();
                     });
                 }
                 else
@@ -237,6 +230,15 @@ namespace Bigsort.Implementation
                                length);
 
                 group.BufferOffset = newOffset;
+            }
+
+            private IFileWriter GetWriter()
+            {
+                IFileWriter result;
+                if (!_writers.TryTake(out result))
+                    result = _ioService.OpenWrite(_groupsFilePath);
+
+                return result;
             }
 
             private void IncrementTasksCount() =>
