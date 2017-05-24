@@ -59,12 +59,12 @@
     <Compile Include="IBuffersPool.cs" />
     <Compile Include="IGrouperIOs.cs" />
     <Compile Include="IInputReader.cs" />
-    <Compile Include="IInputReaderMaker.cs" />
+    <Compile Include="IInputReaderFactory.cs" />
     <Compile Include="IGrouperIO.cs" />
     <Compile Include="IGroupsLoader.cs" />
-    <Compile Include="IGroupsLinesWriter.cs" />
-    <Compile Include="IGroupsLinesWriterFactory.cs" />
-    <Compile Include="IGroupsLoaderMaker.cs" />
+    <Compile Include="IGroupsLinesOutput.cs" />
+    <Compile Include="IGroupsLinesOutputFactory.cs" />
+    <Compile Include="IGroupsLoaderFactory.cs" />
     <Compile Include="IGroupsInfoMarger.cs" />
     <Compile Include="ISortedGroupWriterFactory.cs" />
     <Compile Include="LongRange.cs" />

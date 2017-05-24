@@ -4,6 +4,6 @@
     {
         IInputReader Input { get; }
         
-        IGroupsLinesWriter Output { get; }
+        IGroupsLinesOutput Output { get; }
     }
 }

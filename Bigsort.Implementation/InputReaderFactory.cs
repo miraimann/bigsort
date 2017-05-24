@@ -6,15 +6,15 @@ using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    internal class InputReaderMaker
-        : IInputReaderMaker
+    internal class InputReaderFactory
+        : IInputReaderFactory
     {
         private readonly IIoService _ioService;
         private readonly ITasksQueue _tasksQueue;
         private readonly IBuffersPool _buffersPool;
         private readonly IConfig _config;
 
-        public InputReaderMaker(
+        public InputReaderFactory(
             IIoService ioService,
             ITasksQueue tasksQueue, 
             IBuffersPool buffersPool,
@@ -26,10 +26,10 @@ namespace Bigsort.Implementation
             _config = config;
         }
 
-        public IInputReader Make(long fileLength) =>
-            Make(0, fileLength);
+        public IInputReader Create(long fileLength) =>
+            Create(0, fileLength);
 
-        public IInputReader Make(long fileOffset, long readingLength) =>
+        public IInputReader Create(long fileOffset, long readingLength) =>
             new InputReader(
                 fileOffset, 
                 readingLength, 

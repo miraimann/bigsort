@@ -61,12 +61,12 @@
   <ItemGroup>
     <Compile Include="BuffersPool.cs" />
     <Compile Include="Config.cs" />
-    <Compile Include="GroupsLoaderMaker.cs" />
+    <Compile Include="GroupsLoaderFactory.cs" />
     <Compile Include="Grouper.cs" />
-    <Compile Include="InputReaderMaker.cs" />
+    <Compile Include="InputReaderFactory.cs" />
     <Compile Include="Consts.cs" />
     <Compile Include="GrouperIOs.cs" />
-    <Compile Include="GroupsLinesWriterFactory.cs" />
+    <Compile Include="GroupsLinesOutputFactory.cs" />
     <Compile Include="GroupsInfoMarger.cs" />
     <Compile Include="SortedGroupWriterFactory.cs" />
     <Compile Include="SortingSegmentsSupplier.cs" />

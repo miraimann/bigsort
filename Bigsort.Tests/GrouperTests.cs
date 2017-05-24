@@ -150,15 +150,15 @@ namespace Bigsort.Tests
             IBuffersPool buffersPool = 
                 new BuffersPool(configMock.Object);
             
-            IInputReaderMaker inputReaderMaker =
-                new InputReaderMaker(
+            IInputReaderFactory inputReaderMaker =
+                new InputReaderFactory(
                     ioServiceMock.Object,
                     tasksQueue,
                     buffersPool,
                     configMock.Object);
 
-            IGroupsLinesWriterFactory linesWriterFactory =
-                new GroupsLinesWriterFactory(
+            IGroupsLinesOutputFactory linesWriterFactory =
+                new GroupsLinesOutputFactory(
                     ioServiceMock.Object,
                     tasksQueue,
                     buffersPool,
@@ -181,7 +181,7 @@ namespace Bigsort.Tests
             var expectedGroups = trivialGrouper
                 .SplitToGroups(testCase.Lines);
             
-            var groupsInfo = grouper.SplitToGroups();
+            var groupsInfo = grouper.SeparateInputToGroups();
             var resultGroups = ExtractGroups(groupsInfo, groupsFileContent);
 
             Assert.IsTrue(resultGroups.Select(Group.IsValid).All(o => o));

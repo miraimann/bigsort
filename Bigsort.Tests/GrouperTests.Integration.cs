@@ -143,15 +143,15 @@ namespace Bigsort.Tests
                         new IoService(
                             buffersPool);
 
-                    IInputReaderMaker inputReaderMaker =
-                        new InputReaderMaker(
+                    IInputReaderFactory inputReaderMaker =
+                        new InputReaderFactory(
                             ioService,
                             tasksQueue,
                             buffersPool,
                             configMock.Object);
 
-                    IGroupsLinesWriterFactory linesWriterFactory =
-                        new GroupsLinesWriterFactory(
+                    IGroupsLinesOutputFactory linesWriterFactory =
+                        new GroupsLinesOutputFactory(
                             ioService,
                             tasksQueue,
                             buffersPool,
@@ -168,8 +168,8 @@ namespace Bigsort.Tests
                         new LinesIndexesExtractor(
                             configMock.Object);
 
-                    IGroupsLoaderMaker groupsLoaderMaker =
-                        new GroupsLoaderMaker(
+                    IGroupsLoaderFactory groupsLoaderMaker =
+                        new GroupsLoaderFactory(
                             buffersPool,
                             ioService,
                             configMock.Object);
@@ -184,10 +184,10 @@ namespace Bigsort.Tests
                     var expectedGroups = trivialGrouper.SplitToGroups(
                         ReadAllLinesFrom(inputFilePath));
 
-                    var groupsInfo = grouper.SplitToGroups();
+                    var groupsInfo = grouper.SeparateInputToGroups();
 
                     var output = new IGroup[Consts.MaxGroupsCount];
-                    var loader = groupsLoaderMaker.Make(groupsInfo, output);
+                    var loader = groupsLoaderMaker.Create(groupsInfo, output);
                     loader.LoadNextGroups();
                     
                     var expectedGroupIds = expectedGroups

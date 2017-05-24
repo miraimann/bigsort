@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.InteropServices;
 using Bigsort.Lib;
 
 namespace Bigsort.Console

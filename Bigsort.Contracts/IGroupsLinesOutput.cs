@@ -2,16 +2,16 @@
 
 namespace Bigsort.Contracts
 {
-    internal interface IGroupsLinesWriter
+    internal interface IGroupsLinesOutput
     {
-        void AddLine(ushort groupId, 
+        void ReleaseLine(ushort groupId, 
             byte[] buff, int offset, int length);
 
-        void AddBrokenLine(ushort groupId,
+        void ReleaseBrokenLine(ushort groupId,
             byte[] leftBuff, int leftOffset, int leftLength,
             byte[] rightBuff, int rightLength);
 
-        void FlushAndDispose(ManualResetEvent done);
+        void FlushAndDispose(CountdownEvent done);
         
         GroupInfo[] SelectSummaryGroupsInfo();
     }

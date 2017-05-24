@@ -18,10 +18,7 @@ namespace Bigsort.Implementation
 
         public int Count =>
             _storage.Count;
-
-        public byte[] Create() =>
-            new byte[_physicalBufferLength];
-
+        
         public Handle<byte[]> Get() =>
             TryGet() ?? Handle(new byte[_physicalBufferLength]);
 

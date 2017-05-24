@@ -2,6 +2,6 @@
 {
     internal interface IGrouper
     {
-        GroupInfo[] SplitToGroups();
+        GroupInfo[] SeparateInputToGroups();
     }
 }

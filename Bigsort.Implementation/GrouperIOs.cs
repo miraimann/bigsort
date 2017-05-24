@@ -11,8 +11,8 @@ namespace Bigsort.Implementation
         private readonly Lazy<IReadOnlyList<IGrouperIO>> _implementation;
 
         public GrouperIOs(
-            IInputReaderMaker inputReaderMaker, 
-            IGroupsLinesWriterFactory groupsLinesWriterFactory,
+            IInputReaderFactory inputReaderFactory, 
+            IGroupsLinesOutputFactory groupsLinesOutputFactory,
             IIoService ioService, 
             IConfig config)
         {
@@ -22,8 +22,8 @@ namespace Bigsort.Implementation
                 if (config.GrouperEnginesCount == 1)
                     return new[]
                     {
-                        new IO(inputReaderMaker.Make(inputFileLength),
-                               groupsLinesWriterFactory.Create())
+                        new IO(inputReaderFactory.Create(inputFileLength),
+                               groupsLinesOutputFactory.Create())
                     };
                 
                 var implementation = new List<IGrouperIO>();
@@ -42,8 +42,8 @@ namespace Bigsort.Implementation
                         var readingLength = inputStream.Position - offset;
 
                         implementation.Add(new IO(
-                            inputReaderMaker.Make(offset, readingLength),
-                            groupsLinesWriterFactory.Create(offset)));
+                            inputReaderFactory.Create(offset, readingLength),
+                            groupsLinesOutputFactory.Create(offset)));
 
 
                         if (inputStream.Position == inputFileLength)
@@ -73,14 +73,14 @@ namespace Bigsort.Implementation
         {
             public IO(
                 IInputReader input, 
-                IGroupsLinesWriter output)
+                IGroupsLinesOutput output)
             {
                 Input = input;
                 Output = output;
             }
 
             public IInputReader Input { get; }
-            public IGroupsLinesWriter Output { get; }
+            public IGroupsLinesOutput Output { get; }
         }
     }
 }

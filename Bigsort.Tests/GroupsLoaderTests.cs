@@ -64,8 +64,8 @@ namespace Bigsort.Tests
                 .Setup(o => o.OpenRead(groupsFilePath, 0L))
                 .Returns(() => new MemoryReader(new MemoryStream(input)));
             
-            IGroupsLoaderMaker loaderMaker =
-                new GroupsLoaderMaker(
+            IGroupsLoaderFactory loaderMaker =
+                new GroupsLoaderFactory(
                     buffersPool,
                     ioServiceMock.Object,
                     configMock.Object);
@@ -81,7 +81,7 @@ namespace Bigsort.Tests
                 Mapping = blocks.Value
             };
 
-            var loader = loaderMaker.Make(infos, groups);
+            var loader = loaderMaker.Create(infos, groups);
             var range = loader.LoadNextGroups();
 
             Assert.AreEqual(0, range.Offset);

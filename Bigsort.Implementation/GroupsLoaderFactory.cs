@@ -7,14 +7,14 @@ using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    internal class GroupsLoaderMaker
-        : IGroupsLoaderMaker
+    internal class GroupsLoaderFactory
+        : IGroupsLoaderFactory
     {
         private readonly IIoService _ioService;
         private readonly IBuffersPool _buffersPool;
         private readonly IConfig _config;
 
-        public GroupsLoaderMaker(
+        public GroupsLoaderFactory(
             IBuffersPool buffersPool,
             IIoService ioService,
             IConfig config)
@@ -24,7 +24,7 @@ namespace Bigsort.Implementation
             _config = config;
         }
 
-        public IGroupsLoader Make(GroupInfo[] groupsInfo, IGroup[] output) =>
+        public IGroupsLoader Create(GroupInfo[] groupsInfo, IGroup[] output) =>
             new GroupsLoader(
                 groupsInfo,
                 output,

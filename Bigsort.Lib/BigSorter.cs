@@ -27,15 +27,15 @@ namespace Bigsort.Lib
                 new TasksQueue(
                     config);
 
-            IInputReaderMaker inputReaderMaker =
-                new InputReaderMaker(
+            IInputReaderFactory inputReaderFactory =
+                new InputReaderFactory(
                     ioService,
                     tasksQueue,
                     buffersPool,
                     config);
 
-            IGroupsLinesWriterFactory groupsLinesWriterFactory =
-                new GroupsLinesWriterFactory(
+            IGroupsLinesOutputFactory groupsLinessOutputFactory =
+                new GroupsLinesOutputFactory(
                     ioService,
                     tasksQueue,
                     buffersPool,
@@ -43,8 +43,8 @@ namespace Bigsort.Lib
 
             IGrouperIOs grouperIOs =
                 new GrouperIOs(
-                    inputReaderMaker,
-                    groupsLinesWriterFactory,
+                    inputReaderFactory,
+                    groupsLinessOutputFactory,
                     ioService,
                     config);
 
@@ -55,8 +55,8 @@ namespace Bigsort.Lib
                     tasksQueue,
                     config);
 
-            IGroupsLoaderMaker groupsLoaderMaker =
-                new GroupsLoaderMaker(
+            IGroupsLoaderFactory groupsLoaderFactory =
+                new GroupsLoaderFactory(
                     buffersPool,
                     ioService,
                     config);
@@ -83,7 +83,7 @@ namespace Bigsort.Lib
                 new Sorter(
                     ioService,
                     grouper,
-                    groupsLoaderMaker,
+                    groupsLoaderFactory,
                     groupSorter,
                     sortedGroupWriterFactory,
                     config);

@@ -6,15 +6,15 @@ using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {
-    internal class GroupsLinesWriterFactory
-        : IGroupsLinesWriterFactory
+    internal class GroupsLinesOutputFactory
+        : IGroupsLinesOutputFactory
     {
         private readonly IIoService _ioService;
         private readonly ITasksQueue _tasksQueue;
         private readonly IBuffersPool _buffersPool;
         private readonly IConfig _config;
 
-        public GroupsLinesWriterFactory(
+        public GroupsLinesOutputFactory(
             IIoService ioService,
             ITasksQueue tasksQueue,
             IBuffersPool buffersPool,
@@ -26,7 +26,7 @@ namespace Bigsort.Implementation
             _config = config;
         }
 
-        public IGroupsLinesWriter Create(long fileOffset = 0) =>
+        public IGroupsLinesOutput Create(long fileOffset = 0) =>
             new LinesWriter(
                 fileOffset,
                 _buffersPool,
@@ -35,7 +35,7 @@ namespace Bigsort.Implementation
                 _config);
 
         private class LinesWriter
-            : IGroupsLinesWriter
+            : IGroupsLinesOutput
         {
             private readonly IIoService _ioService;
             private readonly IBuffersPool _buffersPool;
@@ -79,7 +79,7 @@ namespace Bigsort.Implementation
                 return result;
             }
 
-            public void AddLine(ushort groupId,
+            public void ReleaseLine(ushort groupId,
                 byte[] buff, int offset, int length)
             {
                 var group = GetGroup(groupId);
@@ -87,7 +87,7 @@ namespace Bigsort.Implementation
                 ++group.LinesCount;
             }
 
-            public void AddBrokenLine(ushort groupId,
+            public void ReleaseBrokenLine(ushort groupId,
                 byte[] leftBuff, int leftOffset, int leftLength,
                 byte[] rightBuff, int rightLength)
             {
@@ -97,7 +97,7 @@ namespace Bigsort.Implementation
                 ++group.LinesCount;
             }
 
-            public void FlushAndDispose(ManualResetEvent done)
+            public void FlushAndDispose(CountdownEvent done)
             {
                 var acc = new Group(_buffersPool.Get());
                 for (int i = 0; i < Consts.MaxGroupsCount; i++)
@@ -132,7 +132,7 @@ namespace Bigsort.Implementation
                     {
                         foreach (var writer in _writers)
                             writer.Dispose();
-                        done.Set();
+                        done.Signal();
                     }
                 });
             }

@@ -8,7 +8,7 @@ namespace Bigsort.Implementation
     {
         private readonly IIoService _ioService;
         private readonly IGrouper _grouper;
-        private readonly IGroupsLoaderMaker _groupsLoaderMaker;
+        private readonly IGroupsLoaderFactory _groupsLoaderFactory;
         private readonly IGroupSorter _groupSorter;
         private readonly ISortedGroupWriterFactory _groupWriterFactory;
         private readonly IConfig _config;
@@ -16,14 +16,14 @@ namespace Bigsort.Implementation
         public Sorter(
             IIoService ioService,
             IGrouper grouper,
-            IGroupsLoaderMaker groupsLoaderMaker, 
+            IGroupsLoaderFactory groupsLoaderFactory, 
             IGroupSorter groupSorter, 
             ISortedGroupWriterFactory groupWriterFactory, 
             IConfig config)
         {
             _ioService = ioService;
             _grouper = grouper;
-            _groupsLoaderMaker = groupsLoaderMaker;
+            _groupsLoaderFactory = groupsLoaderFactory;
             _groupSorter = groupSorter;
             _groupWriterFactory = groupWriterFactory;
             _config = config;
@@ -34,14 +34,14 @@ namespace Bigsort.Implementation
             var fileLength = _ioService.SizeOfFile(_config.InputFilePath);
             _ioService.CreateFile(_config.GroupsFilePath, fileLength);
 
-            var groupsInfo = _grouper.SplitToGroups();
+            var groupsInfo = _grouper.SeparateInputToGroups();
             var positions = new long[Consts.MaxGroupsCount];
             var groups = new IGroup[Consts.MaxGroupsCount];
 
             _ioService.CreateFile(_config.OutputFilePath, fileLength);
 
             using (var groupsWriter = _groupWriterFactory.Create())
-            using (var groupsLoader = _groupsLoaderMaker.Make(groupsInfo, groups))
+            using (var groupsLoader = _groupsLoaderFactory.Create(groupsInfo, groups))
             {
                 var outputPosition = 0L;
                 var loadedGroupsRange = groupsLoader.LoadNextGroups();

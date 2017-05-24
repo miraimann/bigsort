@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using Bigsort.Contracts;
+﻿using Bigsort.Contracts;
 
 namespace Bigsort.Implementation
 {

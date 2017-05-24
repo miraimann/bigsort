@@ -25,31 +25,22 @@ namespace Bigsort.Implementation
             _usingBufferLength = config.UsingBufferLength;
         }
 
-        public GroupInfo[] SplitToGroups()
+        public GroupInfo[] SeparateInputToGroups()
         {
-            var engines = _ios
-                .Select(io => new Engine(_tasksQueue, io, _usingBufferLength))
-                .ToArray();
-            
-            var doneEvents = Enumerable
-                .Range(0, engines.Length)
-                .Select(_ => new ManualResetEvent(false))
-                .ToArray();
+            var enginesCount = _ios.Count;
+            var done = new CountdownEvent(enginesCount);
 
-            for (int i = 0; i < engines.Length; i++)
+            for (int i = 0; i < enginesCount; i++)
             {
-                var j = i;
-                _tasksQueue.Enqueue(() =>
-                        engines[j].Run(doneEvents[j]));
+                var engine = new Engine(_tasksQueue, _ios[i], _usingBufferLength);
+                _tasksQueue.Enqueue(() => engine.Run(done));
             }
 
-            WaitHandle.WaitAll(doneEvents);
-
-            var summary = new GroupInfo[engines.Length][];
-            for (int i = 0; i < engines.Length; i++)
-                summary[i] = _ios[i].Output.SelectSummaryGroupsInfo();
-
-            return _groupsInfoMarger.Marge(summary);
+            done.Wait();
+            
+            return _groupsInfoMarger.Marge(
+                _ios.Select(io => io.Output.SelectSummaryGroupsInfo())
+                    .ToArray());
         }
 
         private class Engine
@@ -76,7 +67,7 @@ namespace Bigsort.Implementation
                 _usingBufferLength = usingBufferLength;
             }
 
-            public void Run(ManualResetEvent done)
+            public void Run(CountdownEvent done)
             {
                 Handle<byte[]> firstBufferHandle;
                 var firstBufferLength = _io.Input.GetFirstBuffer(out firstBufferHandle);
@@ -285,7 +276,7 @@ namespace Bigsort.Implementation
                                     previousBuff[lineStart + 1] = (byte) digitsCount;
                                 else currentBuff[0] = (byte) digitsCount;
 
-                                _io.Output.AddBrokenLine(id,
+                                _io.Output.ReleaseBrokenLine(id,
                                     previousBuff, lineStart, lineLength,
                                     currentBuff, i);
                             }
@@ -293,7 +284,7 @@ namespace Bigsort.Implementation
                             {
                                 currentBuff[lineStart] = (byte) lettersCount;
                                 currentBuff[lineStart + 1] = (byte) digitsCount;
-                                _io.Output.AddLine(id, currentBuff, lineStart, lineLength);
+                                _io.Output.ReleaseLine(id, currentBuff, lineStart, lineLength);
                             }
 
                             lettersCount = 0;
@@ -345,7 +336,7 @@ namespace Bigsort.Implementation
                     Iterator,
                     Anchor;
 
-                public ManualResetEvent Done;
+                public CountdownEvent Done;
             }
 
             private enum Stage
